@@ -737,8 +737,19 @@ function playSticker(id) {
   clearPlaying();
   playingId = id;
   audio.src = `/media/${id}.ogg`;
-  audio.play().catch(() => toast('O navegador não conseguiu tocar o áudio.', 'err'));
   el?.classList.add('playing');
+  // A animação fica em loop o tempo todo; ao tocar, ela precisa recomeçar do 1º quadro junto com o som
+  // (senão a imagem aparece num ponto qualquer e parece que imagem e som são de trechos diferentes).
+  const imgs = $$(`img[src*="/media/${id}.webp"]`);
+  const go = () => audio.play().catch(() => toast('O navegador não conseguiu tocar o áudio.', 'err'));
+  if (!imgs.length) go();
+  else {
+    let started = false;
+    const start = () => { if (!started) { started = true; go(); } };
+    const fresh = `/media/${id}.webp?play=${Date.now()}`;
+    imgs.forEach((img) => { img.addEventListener('load', start, { once: true }); img.src = fresh; });
+    setTimeout(start, 500); // se a imagem demorar, não segura o som
+  }
   fetch(`/api/stickers/${id}/play`, { method: 'POST' }).catch(() => {});
 }
 function clearPlaying() { $$('.sticker.playing').forEach((x) => { x.classList.remove('playing'); $('.prog', x).style.clipPath = ''; }); playingId = null; }

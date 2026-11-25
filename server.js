@@ -440,7 +440,7 @@ app.get('/s/:id', (req, res) => {
 <p>${s.duration.toFixed(1)}s</p><a class="dl" href="/media/${s.id}.ogg?download=1">⬇ Baixar áudio</a></main>
 <audio id="a" src="/media/${s.id}.ogg" preload="auto"></audio>
 <script>const a=document.getElementById('a'),p=document.getElementById('prog'),b=document.getElementById('play');
-b.onclick=()=>{a.currentTime=0;a.play();b.classList.add('on')};a.onended=()=>b.classList.remove('on');
+b.onclick=()=>{a.pause();a.currentTime=0;b.classList.add('on');const i=b.querySelector('img');if(!i)return a.play();let s=0;const go=()=>{if(!s){s=1;a.play()}};i.addEventListener('load',go,{once:true});i.src=i.src.split('?')[0]+'?play='+Date.now();setTimeout(go,500)};a.onended=()=>b.classList.remove('on');
 (function f(){p.style.clipPath='inset(0 '+(100-(a.currentTime/(a.duration||1))*100)+'% 0 0)';requestAnimationFrame(f)})();</script>
 </body></html>`);
 });

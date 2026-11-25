@@ -133,6 +133,12 @@ Porque o WhatsApp lançou esse formato em 24/11/2026 e a gente montou a mensagem
 </details>
 
 <details>
+<summary><b>No WhatsApp Web a imagem e o som da figurinha saem fora de sincronia!</b></summary>
+
+Culpa do WhatsApp Web, juro. Lá a animação fica rodando em loop sozinha e o som entra em qualquer ponto dela. No celular fica certinho. A gente mediu: som e imagem saem do mesmo milésimo de segundo. 🔬
+</details>
+
+<details>
 <summary><b>Meu número pode ser banido?</b></summary>
 
 A conexão não é oficial. Mandar para você mesmo é tranquilo. Disparar 400 figurinhas para 80 grupos em 3 minutos **não é**. O app até espaça os envios de pacotes, mas bom senso não vem no `npm install`.

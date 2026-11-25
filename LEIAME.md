@@ -307,6 +307,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | *"Formato não suportado"* ao enviar arquivo | Use vídeo (mp4, mov, webm, mkv…) ou áudio (mp3, m4a, wav, ogg…) |
 | O app travou ou ficou estranho | Bandeja (botão direito) → **Reiniciar**, ou ⚙ → Aplicativo → Reiniciar |
 | *"Esse vídeo não pode tocar fora do YouTube"* | O dono bloqueou o vídeo incorporado. Ainda dá para criar: digite os tempos de início e fim |
+| No WhatsApp Web (PC), a figurinha com som parece fora de sincronia | É coisa do WhatsApp Web: a animação fica em loop por conta própria e o som entra em qualquer ponto dela. No celular toca certinho. A figurinha em si está sincronizada |
 | Figurinha com som chega "não suportada" | Formato experimental, veja a [seção 6](#6-figurinha-com-som) |
 | Não aparecem meus contatos | Enviar para → Contatos → **Buscar meus contatos no WhatsApp**, ou use a aba **Número** |
 | WhatsApp desconectou sozinho | Você encerrou a sessão no celular (Aparelhos conectados). Conecte de novo pelo status |
