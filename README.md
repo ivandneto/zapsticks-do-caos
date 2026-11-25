@@ -16,6 +16,12 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 ![Feito com](https://img.shields.io/badge/feito%20com-ffmpeg%20%2B%20caos-8a2be2)
 ![Funciona na minha máquina](https://img.shields.io/badge/funciona-na%20minha%20m%C3%A1quina%E2%84%A2-orange)
 
+<br>
+
+[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.0.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+
+<sub>Sem instalar nada: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
+
 </div>
 
 ---
@@ -69,7 +75,7 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 
 ### Jeito preguiçoso (Windows)
 
-1. Baixe o `.zip` em **[Releases](../../releases)** (se tiver um lá 👀) ou gere com `npm run build:exe`.
+1. Baixe o `.zip` em **[Releases](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)**. Tem um lá agora, juro. Até guia para leigos tem. 👀 (Ou gere você mesmo com `npm run build:exe`, se gosta de sofrer.)
 2. Descompacte e dê dois cliques no **`Audio Sticks.exe`**.
 3. Se o Windows reclamar ("O Windows protegeu o computador"): **Mais informações → Executar assim mesmo**. Ele só está com ciúmes porque o app não tem assinatura digital paga.
 
