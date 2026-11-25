@@ -38,12 +38,19 @@
   <main class="layout">
     <!-- ESTÚDIO -->
     <section class="studio panel">
-      <div class="step-title"><span class="num">1</span><h2>Cole um link ou envie um arquivo</h2></div>
+      <nav class="mode-tabs" id="modeTabs" aria-label="O que criar">
+        <button type="button" data-mode="audio" class="on"><span class="mt-ico">🎙️</span><span class="mt-txt"><b>Audio Stick</b><small>som + figurinha</small></span></button>
+        <button type="button" data-mode="sticker"><span class="mt-ico">🖼️</span><span class="mt-txt"><b>Stick</b><small>só a figurinha</small></span></button>
+        <button type="button" data-mode="combo"><span class="mt-ico">🌀</span><span class="mt-txt"><b>Combinação Caótica</b><small>imagem de uma + som de outra</small></span></button>
+      </nav>
+
+      <div id="studioMain">
+      <div class="step-title"><span class="num">1</span><h2 id="step1Title">Cole um link ou envie um arquivo</h2></div>
       <form id="urlForm" class="url-row" autocomplete="off">
         <input id="url" type="text" inputmode="url" placeholder="YouTube, Instagram, TikTok, X, Facebook…" aria-label="Link do vídeo">
         <button type="submit" class="btn primary">Carregar</button>
         <button type="button" class="btn" id="fileBtn" title="Usar um vídeo ou áudio do seu computador">📁 <span>Arquivo</span></button>
-        <input id="fileIn" type="file" accept="video/*,audio/*,.mkv,.mov,.flac" hidden>
+        <input id="fileIn" type="file" accept="video/*,audio/*,image/*,.gif,.mkv,.mov,.flac" hidden>
       </form>
       <p class="hint" id="urlHint">O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar um vídeo ou áudio</b> para cá.</p>
 
@@ -52,11 +59,13 @@
           <div id="ytBox"><div id="player"></div></div>
           <video id="html5" playsinline controls preload="auto" hidden></video>
           <div id="audioOnly" class="audio-only" hidden><span>🎵</span>Arquivo só de áudio</div>
+          <img id="imgView" class="img-view" alt="Imagem carregada" hidden>
         </div>
         <div id="embedError" class="embed-error" hidden>
           Esse vídeo não pode tocar fora do YouTube. Você ainda pode recortar digitando os tempos de início e fim abaixo.
         </div>
 
+        <div id="timeline">
         <div class="overview-row">
           <span class="time mono" id="curTime">0:00.0</span>
           <div id="overview" class="overview" title="Clique para ir até esse ponto do vídeo">
@@ -102,8 +111,9 @@
           <label class="switch"><input type="checkbox" id="loop"><span></span> repetir</label>
           <span class="keys"><kbd>espaço</kbd> ouvir · <kbd>←</kbd><kbd>→</kbd> 1s · <kbd>shift</kbd> 0,1s</span>
         </div>
+        </div>
 
-        <div class="step-title"><span class="num">3</span><h2>Dê a cara da figurinha</h2></div>
+        <div class="step-title"><span class="num" id="step3Num">3</span><h2>Dê a cara da figurinha</h2></div>
         <div class="details">
           <div class="emoji-pick">
             <div class="prev-col">
@@ -112,15 +122,22 @@
                 <span id="emojiNow" class="prev-emoji">🔊</span>
               </button>
               <span id="prevCaption" class="prev-caption"></span>
+              <button type="button" id="bgBtn" class="btn small bg-btn" hidden title="Remove o fundo com IA (pessoas automático, ou toque no que manter)">✂️ Tirar o fundo</button>
             </div>
             <div id="emojiGrid" class="emoji-grid"></div>
           </div>
           <label class="field"><span>Nome</span><input id="title" maxlength="80" placeholder="ex.: risada do Faustão"></label>
           <label class="field"><span>Tags <em>(separe por vírgula)</em></span><input id="tags" maxlength="120" placeholder="meme, risada, futebol"></label>
           <div class="field"><span>Pacotes <em>(opcional)</em></span><div id="createPacks" class="pack-pick"></div></div>
+          <div class="field" id="fitField" hidden><span>Enquadramento</span>
+            <div class="seg fit-seg" id="fitSeg">
+              <button type="button" data-fit="crop" class="on">◼ Recortar quadrado</button>
+              <button type="button" data-fit="pad">⬚ Inteiro, fundo transparente</button>
+            </div>
+          </div>
         </div>
 
-        <details class="opts">
+        <details class="opts" id="soundOpts">
           <summary>Ajustes de som</summary>
           <div class="chips">
             <label class="chip"><input type="checkbox" id="optNorm" checked><span>Volume equalizado</span></label>
@@ -154,6 +171,33 @@
           <li><b>Marque</b> o começo e o fim do trecho</li>
           <li><b>Mande</b> pro seu WhatsApp como áudio</li>
         </ol>
+      </div>
+      </div><!-- /studioMain -->
+
+      <!-- COMBINAÇÃO CAÓTICA -->
+      <div id="comboPanel" class="combo" hidden>
+        <p class="combo-intro">Junte a <b>imagem</b> de uma figurinha com o <b>som</b> de outra. Cada peça pode vir <b>da sua coleção</b> ou ser <b>criada agora</b>.</p>
+        <div class="combo-grid">
+          <div class="slot" id="slotVisual" data-slot="visual"></div>
+          <div class="combo-plus" aria-hidden="true">+</div>
+          <div class="slot" id="slotAudio" data-slot="audio"></div>
+        </div>
+        <div class="combo-out" id="comboOut" hidden>
+          <div class="step-title"><span class="num">=</span><h2>Sua combinação</h2></div>
+          <div class="combo-result">
+            <button type="button" class="combo-prev" id="comboPrev" title="Ouvir a combinação">
+              <img id="comboImg" alt="Prévia da combinação"><span class="combo-play">▶</span>
+            </button>
+            <div class="combo-fields">
+              <label class="field"><span>Nome</span><input id="comboTitle" maxlength="80" placeholder="ex.: gato que grita"></label>
+              <label class="field"><span>Tags <em>(opcional)</em></span><input id="comboTags" maxlength="120" placeholder="caos, meme"></label>
+              <div class="field"><span>Pacotes <em>(opcional)</em></span><div id="comboPacks" class="pack-pick"></div></div>
+              <label class="switch combo-clean" id="comboDeleteRow" hidden><input type="checkbox" id="comboDelete" checked><span></span> <i id="comboDeleteTxt" style="font-style:normal">Apagar as peças criadas só para esta combinação</i></label>
+            </div>
+          </div>
+          <button id="comboBtn" class="btn create">🌀 Criar combinação caótica</button>
+        </div>
+        <input id="comboFile" type="file" accept="image/*,.gif" hidden>
       </div>
     </section>
 

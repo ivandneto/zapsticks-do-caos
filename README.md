@@ -18,7 +18,7 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 
 <br>
 
-[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.0.1%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.1.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
 
 <sub>Sem instalar nada: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
 
@@ -60,9 +60,12 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 | | O quê | Detalhe |
 |---|---|---|
 | 🔗 | **Cola o link e pronto** | YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e centenas de outros: o app baixa sozinho. |
-| 📁 | **Arquivo do PC** | Arrasta o vídeo ou áudio para a tela. Até aquele `.mov` de 2014. |
+| 📁 | **Arquivo do PC** | Arrasta o vídeo, áudio, **foto ou GIF** para a tela. Até aquele `.mov` de 2014. |
+| 🖼️ | **Stick** | Só a figurinha, sem som: de foto, GIF ou trecho de vídeo. Recortada em quadrado ou inteira com fundo transparente. |
+| 🌀 | **Combinação Caótica** | A cara de uma figurinha com a voz de outra. O gato com a risada do Faustão? Pode. Da coleção ou criado na hora, e as peças temporárias se apagam sozinhas. |
 | ✂️ | **Corte cirúrgico** | Régua com zoom, alças arrastáveis, ajuste de 0,1s. Precisão de neurocirurgião, propósito de meme. |
-| 🎞️ | **Figurinha animada com som** | Trechos de até 10s viram figurinha 512×512 com cantinho arredondado. *(experimental: o WhatsApp lançou isso ontem, literalmente)* |
+| 🎞️ | **Figurinha com som** | Até 5s: animada com som. De 5 a 10s: parada com som (são as regras do WhatsApp, não nossas). *(experimental: o WhatsApp lançou isso ontem, literalmente)* |
+| ✂️ | **Tirar o fundo** | Igual ao WhatsApp: IA recorta a pessoa sozinha (até em **vídeo e GIF**, quadro a quadro), ou você toca no que quer manter. Pincel, sensibilidade e borda branca. Roda no seu navegador, nada vai para a nuvem. |
 | 🎙️ | **Áudio com ondinha** | Chega como se você mesmo tivesse gravado. Ninguém precisa saber. |
 | 📦 | **Pacotes** | Organize por categoria: 😂 Memes, ⚽ Futebol, 🙄 Indiretas pro grupo. Manda o pacote inteiro de uma vez. |
 | 🎯 | **Enviar para** | Você, um contato, um grupo ou um número digitado. Mira e dispara. |
@@ -80,6 +83,8 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 3. Se o Windows reclamar ("O Windows protegeu o computador"): **Mais informações → Executar assim mesmo**. Ele só está com ciúmes porque o app não tem assinatura digital paga.
 
 > Na primeira vez ele baixa uns 200 MB de ferramentas (yt-dlp, ffmpeg…). Vai buscar um café. ☕
+>
+> E relaxa: o cache de vídeos se limpa sozinho. O app não vira um lixão no seu HD. 🧹
 
 ### Jeito dev
 
@@ -136,6 +141,12 @@ Porque o WhatsApp lançou esse formato em 24/11/2026 e a gente montou a mensagem
 <summary><b>No WhatsApp Web a imagem e o som da figurinha saem fora de sincronia!</b></summary>
 
 Culpa do WhatsApp Web, juro. Lá a animação fica rodando em loop sozinha e o som entra em qualquer ponto dela. No celular fica certinho. A gente mediu: som e imagem saem do mesmo milésimo de segundo. 🔬
+</details>
+
+<details>
+<summary><b>O recorte de fundo é bom mesmo?</b></summary>
+
+Para pessoas, é bem bom. Para cabelo arrepiado, é "bem bom" com aspas. Tem pincel para os retoques. E sim, ele recorta o seu amigo **dançando no vídeo**, quadro a quadro. Use com responsabilidade. 💃
 </details>
 
 <details>

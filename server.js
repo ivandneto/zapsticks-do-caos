@@ -6,13 +6,13 @@ import path from 'node:path';
 import os from 'node:os';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { ROOT, DATA_DIR, AUDIO_DIR, TMP_DIR, IS_EXE, PORTABLE } from './lib/paths.js';
+import { ROOT, DATA_DIR, AUDIO_DIR, TMP_DIR, CACHE_DIR, IS_EXE, PORTABLE } from './lib/paths.js';
 import { startTray, errorBox } from './lib/tray.js';
 import { readConfig, saveConfig, validPort, DEFAULT_PORT } from './lib/config.js';
 import pkg from './package.json' with { type: 'json' };
 import { ensureTools, autoUpdateYtdlp } from './lib/tools.js';
 import * as db from './lib/db.js';
-import { parseVideoId, getSourceAudio, getVideoSection, getFrame, makeTrayIcon, makeAnimatedWebp, makeSquareMp4, cutToOgg, analyze, checkTools } from './lib/audio.js';
+import { parseVideoId, getSourceAudio, getVideoSection, getFrame, makeTrayIcon, makeAnimatedWebp, makeSquareMp4, makeStaticSticker, makeSilentMp4, makeComboMp4, extractFrames, makeAnimatedWebpFromFrames, makeSilentMp4FromFrames, cutToOgg, analyze, checkTools } from './lib/audio.js';
 import * as wa from './lib/whatsapp.js';
 import * as sources from './lib/sources.js';
 
@@ -38,8 +38,12 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(ROOT, 'public')));
 
-// Cada figurinha tem até 3 arquivos: <id>.ogg (áudio), <id>.webp (figurinha animada) e <id>.mp4 (vídeo quadrado com som)
-const KINDS = { ogg: 'audio/ogg', webp: 'image/webp', mp4: 'video/mp4' };
+// Arquivos de cada figurinha: <id>.ogg (som), <id>.webp (figurinha), <id>.mp4 (vídeo quadrado; mudo nos Sticks)
+// e <id>.png (molde de figurinha parada, feita de foto — base para combinar)
+const KINDS = { ogg: 'audio/ogg', webp: 'image/webp', mp4: 'video/mp4', png: 'image/png' };
+// Limites do WhatsApp: figurinha animada até 10 s; figurinha com som até 10 s de áudio se for PARADA e 5 s se for ANIMADA
+const STICK_MAX = 10;
+const ANIM_SOUND_MAX = 5;
 const mediaPath = (id, ext = 'ogg') => path.join(AUDIO_DIR, `${id}.${ext}`);
 const audioPath = (id) => mediaPath(id, 'ogg');
 const validId = (id) => /^[\w-]{4,20}$/.test(id);
@@ -48,7 +52,7 @@ const SOUND_STICKER_MAX = 10; // limite de áudio da figurinha com som do WhatsA
 
 // --- Arquivos das figurinhas ---
 app.get('/media/:file', (req, res) => {
-  const m = req.params.file.match(/^([\w-]{4,20})\.(ogg|webp|mp4)$/);
+  const m = req.params.file.match(/^([\w-]{4,20})\.(ogg|webp|mp4|png)$/);
   if (!m || !fs.existsSync(mediaPath(m[1], m[2]))) return res.sendStatus(404);
   res.type(KINDS[m[2]]);
   if (req.query.download) {
@@ -70,15 +74,22 @@ async function videoSegmentFor(s) {
 }
 
 /** Gera a figurinha animada (.webp) e o vídeo quadrado (.mp4) a partir do trecho do vídeo. */
+// Até 5 s: figurinha ANIMADA com som. De 5 a 10 s: figurinha PARADA (1º quadro) com som — é o que o WhatsApp aceita.
 async function buildVisual(s) {
   const video = await videoSegmentFor(s);
+  const animated = s.duration <= ANIM_SOUND_MAX + 0.05;
   try {
-    await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration);
-    await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
+    if (animated) {
+      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration);
+      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
+    } else {
+      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'));
+      await makeComboMp4(mediaPath(s.id, 'png'), audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
+    }
   } finally {
     fs.rmSync(video, { force: true });
   }
-  return db.updateSticker(s.id, { visual: true });
+  return db.updateSticker(s.id, { visual: true, animated });
 }
 
 const friendlyError = (err) => /Sign in|bot/i.test(err.message) ? 'O YouTube pediu verificação para este vídeo. Tente outro ou atualize o yt-dlp (npm run setup).'
@@ -89,13 +100,17 @@ const friendlyError = (err) => /Sign in|bot/i.test(err.message) ? 'O YouTube ped
 const jobs = new Map();
 
 // Origem: { url } do YouTube, ou { sourceId } de um link de outro site / arquivo já carregado (POST /api/sources…)
+// mode: 'audio' (Audio Stick, padrão) ou 'sticker' (Stick: só a figurinha, sem som)
 app.post('/api/stickers', (req, res) => {
+  if (req.body?.mode === 'sticker') return createStick(req, res);
   const { url, sourceId, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual } = req.body || {};
   const videoId = sourceId ? null : parseVideoId(url);
   const source = sourceId ? sources.getSource(sourceId) : null;
   const s = Number(start), e = Number(end);
   if (sourceId && !source) return fail(res, 400, 'A mídia carregada expirou. Carregue o link ou o arquivo de novo.');
   if (!sourceId && !videoId) return fail(res, 400, 'Link inválido.');
+  if (source && (source.media === 'image' || source.media === 'gif')) return fail(res, 400, 'Foto e GIF não têm som. Use a aba “Stick” para criar só a figurinha, ou a “Combinação Caótica” para juntar com um som.');
+  if (source && !source.hasAudio) return fail(res, 400, 'Essa mídia não tem som. Use a aba “Stick” para criar só a figurinha.');
   if (source && e > source.duration + 0.5) return fail(res, 400, 'O fim do trecho passa do fim da mídia.');
   if (!Number.isFinite(s) || !Number.isFinite(e) || s < 0 || e <= s) return fail(res, 400, 'Marque o início e o fim do trecho.');
   if (e - s > MAX_SECONDS) return fail(res, 400, `O trecho pode ter no máximo ${MAX_SECONDS} segundos.`);
@@ -144,6 +159,188 @@ app.post('/api/stickers', (req, res) => {
   });
 });
 
+/** Stick: figurinha sem som, de um trecho de vídeo (até 10 s), de um GIF ou de uma foto. */
+function createStick(req, res) {
+  const { url, sourceId, start, end, title, emoji, tags, videoTitle, fit } = req.body || {};
+  const fitMode = fit === 'pad' ? 'pad' : 'crop';
+  const videoId = sourceId ? null : parseVideoId(url);
+  const source = sourceId ? sources.getSource(sourceId) : null;
+  if (sourceId && !source) return fail(res, 400, 'A mídia carregada expirou. Carregue o link ou o arquivo de novo.');
+  if (!sourceId && !videoId) return fail(res, 400, 'Link inválido.');
+  if (source && !source.hasVideo) return fail(res, 400, 'Essa mídia é só áudio: não tem imagem para virar figurinha.');
+  const still = source?.media === 'image';
+  let s = 0, e = 0;
+  if (!still) {
+    s = Number(start); e = Number(end);
+    if (!Number.isFinite(s) || !Number.isFinite(e) || s < 0 || e <= s) return fail(res, 400, 'Marque o início e o fim do trecho.');
+    if (e - s > STICK_MAX + 0.05) return fail(res, 400, `A figurinha animada pode ter no máximo ${STICK_MAX} segundos.`);
+    if (e - s < 0.3) return fail(res, 400, 'O trecho está curto demais.');
+  }
+  const job = { id: randomUUID(), step: 'visual', error: null, sticker: null };
+  jobs.set(job.id, job);
+  setTimeout(() => jobs.delete(job.id), 10 * 60 * 1000);
+  res.status(202).json({ jobId: job.id });
+
+  (async () => {
+    const id = db.newId();
+    if (still) {
+      await makeStaticSticker(source.file, mediaPath(id, 'webp'), mediaPath(id, 'png'), { fit: fitMode });
+    } else {
+      // GIF a partir do começo vai direto (mantém a transparência); o resto é recortado antes
+      const direct = source?.media === 'gif' && s < 0.05;
+      const video = direct ? source.file : videoId ? await getVideoSection(videoId, s, e) : await sources.cutVideoSegment(source.file, s, e, TMP_DIR);
+      try {
+        await makeAnimatedWebp(video, mediaPath(id, 'webp'), e - s, { fit: fitMode });
+        await makeSilentMp4(video, mediaPath(id, 'mp4'), e - s, { fit: fitMode });
+      } finally { if (!direct) fs.rmSync(video, { force: true }); }
+    }
+    job.sticker = db.insertSticker({
+      id, kind: 'sticker', animated: !still, visual: true, waveform: [], duration: still ? 0 : e - s, start: s, end: e,
+      title: String(title || videoTitle || source?.title || 'Figurinha').slice(0, 80), emoji: String(emoji || '🖼️').slice(0, 8), tags,
+      videoId, videoTitle: String(videoTitle || source?.title || '').slice(0, 200) || null,
+      sourceKind: source ? source.kind : 'youtube', sourceUrl: source ? source.url : null, sourceId: source?.id ?? null, sourceSite: source ? source.site : 'YouTube',
+    });
+    job.step = 'done';
+  })().catch((err) => {
+    console.error('[stick]', err.message);
+    job.step = 'error';
+    job.error = friendlyError(err);
+  });
+}
+
+// --- Combinação Caótica: a IMAGEM de uma figurinha + o SOM de outra ---
+function removeSticker(id) {
+  db.deleteSticker(id);
+  db.removeStickerFromPacks(id);
+  for (const ext of Object.keys(KINDS)) fs.rmSync(mediaPath(id, ext), { force: true });
+}
+
+app.post('/api/combos', async (req, res) => {
+  const { visualId, audioId, title, emoji, tags, deleteParts } = req.body || {};
+  const vis = db.getSticker(String(visualId || ''));
+  const aud = db.getSticker(String(audioId || ''));
+  if (!vis || !vis.visual || !fs.existsSync(mediaPath(vis.id, 'webp'))) return fail(res, 400, 'Escolha uma figurinha com imagem.');
+  if (!aud || !aud.hasAudio || !fs.existsSync(audioPath(aud.id))) return fail(res, 400, 'Escolha uma figurinha com som.');
+  const soundMax = vis.animated ? ANIM_SOUND_MAX : SOUND_STICKER_MAX;
+  if (aud.duration > soundMax + 0.05) {
+    return fail(res, 400, vis.animated
+      ? `Com imagem animada, o som pode ter até ${ANIM_SOUND_MAX}s (esse tem ${aud.duration.toFixed(1)}s). Escolha um som mais curto ou uma imagem parada (foto), que aceita até ${SOUND_STICKER_MAX}s.`
+      : `A figurinha com som aceita até ${SOUND_STICKER_MAX}s de áudio, e esse som tem ${aud.duration.toFixed(1)}s. Crie um trecho menor no Audio Stick.`);
+  }
+  // molde da imagem: .png (foto) ou o .mp4 da figurinha (só a parte de vídeo é usada)
+  const master = !vis.animated && fs.existsSync(mediaPath(vis.id, 'png')) ? mediaPath(vis.id, 'png') : mediaPath(vis.id, 'mp4');
+  if (!fs.existsSync(master)) return fail(res, 400, 'Essa figurinha não tem o vídeo de base (veio de um pacote antigo). Escolha outra imagem.');
+  const id = db.newId();
+  try {
+    fs.copyFileSync(mediaPath(vis.id, 'webp'), mediaPath(id, 'webp'));
+    fs.copyFileSync(audioPath(aud.id), audioPath(id));
+    if (master.endsWith('.png')) fs.copyFileSync(master, mediaPath(id, 'png'));
+    await makeComboMp4(master, audioPath(id), mediaPath(id, 'mp4'), aud.duration);
+  } catch (err) {
+    for (const ext of Object.keys(KINDS)) fs.rmSync(mediaPath(id, ext), { force: true });
+    console.error('[combo]', err.message);
+    return fail(res, 500, `Não consegui combinar: ${err.message}`);
+  }
+  const sticker = db.insertSticker({
+    id, kind: 'combo', visual: true, animated: vis.animated, duration: aud.duration, waveform: aud.waveform,
+    title: String(title || `${vis.title} + ${aud.title}`).slice(0, 80), emoji: String(emoji || vis.emoji || '🌀').slice(0, 8), tags,
+    videoTitle: `Imagem: ${vis.title} · Som: ${aud.title}`.slice(0, 200), start: aud.start, end: aud.end,
+    sourceKind: aud.sourceKind, sourceUrl: aud.sourceUrl, sourceId: aud.sourceId, sourceSite: aud.sourceSite,
+  });
+  // peças que podem ir embora (evita acumular repetidas): deleteIds (só as criadas para a combinação) ou deleteParts (as duas)
+  const wanted = Array.isArray(req.body?.deleteIds) ? req.body.deleteIds.map(String) : deleteParts ? [vis.id, aud.id] : [];
+  const deleted = [];
+  for (const p of [vis, aud]) if (wanted.includes(p.id) && p.id !== id && !deleted.includes(p.id)) { removeSticker(p.id); deleted.push(p.id); }
+  res.json({ sticker, deleted });
+});
+
+// --- Tirar o fundo de VÍDEO/GIF: o servidor separa os quadros, o navegador recorta (IA) e devolve; aqui vira figurinha ---
+const FRAMES_FPS = 12;
+const framesDir = (token) => path.join(TMP_DIR, `frames-${token}`);
+const validToken = (t) => /^[a-f0-9-]{36}$/.test(String(t || ''));
+
+app.post('/api/frames', async (req, res) => {
+  const { sourceId, url, start, end } = req.body || {};
+  const source = sourceId ? sources.getSource(sourceId) : null;
+  const videoId = sourceId ? null : parseVideoId(url);
+  if (sourceId && !source) return fail(res, 400, 'A mídia carregada expirou. Carregue de novo.');
+  if (!source && !videoId) return fail(res, 400, 'Carregue um vídeo ou GIF primeiro.');
+  if (source && (!source.hasVideo || source.media === 'image')) return fail(res, 400, 'Para foto, o recorte é feito direto no editor.');
+  const s = Math.max(0, Number(start) || 0), e = Number(end) || 0;
+  if (e - s < 0.3) return fail(res, 400, 'Marque um trecho de vídeo.');
+  if (e - s > STICK_MAX + 0.05) return fail(res, 400, `Para tirar o fundo, use um trecho de até ${STICK_MAX}s.`);
+  const token = randomUUID();
+  let temp = null;
+  try {
+    let input, ss = s;
+    if (videoId) { input = temp = await getVideoSection(videoId, s, e); ss = 0; }
+    else input = source.file;
+    const count = await extractFrames(input, path.join(framesDir(token), 'in'), { ss, duration: e - s, fps: FRAMES_FPS });
+    if (!count) throw new Error('não saiu nenhum quadro');
+    res.json({ token, count, fps: FRAMES_FPS });
+  } catch (err) {
+    fs.rmSync(framesDir(token), { recursive: true, force: true });
+    console.error('[quadros]', err.message);
+    fail(res, 500, `Não consegui separar os quadros: ${err.message}`);
+  } finally { if (temp) fs.rmSync(temp, { force: true }); }
+});
+
+app.get('/api/frames/:token/:n', (req, res) => {
+  if (!validToken(req.params.token) || !/^\d{4}\.png$/.test(req.params.n)) return res.sendStatus(400);
+  const f = path.join(framesDir(req.params.token), 'in', req.params.n);
+  fs.existsSync(f) ? res.sendFile(f) : res.sendStatus(404);
+});
+
+const frameUpload = multer({ dest: TMP_DIR, limits: { fileSize: 8 * 1024 * 1024, files: 200 } });
+app.post('/api/frames/:token/result', frameUpload.array('frames', 200), (req, res) => {
+  const token = req.params.token;
+  const files = req.files || [];
+  const cleanupUploads = () => files.forEach((f) => fs.rmSync(f.path, { force: true }));
+  if (!validToken(token) || !fs.existsSync(framesDir(token))) { cleanupUploads(); return fail(res, 400, 'Os quadros expiraram. Abra o editor de novo.'); }
+  if (!files.length) return fail(res, 400, 'Nenhum quadro recebido.');
+  const out = path.join(framesDir(token), 'out');
+  fs.mkdirSync(out, { recursive: true });
+  // a ordem vem do nome que a página dá (0001.png, 0002.png…)
+  files.sort((a, b) => a.originalname.localeCompare(b.originalname)).forEach((f, i) => fs.renameSync(f.path, path.join(out, `${String(i + 1).padStart(4, '0')}.png`)));
+  const { title, emoji, tags, sourceId, url, start, end, fps } = req.body || {};
+  const source = sourceId ? sources.getSource(sourceId) : null;
+  const videoId = sourceId ? null : parseVideoId(url);
+  const rate = Math.min(30, Math.max(4, Number(fps) || FRAMES_FPS));
+  const job = { id: randomUUID(), step: 'visual', error: null, sticker: null };
+  jobs.set(job.id, job);
+  setTimeout(() => jobs.delete(job.id), 10 * 60 * 1000);
+  res.status(202).json({ jobId: job.id });
+  (async () => {
+    const id = db.newId();
+    await makeAnimatedWebpFromFrames(out, rate, mediaPath(id, 'webp'));
+    await makeSilentMp4FromFrames(out, rate, mediaPath(id, 'mp4'));
+    const s = Number(start) || 0;
+    job.sticker = db.insertSticker({
+      id, kind: 'sticker', animated: true, visual: true, waveform: [], duration: files.length / rate, start: s, end: Number(end) || s + files.length / rate,
+      title: String(title || source?.title || 'Sem fundo').slice(0, 80), emoji: String(emoji || '✂️').slice(0, 8), tags,
+      videoId, videoTitle: source?.title || null,
+      sourceKind: source ? source.kind : videoId ? 'youtube' : null, sourceUrl: source?.url ?? null, sourceId: source?.id ?? null, sourceSite: source ? source.site : videoId ? 'YouTube' : null,
+    });
+    job.step = 'done';
+  })().catch((err) => {
+    console.error('[sem fundo]', err.message);
+    job.step = 'error';
+    job.error = `Não consegui montar a figurinha: ${err.message}`;
+  }).finally(() => fs.rmSync(framesDir(token), { recursive: true, force: true }));
+});
+
+/** Figurinha existente → origem editável (para tirar o fundo e criar uma CÓPIA; a original fica intacta). */
+app.post('/api/stickers/:id/as-source', async (req, res) => {
+  const s = db.getSticker(req.params.id);
+  if (!s || !s.visual) return fail(res, 404, 'Figurinha com imagem não encontrada.');
+  const master = !s.animated && fs.existsSync(mediaPath(s.id, 'png')) ? mediaPath(s.id, 'png') : fs.existsSync(mediaPath(s.id, 'mp4')) ? mediaPath(s.id, 'mp4') : null;
+  if (!master) return fail(res, 400, 'Essa figurinha não tem a imagem de base (veio de um pacote antigo).');
+  const tmp = path.join(TMP_DIR, `${randomUUID()}${path.extname(master)}`);
+  fs.copyFileSync(master, tmp);
+  try { res.json(await sources.addUpload(tmp, `${s.title}${path.extname(master)}`)); }
+  catch (err) { fail(res, 500, err.message); }
+});
+
 // --- Outras origens: link de qualquer site (yt-dlp) ou arquivo do PC ---
 app.post('/api/sources', (req, res) => {
   const url = String(req.body?.url || '').trim();
@@ -158,7 +355,7 @@ app.post('/api/sources', (req, res) => {
 
 const sourceUpload = multer({ dest: TMP_DIR, limits: { fileSize: 1024 * 1024 * 1024 } });
 app.post('/api/sources/upload', sourceUpload.single('file'), (req, res) => {
-  if (!req.file) return fail(res, 400, 'Escolha um arquivo de vídeo ou áudio.');
+  if (!req.file) return fail(res, 400, 'Escolha um arquivo de vídeo, áudio, foto ou GIF.');
   // o navegador manda o nome em UTF-8, mas o multer o lê como latin1; desfaz isso só se o resultado for UTF-8 válido
   const utf8 = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
   const name = utf8.includes('�') ? req.file.originalname : utf8;
@@ -185,7 +382,7 @@ app.get('/api/frame', async (req, res) => {
     if (req.query.src) {
       const src = sources.getSource(String(req.query.src));
       if (!src || !src.hasVideo) return res.sendStatus(404);
-      jpg = await sources.frameFromFile(src.file, t);
+      jpg = await sources.frameFromFile(src.file, t, { fit: req.query.fit === 'pad' ? 'pad' : 'crop' });
     } else {
       const videoId = parseVideoId(String(req.query.v || ''));
       if (!videoId) return res.sendStatus(400);
@@ -202,6 +399,7 @@ app.get('/api/frame', async (req, res) => {
 app.post('/api/stickers/:id/visual', (req, res) => {
   const s = db.getSticker(req.params.id);
   if (!s) return fail(res, 404, 'Figurinha não encontrada.');
+  if (s.kind !== 'audio') return fail(res, 400, 'Essa figurinha já tem imagem.');
   if (!s.videoId && !s.sourceId && !s.sourceUrl) return fail(res, 400, 'Essa figurinha não tem o vídeo de origem (veio de um pacote importado).');
   if (s.duration > SOUND_STICKER_MAX + 0.05) return fail(res, 400, `A figurinha com som aceita até ${SOUND_STICKER_MAX}s de áudio. Esta tem ${s.duration.toFixed(1)}s — crie um trecho menor.`);
   const job = { id: randomUUID(), step: 'visual', error: null, sticker: null };
@@ -255,6 +453,7 @@ const sendFail = (res, err, tag) => {
 app.post('/api/stickers/:id/send', async (req, res) => {
   const s = db.getSticker(req.params.id);
   if (!s) return fail(res, 404, 'Figurinha não encontrada.');
+  if (!s.hasAudio) return fail(res, 400, 'Essa figurinha não tem som. Use o botão de figurinha.');
   try {
     await sendOne(s, 'audio', req.body?.to);
     res.json({ ok: true });
@@ -262,11 +461,15 @@ app.post('/api/stickers/:id/send', async (req, res) => {
 });
 
 /** Envia uma figurinha: 'sound' (com som, experimental), 'plain' (sem som) ou 'audio' (mensagem de voz).
- *  Sem a animação, cai para mensagem de voz. */
+ *  Sem imagem, cai para mensagem de voz; sem som (Stick), vai como figurinha comum. */
 async function sendOne(s, mode = 'sound', to = 'me') {
   const hasVisual = s.visual && fs.existsSync(mediaPath(s.id, 'webp'));
-  if (mode === 'audio' || !hasVisual) await wa.sendVoice(to, fs.readFileSync(audioPath(s.id)), { seconds: s.duration, waveform: s.waveform });
-  else if (mode === 'plain') await wa.sendSticker(to, fs.readFileSync(mediaPath(s.id, 'webp')));
+  const webp = () => fs.readFileSync(mediaPath(s.id, 'webp'));
+  if (!s.hasAudio) {
+    if (!hasVisual) throw new Error('Essa figurinha perdeu a imagem.');
+    await wa.sendSticker(to, webp(), { animated: s.animated });
+  } else if (mode === 'audio' || !hasVisual) await wa.sendVoice(to, fs.readFileSync(audioPath(s.id)), { seconds: s.duration, waveform: s.waveform });
+  else if (mode === 'plain') await wa.sendSticker(to, webp(), { animated: s.animated });
   else await wa.sendSoundSticker(to, fs.readFileSync(mediaPath(s.id, 'webp')), fs.readFileSync(audioPath(s.id)), { seconds: s.duration });
   db.bump(s.id, 'sends');
 }
@@ -331,11 +534,12 @@ app.post('/api/packs/:id/send', (req, res) => {
 app.get('/api/packs/:id/wastickers', async (req, res) => {
   const pack = db.getPack(req.params.id);
   if (!pack) return fail(res, 404, 'Pacote não encontrado.');
-  const list = db.packStickers(pack.id).filter((s) => s.visual && fs.existsSync(mediaPath(s.id, 'webp'))).slice(0, 30);
+  // o WhatsApp não mistura figurinhas paradas e animadas no mesmo pacote: vão as animadas
+  const list = db.packStickers(pack.id).filter((s) => s.visual && s.animated && fs.existsSync(mediaPath(s.id, 'webp'))).slice(0, 30);
   if (list.length < 3) return fail(res, 400, `O WhatsApp exige pelo menos 3 figurinhas animadas no pacote (este tem ${list.length}).`);
   try {
     const tray = path.join(TMP_DIR, `tray-${randomUUID()}.png`);
-    await makeTrayIcon(mediaPath(list[0].id, 'mp4'), tray);
+    await makeTrayIcon(fs.existsSync(mediaPath(list[0].id, 'mp4')) ? mediaPath(list[0].id, 'mp4') : mediaPath(list[0].id, 'webp'), tray);
     const zip = new AdmZip();
     zip.addFile('title.txt', Buffer.from(pack.name));
     zip.addFile('author.txt', Buffer.from('Audio Sticks'));
@@ -375,15 +579,15 @@ app.post('/api/import', upload.single('pack'), (req, res) => {
     if (!['audio-sticks', 'sticks-audio'].includes(manifest?.app) || !Array.isArray(manifest.stickers)) return fail(res, 400, 'Esse arquivo não é um pacote de figurinhas.');
     let added = 0, skipped = 0;
     for (const s of manifest.stickers) {
-      const entry = validId(s.id) && zip.getEntry(`audio/${s.id}.ogg`);
+      const silent = s.kind === 'sticker';
+      const entry = validId(s.id) && zip.getEntry(`audio/${s.id}.${silent ? 'webp' : 'ogg'}`);
       if (!entry || db.getSticker(s.id) || !Array.isArray(s.waveform)) { skipped++; continue; }
-      fs.writeFileSync(audioPath(s.id), entry.getData());
-      let visual = true;
-      for (const ext of ['webp', 'mp4']) {
+      for (const ext of Object.keys(KINDS)) {
         const e = zip.getEntry(`audio/${s.id}.${ext}`);
-        if (e) fs.writeFileSync(mediaPath(s.id, ext), e.getData()); else visual = false;
+        if (e) fs.writeFileSync(mediaPath(s.id, ext), e.getData());
       }
-      db.insertSticker({ ...s, visual, waveform: s.waveform.slice(0, 64).map(Number), duration: Number(s.duration) || 1 });
+      const visual = fs.existsSync(mediaPath(s.id, 'webp'));
+      db.insertSticker({ ...s, visual, waveform: s.waveform.slice(0, 64).map(Number), duration: Number(s.duration) || (silent ? 0 : 1) });
       added++;
     }
     // pacotes: cria os que não existem (mesmo id) e coloca as figurinhas dentro
@@ -433,6 +637,13 @@ app.get('/s/:id', (req, res) => {
   const s = db.getSticker(req.params.id);
   if (!s) return res.status(404).send('Figurinha não encontrada');
   const bars = s.waveform.map((v) => `<i style="height:${Math.max(6, v)}%"></i>`).join('');
+  if (!s.hasAudio) {
+    return res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(s.emoji)} ${esc(s.title)}</title><meta property="og:title" content="${esc(s.emoji)} ${esc(s.title)}"><meta property="og:description" content="Figurinha">
+<link rel="stylesheet" href="/public.css"></head><body>
+<main class="card"><div id="play" class="img"><img src="/media/${s.id}.webp" alt=""></div><h1>${esc(s.title)}</h1><p>Figurinha ${s.animated ? 'animada' : ''}</p>
+<a class="dl" href="/media/${s.id}.webp?download=1">⬇ Baixar figurinha</a></main></body></html>`);
+  }
   res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(s.emoji)} ${esc(s.title)}</title><meta property="og:title" content="${esc(s.emoji)} ${esc(s.title)}"><meta property="og:description" content="Figurinha de áudio · ${s.duration.toFixed(1)}s">
 <link rel="stylesheet" href="/public.css"></head><body>
@@ -450,7 +661,31 @@ b.onclick=()=>{a.pause();a.currentTime=0;b.classList.add('on');const i=b.querySe
 app.get('/api/settings', (req, res) => res.json({
   port: currentPort, url: localUrl(), envPort: !!process.env.PORT, version: pkg.version,
   dataDir: DATA_DIR, portable: PORTABLE, isExe: IS_EXE, lanUrls: lanUrls(),
+  cacheBytes: sources.dirSize(CACHE_DIR) + sources.dirSize(TMP_DIR), collectionBytes: sources.dirSize(AUDIO_DIR),
 }));
+// Limpa o cache (vídeos baixados/enviados e temporários). A coleção não é tocada.
+app.post('/api/cache/clear', (req, res) => {
+  const before = sources.dirSize(CACHE_DIR) + sources.dirSize(TMP_DIR);
+  for (const dir of [CACHE_DIR, TMP_DIR]) {
+    for (const f of fs.readdirSync(dir)) {
+      try { fs.rmSync(path.join(dir, f), { recursive: true, force: true }); } catch { /* em uso agora */ }
+    }
+  }
+  fs.mkdirSync(sources.SOURCES_DIR, { recursive: true });
+  const after = sources.dirSize(CACHE_DIR) + sources.dirSize(TMP_DIR);
+  res.json({ freed: Math.max(0, before - after) });
+});
+
+/** Limpeza automática ao abrir: origens velhas e temporários esquecidos (> 1 dia). */
+function cleanupOnStart() {
+  try { sources.pruneSources(); } catch { /* ok */ }
+  try {
+    for (const f of fs.readdirSync(TMP_DIR)) {
+      const p = path.join(TMP_DIR, f);
+      if (Date.now() - fs.statSync(p).mtimeMs > 86400000) fs.rmSync(p, { recursive: true, force: true });
+    }
+  } catch { /* ok */ }
+}
 app.post('/api/settings/port', async (req, res) => {
   const port = validPort(req.body?.port);
   if (!port) return fail(res, 400, 'Escolha uma porta entre 1024 e 65535.');
@@ -625,6 +860,7 @@ async function main() {
     } });
   } catch (e) { console.log(`⚠ ${e.message}`); }
   autoUpdateYtdlp();
+  cleanupOnStart();
 
   // Sobe o servidor. Se a porta estiver ocupada por OUTRO programa, procura a próxima livre e guarda a escolha.
   const wanted = currentPort;

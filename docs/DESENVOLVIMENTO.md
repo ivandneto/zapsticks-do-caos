@@ -71,13 +71,15 @@ data/
 ```sql
 stickers  (id PK, title, emoji, tags "a,b", video_id, video_title, start_s, end_s,
            duration, waveform JSON[64], favorite, plays, sends, created_at, visual 0/1,
-           source_kind 'youtube'|'url'|'upload', source_url, source_id, source_site)
+           source_kind 'youtube'|'url'|'upload', source_url, source_id, source_site,
+           kind 'audio'|'sticker'|'combo', animated 0/1)
 packs     (id PK, name, emoji, created_at)
 pack_items(pack_id, sticker_id, added_at, PK(pack_id, sticker_id))   -- N:N
 ```
 
 - Migração por acréscimo: `ALTER TABLE … ADD COLUMN` dentro de `try` (idempotente), para `visual` e as colunas `source_*`.
 - Figurinhas antigas, só com `video_id`, são lidas como `sourceKind: 'youtube'`.
+- `kind`: **audio** (Audio Stick, tem `.ogg`), **sticker** (Stick, sem som: `waveform` vazio, `hasAudio=false`), **combo** (Combinação Caótica: `.webp` de uma figurinha + `.ogg` de outra). `animated=0` = figurinha parada (foto).
 - IDs: 6 bytes aleatórios em base64url (`newId()`).
 
 ## Origens
@@ -97,6 +99,51 @@ pack_items(pack_id, sticker_id, added_at, PK(pack_id, sticker_id))   -- N:N
 - Mensagens de erro amigáveis em `friendlyFetchError` (login ou privado, site não suportado, ao vivo ou longo demais, removido).
 - No Windows, o yt-dlp empacotado ignora `PYTHONIOENCODING`. É o `--encoding utf-8` que garante os acentos e emojis nos títulos.
 - O nome do arquivo enviado vem do multer como latin1 e é convertido para UTF-8 só se o resultado for válido.
+
+## Abas: Audio Stick, Stick e Combinação Caótica
+
+| Aba | Rota | Arquivos gerados |
+|---|---|---|
+| Audio Stick | `POST /api/stickers` | `.ogg` + (≤10s com imagem) `.webp` animado + `.mp4` com som |
+| Stick | `POST /api/stickers` com `mode: 'sticker'`, `fit: 'crop'\|'pad'` | foto: `.webp` parado (≤100 KB) + `.png` (molde); GIF/vídeo (≤10s): `.webp` animado + `.mp4` mudo (molde) |
+| Combinação Caótica | `POST /api/combos` `{visualId, audioId, title, tags, deleteIds}` | copia o `.webp` da imagem e o `.ogg` do som; `.mp4` = molde da imagem em loop + som (`makeComboMp4`) |
+
+- **Enquadramento** (`stickerFilter` em `lib/audio.js`): `crop` = quadrado central + máscara de cantos arredondados; `pad` = imagem inteira em 512×512 com fundo transparente (preserva a transparência de PNG e de GIF começando do zero).
+- **Molde**: cada Stick guarda a base visual (`.png` para foto, `.mp4` mudo para animada), e é dele que a combinação faz o vídeo. Audio Sticks usam o próprio `.mp4` (só a faixa de vídeo).
+- **Origens de foto/GIF** (`sources.addUpload`): `media: 'image' | 'gif' | 'video' | 'audio'`, `hasAudio`. Mídias sem som são aceitas, e quem precisa de som valida na criação (Audio Stick recusa com mensagem que indica a aba Stick).
+- **Envio de Stick** (`sendOne`): sem som vai sempre como figurinha comum (`isAnimated` conforme `animated`). A rota de áudio recusa com 400.
+- **`.wastickers`**: o WhatsApp não mistura figurinhas paradas e animadas no mesmo pacote, então vão só as animadas.
+- **Na página**: `mode` (aba) fica em `localStorage` (`sticks.mode`). A combinação guarda `combo.visual`, `combo.audio` e `combo.temp` (peças criadas para ela). `comboReturn` faz a peça criada numa das outras abas voltar encaixada (`backToCombo`).
+
+## Limites do WhatsApp (constantes)
+
+| Regra | Valor | Onde |
+|---|---|---|
+| Figurinha animada | ≤ 10 s, 512×512, ≤ 500 KB | `STICK_MAX` (server), `STICK_ANIM_MAX` (página), `Math.min(10, …)` em `lib/audio.js` |
+| Figurinha parada | ≤ 100 KB | `makeStaticSticker` |
+| Som numa figurinha **animada** | ≤ 5 s | `ANIM_SOUND_MAX` (server e página) |
+| Som numa figurinha **parada** | ≤ 10 s | `SOUND_STICKER_MAX` / `STICKER_MAX` |
+
+- **Audio Stick:** até 5 s gera figurinha animada com som. De 5 a 10 s, `buildVisual` gera uma figurinha **parada** (1º quadro, `makeStaticSticker` aceita vídeo como entrada) e o `.mp4` via `makeComboMp4` (png + som). Grava `animated`.
+- **Combinação:** o limite do som depende de `vis.animated` (5 s ou 10 s). A página espelha isso em `soundLimit()` e avisa antes de enviar.
+
+## ✂️ Tirar o fundo (`public/bgeditor.js`)
+
+- **IA no navegador:** [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe) `@mediapipe/tasks-vision@0.10.35` (Apache-2.0), carregado sob demanda da jsDelivr (`vision_bundle.mjs` + `wasm/`). Modelos do Google Storage:
+  - `selfie_multiclass_256x256` (~16 MB): pessoa = 1 − confiança de "fundo" (categoria 0). Modos `IMAGE` (foto) e `VIDEO` (quadros, timestamps de `performance.now()`);
+  - `magic_touch` (~6 MB): `InteractiveSegmenter` com `keypoint` (tocar no que manter). Se a confiança no ponto tocado der < 0,5, a máscara é invertida.
+  - Tenta `delegate: 'GPU'` e cai para `'CPU'` se falhar. As imagens não saem do computador.
+- **Máscara:** probabilidade → `cleanIslands` (remove pedaços < 12% do maior, BFS 4-vizinhos) → `probToMask` com a **sensibilidade** (limiar 0,2–0,8 e rampa de 0,24) → canvas branco com alpha.
+- **Foto:** imagem de trabalho com no máximo 768 px; pincel com gradiente radial (`destination-out` para apagar, `source-over` para recuperar); desfazer com até 25 `ImageData`.
+- **Saída** (`compose`): recorta pela caixa do que sobrou (`alphaBox`), centraliza em 512×512 e aplica a **borda branca** (silhueta branca desenhada em 24 deslocamentos de raio 12 px). Foto → PNG enviado como nova origem (`/api/sources/upload`) e aberto com `fit: 'pad'`.
+- **Vídeo/GIF:** `POST /api/frames {sourceId | url, start, end}` → o servidor extrai os quadros (12 fps, cabendo em 512, `extractFrames`) em `tmp/frames-<token>/in` → a página lê `GET /api/frames/:token/0001.png…`, recorta cada um (mesma caixa para todos, união das caixas, para a figurinha não "pular") → `POST /api/frames/:token/result` (multipart `frames[]` + título, emoji, tags, fps, origem) → `makeAnimatedWebpFromFrames` (≤ 490 KB; baixa a qualidade e depois pula quadros) + `makeSilentMp4FromFrames` (molde sobre fundo escuro) → Stick animado. A pasta de quadros é apagada no fim (e o `cleanupOnStart` pega sobras com mais de 1 dia).
+- **Figurinha existente:** `POST /api/stickers/:id/as-source` copia o molde (`.png` ou `.mp4`) para uma origem nova. A página abre no Stick e dispara o editor. O resultado é uma **cópia**.
+
+## Limpeza (para não acumular lixo)
+
+- `sources.pruneSources()`: no máximo 25 origens, nenhuma com mais de **7 dias**, e arquivos órfãos (downloads interrompidos) com mais de 1 h. Roda a cada origem nova e ao abrir o app (`cleanupOnStart`, que também apaga temporários com mais de 1 dia).
+- `POST /api/cache/clear` limpa `cache/` e `tmp/` (a coleção não é tocada). `GET /api/settings` informa `cacheBytes` e `collectionBytes`.
+- Combinação: `deleteIds` apaga só as peças indicadas (a página manda apenas as criadas para a combinação).
 
 ## Fluxo de criação
 
@@ -149,7 +196,7 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 |---|---|
 | `GET /media/:id.(ogg\|webp\|mp4)[?download=1]` | Arquivos da figurinha (públicos) |
 | `GET /s/:id` | Página pública da figurinha (ouvir/baixar) |
-| `POST /api/stickers` | Cria: `{url, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual}` → `202 {jobId}` |
+| `POST /api/stickers` | Cria: `{url \| sourceId, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual}` → `202 {jobId}`. Com `mode: 'sticker'` e `fit`, cria um Stick (sem som) |
 | `GET /api/jobs/:id` | Andamento de criação, visual ou envio de pacote |
 | `GET /api/stickers?q=&favorites=1&sort=recent\|plays\|az&pack=` | Lista + `packs` + `stats` |
 | `PATCH /api/stickers/:id` | `{title, emoji, tags, favorite}` |
@@ -166,7 +213,13 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 | `POST /api/import` | Campo multipart `pack` (.zip) → `{added, skipped, packsAdded}` |
 | `GET /api/frame?v=&t=` ou `?src=&t=` | JPEG quadrado de um quadro do vídeo (prévia), do YouTube ou de outra origem |
 | `POST /api/sources` | `{url}` de qualquer site → `202 {jobId, site}`; o job termina com `source: {id, kind, url, site, title, duration, hasVideo}` |
-| `POST /api/sources/upload` | Campo multipart `file` (até 1 GB) → `202 {jobId}` |
+| `POST /api/sources/upload` | Campo multipart `file` (até 1 GB): vídeo, áudio, foto ou GIF → `202 {jobId}`; o job termina com `source.media` |
+| `POST /api/combos` | `{visualId, audioId, title, emoji, tags, deleteIds}` → `{sticker, deleted}` |
+| `POST /api/frames` | `{sourceId \| url, start, end}` (≤10 s) → `{token, count, fps}` |
+| `GET /api/frames/:token/:nnnn.png` | Quadro original para o editor |
+| `POST /api/frames/:token/result` | Multipart `frames[]` (PNG recortados) + `title, emoji, tags, fps, sourceId\|url, start, end` → `202 {jobId}` (Stick animado) |
+| `POST /api/stickers/:id/as-source` | Molde da figurinha → nova origem (para tirar o fundo de uma cópia) |
+| `POST /api/cache/clear` | Limpa o cache → `{freed}` |
 | `GET /api/sources/:id/media` | A mídia da origem (com suporte a Range) |
 | `POST /api/app/restart` / `POST /api/app/quit` | Reinicia / encerra (só no executável) |
 | `GET /api/whatsapp` | `{status: disconnected\|connecting\|qr\|open, qr, me, error}` |
@@ -261,6 +314,7 @@ O nome mudou de **Sticks Audio** para **Audio Sticks**. Compatibilidades mantida
 ## Limitações conhecidas
 
 - A figurinha com som é experimental (formato montado à mão).
+- O recorte de fundo depende de baixar a IA (~22 MB) na primeira vez; no vídeo/GIF, só pessoas; bordas finas (cabelo) podem serrilhar.
 - A conexão com o WhatsApp não é oficial, e há risco de bloqueio em envios em massa para terceiros.
 - `.wastickers` não carrega som (limitação do formato).
 - Baixar do YouTube e de outros sites depende do yt-dlp estar atualizado. Posts privados ou que exigem login não são baixados.

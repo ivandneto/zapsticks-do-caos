@@ -10,7 +10,7 @@ Transforme qualquer trecho de vídeo (**YouTube, Instagram, TikTok, X, Facebook�
 
 1. [Instalar e abrir](#1-instalar-e-abrir)
 2. [A tela, parte por parte](#2-a-tela-parte-por-parte)
-3. [Criar uma figurinha](#3-criar-uma-figurinha)
+3. [Criar uma figurinha](#3-criar-uma-figurinha) (🎙️ Audio Stick · 🖼️ Stick · 🌀 Combinação Caótica)
 4. [Conectar o WhatsApp](#4-conectar-o-whatsapp)
 5. [Enviar: para quem e como](#5-enviar-para-quem-e-como)
 6. [Figurinha com som](#6-figurinha-com-som)
@@ -99,6 +99,18 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 ## 3. Criar uma figurinha
 
+No topo do estúdio há **três abas**:
+
+| Aba | Cria | De onde |
+|---|---|---|
+| 🎙️ **Audio Stick** | **Som** (mensagem de voz) e, para trechos de até 10s, figurinha **com som** (animada até 5s, parada de 5 a 10s) | Trecho de vídeo ou áudio (link ou arquivo) |
+| 🖼️ **Stick** | **Só a figurinha, sem som**: parada (foto) ou animada (GIF ou vídeo, até 10s). Com **✂️ Tirar o fundo** | Foto (jpg, png, webp), GIF, vídeo (link ou arquivo) |
+| 🌀 **Combinação Caótica** | Figurinha com a **imagem de uma** e o **som de outra** | Peças da sua coleção **ou** criadas na hora |
+
+A aba usada fica lembrada para a próxima vez.
+
+### 🎙️ Audio Stick
+
 1. **Escolha a origem** (veja a tabela abaixo). Colar um link já carrega o vídeo.
 2. **Marque o trecho**:
    - arraste as **alças amarelas** na régua, ou toque o vídeo e use **Início aqui (I)** e **Fim aqui (O)**;
@@ -120,14 +132,61 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 - Posts **privados**, de "melhores amigos" ou que **exigem login** não podem ser baixados. Salve o vídeo no PC e use **Arquivo**.
 - Limite: mídias de até **1 hora** (transmissões ao vivo não são aceitas).
 - **Arquivo só de áudio** (mp3, por exemplo) vira figurinha de áudio, porque não há imagem para animar.
-- Os vídeos baixados ou enviados ficam num cache (as 25 origens mais recentes), para você poder recortar vários trechos sem baixar de novo.
+- Os vídeos baixados ou enviados ficam num cache para você recortar vários trechos sem baixar de novo. Ele **se limpa sozinho**: no máximo 25 origens e **nada com mais de 7 dias**. Também dá para limpar em ⚙ Configurações.
 
 ### O que é criado
 
 | Duração do trecho | O que é criado |
 |---|---|
-| até **10 s** (origem com imagem) | áudio + **figurinha animada** (512×512, até 8s em loop) + vídeo `.mp4` quadrado com som |
+| até **5 s** (origem com imagem) | áudio + **figurinha animada com som** (512×512, em loop) + vídeo `.mp4` quadrado com som |
+| de 5 a **10 s** (origem com imagem) | áudio + **figurinha parada com som** (o 1º quadro do trecho) + vídeo `.mp4` |
 | de 10 a **60 s** | só o áudio (mensagem de voz) |
+
+### 🖼️ Stick (só a figurinha)
+
+1. Clique em **📁 Arquivo** (ou arraste) para usar uma **foto** ou um **GIF**, ou cole o link de um vídeo.
+2. Vídeo: marque um trecho de **até 10s**. Foto e GIF não têm esse passo (o GIF usa os primeiros 10s).
+3. Escolha o **enquadramento**:
+   - **◼ Recortar quadrado**: pega o centro e arredonda os cantos;
+   - **⬚ Inteiro, fundo transparente**: mostra a imagem toda, sem cortar (ótimo para fotos recortadas e PNGs com transparência).
+4. **Criar figurinha**. O botão verde do card envia como figurinha comum (sem som).
+
+#### ✂️ Tirar o fundo (estilo WhatsApp)
+
+Na aba Stick, embaixo da prévia, o botão **✂️ Tirar o fundo** abre um editor com inteligência artificial que roda **no seu navegador**. As imagens não saem do seu computador.
+
+| Ferramenta | Para quê | Onde funciona |
+|---|---|---|
+| 🧍 **Recortar pessoa** | Detecta as pessoas e apaga o resto. Já roda sozinho ao abrir | Foto, **GIF e vídeo** (quadro a quadro) |
+| 👆 **Tocar no que manter** | Toque na pessoa, no bicho ou no objeto: ele recorta só aquilo | Foto |
+| 🧽 **Apagar** / 🖌️ **Recuperar** | Pincel para ajustar o que a IA errou (tamanho ajustável) | Foto |
+| **Sensibilidade** | Diminua se sobrar fundo; aumente se cortar a pessoa | Tudo |
+| ⚪ **Borda branca** | Contorno branco em volta, igual figurinha de WhatsApp | Tudo |
+
+- **Foto:** clique em **Usar este recorte**. A imagem sem fundo vira a nova origem (já no enquadramento "inteiro") e é só **Criar figurinha**.
+- **Vídeo/GIF:** marque o trecho (até 10s) antes. O editor recorta cada quadro (12 por segundo) e mostra a animação. Ao usar, a figurinha animada sem fundo é criada direto.
+- **Figurinhas que já existem:** no botão amarelo, **✂️ Tirar o fundo (cria uma cópia)**. A original continua intacta. Na Combinação Caótica, a imagem escolhida tem o botão **✂️ Sem fundo**, e o resultado volta encaixado.
+- **Na primeira vez**, o navegador baixa a biblioteca e os modelos de IA (~22 MB, do Google). Depois ficam guardados. Por isso precisa de internet na primeira vez.
+- **Limitações:** cabelo e bordas finas podem ficar serrilhados (use o pincel). No vídeo/GIF, só funciona o recorte automático de **pessoas**.
+
+> Soltar uma foto ou um GIF na aba Audio Stick troca sozinho para a aba Stick, já que eles não têm som.
+
+### 🌀 Combinação Caótica
+
+Junta a **imagem** de uma figurinha com o **som** de outra.
+
+1. **Imagem** (lado esquerdo), de três jeitos:
+   - **Escolher da coleção**: qualquer figurinha com imagem (Stick, Audio Stick animado ou outra combinação);
+   - **📁 Foto ou GIF do computador**: vira uma figurinha na hora;
+   - **✂️ Recortar de um vídeo**: abre a aba Stick e, quando você cria, a peça **volta sozinha** para a combinação.
+2. **Som** (lado direito): até **5s** se a imagem for **animada**, e até **10s** se for **parada** (limites do WhatsApp):
+   - **Escolher da coleção**: qualquer figurinha com som dentro do limite;
+   - **✂️ Recortar de um vídeo ou áudio**: abre a aba Audio Stick e a peça volta sozinha.
+3. Toque na prévia para ouvir. Dê um nome, tags e pacotes e clique em **🌀 Criar combinação caótica**.
+
+**Para não acumular lixo:** as peças **criadas só para a combinação** podem ser apagadas automaticamente (a opção vem marcada). As peças que você **escolheu da coleção nunca são apagadas**.
+
+**Atalhos:** no botão amarelo de qualquer figurinha há *"Usar esta imagem com outro som"*, *"Usar este som com outra imagem"* e, no Stick, *"Dar voz a ela"*. Eles abrem a combinação já com a peça encaixada.
 
 ---
 
@@ -163,7 +222,7 @@ O destino **vale para todos os botões** (figurinha, áudio e pacote) até você
 
 ## 6. Figurinha com som
 
-É o formato que o WhatsApp começou a liberar no Brasil em **24/11/2026**: uma figurinha que toca até 10 segundos de som quando tocam nela.
+É o formato que o WhatsApp começou a liberar no Brasil em **24/11/2026**: uma figurinha que toca som quando tocam nela. Os limites são **5 segundos** de som numa figurinha **animada** e **10 segundos** numa **parada**. A figurinha animada em si pode ter até **10 segundos** de imagem.
 
 - O botão **verde** do card envia a figurinha com som.
 - Ela é **experimental**: o Baileys ainda não suporta esse formato oficialmente, então o app monta a mensagem por conta própria. Se chegar como *"mensagem não suportada"*, use uma alternativa no botão **amarelo**:
@@ -171,7 +230,7 @@ O destino **vale para todos os botões** (figurinha, áudio e pacote) até você
   - **Enviar só o áudio** (mensagem de voz);
   - **Baixar vídeo .mp4** e criar a figurinha no próprio WhatsApp: *😊 → Figurinhas → Criar*, escolher o vídeo e ativar o áudio. Esse caminho é garantido, desde que o seu WhatsApp já tenha recebido o recurso.
 
-Figurinhas antigas, de até 10s, que ainda não têm animação: clique no botão amarelo e depois em **Gerar figurinha animada**.
+Figurinhas antigas, de até 10s, que ainda não têm imagem: clique no botão amarelo e depois em **Gerar figurinha animada** (até 5s fica animada; de 5 a 10s, parada).
 
 ---
 
@@ -220,7 +279,7 @@ O botão **⚙** abre:
   - se a porta escolhida estiver ocupada, nada muda e aparece um aviso;
   - a escolha fica salva em `data/config.json`.
 - **Abrir no celular:** os endereços para usar no celular, no mesmo Wi-Fi.
-- **Seus dados:** a pasta, o botão para abri-la e o backup.
+- **Seus dados:** a pasta, o botão para abri-la, o backup, o espaço ocupado pela coleção e pelo cache, e o botão **🧹 Limpar cache agora** (a coleção não é afetada).
 - **Aplicativo** (só no executável): status, **Reiniciar** e **Encerrar**. Ao reiniciar, a página volta sozinha.
 - **Ajuda:** refazer o tour e abrir o guia.
 
@@ -303,6 +362,10 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 
 | Problema | Solução |
 |---|---|
+| *"Foto e GIF não têm som"* | Use a aba **🖼️ Stick** (só a figurinha) ou a **🌀 Combinação Caótica** para juntar com um som |
+| A combinação não aceita o som | Com imagem **animada**, o som pode ter até **5s**; com imagem **parada**, até **10s**. Recorte um trecho menor ou use uma foto |
+| O "Tirar o fundo" não carrega | Na primeira vez, ele baixa a IA de recorte (~22 MB) da internet. Confira a conexão e tente de novo |
+| O recorte deixou fundo ou cortou a pessoa | Mexa na **sensibilidade**; na foto, use o pincel **Apagar** / **Recuperar** ou **Tocar no que manter** |
 | A página não abre ou mostra outro site | Outro programa está na mesma porta. Use **⚙ → Trocar porta** ou, no executável, a bandeja → **Trocar porta…** |
 | *"O YouTube pediu verificação"* / não baixa | Feche e abra o app (o yt-dlp se atualiza sozinho). Pelo código: `npm run setup` |
 | Link do Instagram/TikTok dá erro | O post pode ser privado ou exigir login. Feche e abra o app (o baixador se atualiza) e tente de novo, ou salve o vídeo e use **📁 Arquivo** |

@@ -3,7 +3,17 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const MAX_LEN = 60;
+const AUDIO_MAX = 60;      // Audio Stick: trecho de até 60 s
+const STICK_ANIM_MAX = 10; // figurinha animada: até 10 s (limite do WhatsApp)
+const ANIM_SOUND_MAX = 5;  // figurinha ANIMADA com som: até 5 s de áudio (parada aceita até 10 s)
+let MAX_LEN = AUDIO_MAX;
+// aba atual: 'audio' (Audio Stick) | 'sticker' (Stick) | 'combo' (Combinação Caótica)
+let mode = 'audio';
+let fit = 'crop';          // enquadramento do Stick: 'crop' (quadrado) | 'pad' (inteiro, fundo transparente)
+let comboReturn = null;    // 'visual' | 'audio' quando uma peça está sendo criada para a combinação
+// Combinação Caótica: as duas peças escolhidas e quais foram criadas só para ela (podem ser apagadas depois)
+const combo = { visual: null, audio: null, temp: new Set() };
+const comboPackSel = new Set();
 const REPO_URL = 'https://github.com/ivandneto/zapsticks-do-caos';
 const STICKER_MAX = 10; // a figurinha com som do WhatsApp aceita até 10s de áudio
 
@@ -96,7 +106,7 @@ const ytApi = new Promise((resolve) => {
 const html5 = $('#html5');
 
 // kind: 'youtube' (toca direto do YouTube) | 'source' (link de outro site ou arquivo, servido pelo app)
-const vid = { kind: null, id: null, url: '', title: '', duration: 0, sourceId: null, hasVideo: true, site: '' };
+const vid = { kind: null, id: null, url: '', title: '', duration: 0, sourceId: null, hasVideo: true, hasAudio: true, media: 'video', site: '' };
 const sel = { start: 0, end: 5 };
 let previewing = false;
 let creating = false;
@@ -117,7 +127,7 @@ function parseVideoId(input) {
 
 // Comandos iguais para os dois players
 const isYT = () => vid.kind === 'youtube';
-const canPlay = () => (isYT() ? playerReady && !embedBlocked : vid.kind === 'source');
+const canPlay = () => (isYT() ? playerReady && !embedBlocked : vid.kind === 'source' && vid.media !== 'image' && vid.media !== 'gif');
 function mPlay() { if (isYT()) player.playVideo(); else html5.play().catch(() => {}); }
 function mPause() { if (isYT()) { if (playerReady) player.pauseVideo(); } else html5.pause(); }
 const now = () => (!canPlay() ? sel.start : isYT() ? player.getCurrentTime() || 0 : html5.currentTime || 0);
@@ -128,13 +138,20 @@ const seek = (t) => {
 };
 html5.addEventListener('pause', () => { if (previewing && !isYT()) stopPreview(false); });
 
+// kind: 'youtube' | 'source' (vídeo/áudio no <video>) | 'image' (foto ou GIF no <img>, sem linha do tempo)
 function showPlayer(kind) {
+  const img = kind === 'image';
   $('#ytBox').hidden = kind !== 'youtube';
-  html5.hidden = kind === 'youtube';
-  $('#audioOnly').hidden = kind === 'youtube' || vid.hasVideo;
+  html5.hidden = kind !== 'source';
+  $('#imgView').hidden = !img;
+  $('#audioOnly').hidden = kind !== 'source' || vid.hasVideo;
+  $('#timeline').hidden = img;
+  $('#step3Num').textContent = img ? '2' : '3'; // foto/GIF não têm o passo de marcar o trecho
   if (kind !== 'youtube' && playerReady) { try { player.pauseVideo(); } catch { /* ok */ } }
-  if (kind === 'youtube') { html5.pause(); html5.removeAttribute('src'); html5.load(); }
+  if (kind !== 'source') { html5.pause(); html5.removeAttribute('src'); html5.load(); }
+  if (!img) $('#imgView').removeAttribute('src');
 }
+const isPicture = () => vid.media === 'image' || vid.media === 'gif'; // foto ou GIF: sem som e sem recorte de tempo
 function beginEditor() {
   embedBlocked = false; $('#embedError').hidden = true;
   stopPreview();
@@ -165,7 +182,7 @@ async function loadVideo(raw) {
   if (!id) return hintErr('Esse link não parece ser do YouTube.');
   hint.classList.remove('err');
   hint.textContent = 'Carregando…';
-  Object.assign(vid, { kind: 'youtube', id, url: `https://www.youtube.com/watch?v=${id}`, title: '', duration: 0, sourceId: null, hasVideo: true, site: 'YouTube' });
+  Object.assign(vid, { kind: 'youtube', id, url: `https://www.youtube.com/watch?v=${id}`, title: '', duration: 0, sourceId: null, hasVideo: true, hasAudio: true, media: 'video', site: 'YouTube' });
   beginEditor();
   showPlayer('youtube');
 
@@ -263,15 +280,26 @@ function uploadWithProgress(url, body, onProgress) {
 }
 
 function openSource(src) {
-  Object.assign(vid, { kind: 'source', id: null, url: src.url || '', title: src.title || '', duration: src.duration, sourceId: src.id, hasVideo: src.hasVideo, site: src.site });
+  const media = src.media || (src.hasVideo ? 'video' : 'audio');
+  Object.assign(vid, { kind: 'source', id: null, url: src.url || '', title: src.title || '', duration: src.duration, sourceId: src.id,
+    hasVideo: src.hasVideo, hasAudio: src.hasAudio !== false, media, site: src.site });
+  // foto/GIF só fazem sentido como figurinha sem som: troca para a aba Stick (a não ser na combinação)
+  if ((media === 'image' || media === 'gif') && mode === 'audio') { setMode('sticker'); toast('Foto ou GIF: abri a aba Stick (figurinha sem som) 🖼️'); }
   beginEditor();
-  showPlayer('source');
-  html5.src = `/api/sources/${src.id}/media`;
-  sel.start = 0; sel.end = Math.min(5, src.duration);
+  if (media === 'image' || media === 'gif') {
+    showPlayer('image');
+    $('#imgView').src = `/api/sources/${src.id}/media`;
+    sel.start = 0; sel.end = media === 'gif' ? Math.min(STICK_ANIM_MAX, src.duration) : 0;
+  } else {
+    showPlayer('source');
+    html5.src = `/api/sources/${src.id}/media`;
+    sel.start = 0; sel.end = Math.min(mode === 'sticker' ? 3 : 5, src.duration);
+  }
   if (!$('#title').value || $('#title').dataset.auto) { $('#title').value = vid.title.slice(0, 50); $('#title').dataset.auto = '1'; }
-  $('#urlHint').textContent = `${siteIcon(src.site)} ${src.site} · ${vid.title}${src.hasVideo ? '' : ' (só áudio)'}`;
+  const tag = media === 'image' ? ' (foto)' : media === 'gif' ? ' (GIF)' : !src.hasVideo ? ' (só áudio)' : !vid.hasAudio ? ' (sem som)' : '';
+  $('#urlHint').textContent = `${siteIcon(src.site)} ${src.site} · ${vid.title}${tag}`;
   recenter(); render();
-  html5.play().catch(() => { /* autoplay bloqueado: o usuário aperta play */ });
+  if (media !== 'image' && media !== 'gif') html5.play().catch(() => { /* autoplay bloqueado: o usuário aperta play */ });
 }
 
 // ============ seleção ============
@@ -324,15 +352,28 @@ function render() {
   $('.z-handle.start').style.left = X(sel.start);
   $('.z-handle.end').style.left = X(sel.end);
   const len = sel.end - sel.start;
+  MAX_LEN = mode === 'sticker' ? STICK_ANIM_MAX : AUDIO_MAX;
   const lenEl = $('.z-len');
   lenEl.textContent = `${len.toFixed(1)}s`;
   lenEl.classList.toggle('warn', len > MAX_LEN);
   if (document.activeElement !== $('#startIn')) $('#startIn').value = fmt(sel.start);
   if (document.activeElement !== $('#endIn')) $('#endIn').value = fmt(sel.end);
   const btn = $('#createBtn');
-  btn.innerHTML = len > MAX_LEN ? `Trecho longo demais <span class="len">(máx. ${MAX_LEN}s)</span>`
-    : `Criar figurinha <span class="len">· ${len.toFixed(1)}s${!vid.hasVideo ? ' · só áudio' : len <= STICKER_MAX ? ' · com animação' : ' · só áudio (figurinha com som: até 10s)'}</span>`;
-  btn.disabled = len > MAX_LEN || len < 0.3 || creating;
+  const L = (t) => `<span class="len">${t}</span>`;
+  let label, off;
+  if (mode === 'sticker') {
+    if (!vid.hasVideo) { label = `Essa mídia é só áudio ${L('· use o Audio Stick')}`; off = true; }
+    else if (vid.media === 'image') { label = `Criar figurinha ${L('· parada (foto)')}`; off = false; }
+    else if (vid.media === 'gif') { label = `Criar figurinha ${L(`· GIF animado${vid.duration > STICK_ANIM_MAX ? ` (primeiros ${STICK_ANIM_MAX}s)` : ''}`)}`; off = false; }
+    else if (len > MAX_LEN) { label = `Trecho longo demais ${L(`(máx. ${MAX_LEN}s de animação)`)}`; off = true; }
+    else { label = `Criar figurinha ${L(`· ${len.toFixed(1)}s · animada, sem som`)}`; off = len < 0.3; }
+  } else if (isPicture()) { label = `Foto e GIF não têm som ${L('· use Stick ou Combinação')}`; off = true; }
+  else if (!vid.hasAudio) { label = `Essa mídia não tem som ${L('· use a aba Stick')}`; off = true; }
+  else if (len > MAX_LEN) { label = `Trecho longo demais ${L(`(máx. ${MAX_LEN}s)`)}`; off = true; }
+  else { label = `Criar figurinha ${L(`· ${len.toFixed(1)}s${!vid.hasVideo ? ' · só áudio' : len <= ANIM_SOUND_MAX ? ' · animada com som' : len <= STICKER_MAX ? ' · parada com som (animada: até 5s)' : ' · só áudio (figurinha com som: até 10s)'}`)}`; off = len < 0.3; }
+  btn.innerHTML = label;
+  btn.disabled = off || creating;
+  $('#bgBtn').hidden = !(mode === 'sticker' && vid.kind && vid.hasVideo);
   schedulePreview();
 }
 
@@ -432,7 +473,7 @@ for (const which of ['start', 'end']) {
 addEventListener('keydown', (e) => {
   if (!modal.hidden || e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey) return;
   if (/^[1-9]$/.test(e.key)) { const card = $$('#grid .sticker')[Number(e.key) - 1]; if (card) { playSticker(card.dataset.id); e.preventDefault(); } return; }
-  if (!vid.kind) return;
+  if (!vid.kind || mode === 'combo') return;
   const k = e.key.toLowerCase();
   if (k === 'i') { $('#setStart').click(); flash('#setStart'); }
   else if (k === 'o') { $('#setEnd').click(); flash('#setEnd'); }
@@ -492,11 +533,15 @@ function resetPreview() {
 function schedulePreview() {
   const box = $('#stickerPrev');
   const len = sel.end - sel.start;
-  const visual = !!vid.kind && vid.hasVideo && len <= STICKER_MAX;
+  const stick = mode === 'sticker';
+  const visual = !!vid.kind && vid.hasVideo && (stick || len <= STICKER_MAX);
   box.classList.toggle('has-img', visual);
-  $('#prevCaption').textContent = !vid.kind ? '' : !vid.hasVideo ? 'Origem só de áudio: vira áudio' : visual ? `Prévia da figurinha · anima ${Math.min(8, len).toFixed(1)}s` : 'Acima de 10s: vira só áudio';
+  box.classList.toggle('pad', stick && fit === 'pad');
+  $('#prevCaption').textContent = !vid.kind ? '' : !vid.hasVideo ? 'Origem só de áudio: vira áudio'
+    : stick ? (vid.media === 'image' ? 'Prévia · figurinha parada' : vid.media === 'gif' ? 'Prévia · GIF animado' : `Prévia · anima ${Math.min(STICK_ANIM_MAX, len).toFixed(1)}s, sem som`)
+    : isPicture() ? 'Foto/GIF: use a aba Stick' : !visual ? 'Acima de 10s: vira só áudio' : len <= ANIM_SOUND_MAX ? `Prévia · anima ${len.toFixed(1)}s com som` : 'Prévia · parada com som (5 a 10s)';
   if (!visual) return;
-  const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}`;
+  const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}@${stick ? fit : 'crop'}`;
   if (key === frameKey) return;
   frameKey = key;
   clearTimeout(frameT);
@@ -505,7 +550,8 @@ function schedulePreview() {
     const img = new Image();
     img.onload = () => { if (frameKey === key) { $('#prevImg').src = img.src; box.classList.remove('loading'); } };
     img.onerror = () => { if (frameKey === key) box.classList.remove('loading'); };
-    img.src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${(sel.start + 0.05).toFixed(2)}`;
+    const t = isPicture() ? 0 : sel.start + 0.05;
+    img.src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=${stick ? fit : 'crop'}`;
   }, 450);
 }
 
@@ -519,15 +565,19 @@ $('#createBtn').onclick = async () => {
   creating = true; render();
   const prog = $('#progress'); prog.hidden = false;
   $$('li', prog).forEach((li) => li.className = '');
-  const steps = ['download', 'cut', 'analyze', 'visual'];
-  $('li[data-step="visual"]', prog).hidden = sel.end - sel.start > STICKER_MAX || !vid.hasVideo;
+  const stick = mode === 'sticker';
+  const steps = stick ? ['visual'] : ['download', 'cut', 'analyze', 'visual'];
+  for (const st of ['download', 'cut', 'analyze']) $(`li[data-step="${st}"]`, prog).hidden = stick;
+  $('li[data-step="visual"]', prog).hidden = !stick && (sel.end - sel.start > STICKER_MAX || !vid.hasVideo);
+  $('li[data-step="visual"]', prog).textContent = stick ? 'Gerando a figurinha' : 'Gerando a figurinha animada';
   $('li[data-step="download"]', prog).textContent = isYT() ? 'Baixando o áudio do YouTube' : 'Lendo a mídia carregada';
   const show = (step) => { const i = steps.indexOf(step); $$('li', prog).forEach((li, j) => li.className = j < i || step === 'done' ? 'done' : j === i ? 'active' : ''); };
-  show('download');
+  show(steps[0]);
   try {
     const { jobId } = await api('/api/stickers', {
       method: 'POST',
       body: JSON.stringify({
+        mode: stick ? 'sticker' : undefined, fit,
         url: isYT() ? vid.url : undefined, sourceId: isYT() ? undefined : vid.sourceId, start: sel.start, end: sel.end, videoTitle: vid.title, videoDuration: vid.duration,
         title: $('#title').value.trim() || vid.title.slice(0, 50) || 'Figurinha', emoji, tags: $('#tags').value,
         normalize: $('#optNorm').checked, fadeIn: $('#optFadeIn').checked, fadeOut: $('#optFadeOut').checked, gainDb,
@@ -547,7 +597,9 @@ $('#createBtn').onclick = async () => {
     burst(job.sticker.emoji, r.left + r.width / 2, r.top);
     if (createPackSel.size) await api(`/api/stickers/${job.sticker.id}/packs`, { method: 'PUT', body: JSON.stringify({ packs: [...createPackSel] }) });
     await loadCollection(job.sticker.id);
-    showCreated(job.sticker);
+    // peça feita para a Combinação Caótica: volta para lá já encaixada
+    if (comboReturn) backToCombo(job.sticker);
+    else showCreated(job.sticker);
     $('#tags').value = '';
     setTimeout(() => { prog.hidden = true; }, 1500);
   } catch (err) {
@@ -559,8 +611,22 @@ $('#createBtn').onclick = async () => {
 };
 
 function showCreated(s) {
+  if (!s.hasAudio) {
+    // Stick: figurinha sem som
+    openModal(`<div style="text-align:center"><img class="st-prev" src="/media/${s.id}.webp?v=${Date.now()}" alt="">
+      <h3 style="padding:0;margin-top:8px">Figurinha criada! 🖼️</h3><p>${esc(s.title)} · ${s.animated ? 'animada' : 'parada'}, sem som</p></div>
+      <div class="stack">
+        <button class="btn wa" id="mSend">${IC.wa} Enviar figurinha pro WhatsApp</button>
+        <button class="btn" id="mCombo">🌀 Combinar com um som (Combinação Caótica)</button>
+        <a class="btn" href="/media/${s.id}.webp?download=1">${IC.dl} Baixar .webp</a>
+      </div>`, (b) => {
+      $('#mSend', b).onclick = (e) => sendStickerMsg(s.id, 'plain', e.currentTarget);
+      $('#mCombo', b).onclick = () => openComboWith({ visual: s });
+    });
+    return;
+  }
   openModal(`<div style="text-align:center">${s.visual ? `<img class="st-prev" src="/media/${s.id}.webp?v=${Date.now()}" alt="">` : `<div style="font-size:64px;line-height:1">${esc(s.emoji)}</div>`}
-    <h3 style="padding:0;margin-top:8px">Figurinha criada!</h3><p>${esc(s.title)} · ${s.duration.toFixed(1)}s</p></div>
+    <h3 style="padding:0;margin-top:8px">${s.kind === 'combo' ? 'Combinação criada! 🌀' : 'Figurinha criada!'}</h3><p>${esc(s.title)} · ${s.duration.toFixed(1)}s</p></div>
     <div class="stack">
       <button class="btn wa" id="mSend">${IC.wa} ${s.visual ? 'Enviar figurinha com som pro meu WhatsApp' : 'Enviar áudio pro meu WhatsApp'}</button>
       ${s.visual ? `<button class="btn" id="mSticker">${IC.sticker} Mais opções da figurinha…</button>` : ''}
@@ -589,13 +655,32 @@ function stickerModal(id) {
   const s = stickers.find((x) => x.id === id);
   if (!s) return;
   const tooLong = s.duration > STICKER_MAX + 0.05;
+  if (!s.hasAudio) {
+    // Stick (sem som)
+    openModal(`<h3>🖼️ Figurinha</h3>
+      <div class="st-wrap"><img class="st-prev" src="/media/${s.id}.webp?v=${encodeURIComponent(s.createdAt)}" alt="Prévia da figurinha"></div>
+      <p style="text-align:center" class="small">${esc(s.title)} · ${s.animated ? 'animada' : 'parada'}, sem som</p>
+      <div class="stack">
+        <button class="btn wa" id="stPlain">${IC.wa} Enviar figurinha</button>
+        <button class="btn" id="stCombo">🌀 Dar voz a ela: combinar com um som</button>
+        <button class="btn" id="stBg">✂️ Tirar o fundo (cria uma cópia)</button>
+        <a class="btn" href="/media/${s.id}.webp?download=1">${IC.dl} Baixar figurinha .webp</a>
+      </div>`, (b) => {
+      $('#stPlain', b).onclick = (e) => sendStickerMsg(s.id, 'plain', e.currentTarget);
+      $('#stCombo', b).onclick = () => openComboWith({ visual: s });
+      $('#stBg', b).onclick = () => bgFromSticker(s);
+    });
+    return;
+  }
   if (!s.visual) {
     openModal(`<h3>${IC.sticker.replace('<svg', '<svg style="width:24px;height:24px;vertical-align:-4px"')} Figurinha com som</h3>
       ${tooLong ? `<p>A figurinha com som do WhatsApp aceita até <b>${STICKER_MAX}s</b> de áudio e esta tem <b>${s.duration.toFixed(1)}s</b>.</p>
         <p>Crie um trecho menor do mesmo vídeo para virar figurinha.</p>${s.sourceUrl ? `<div class="stack"><button class="btn primary" id="vReopen">Abrir o vídeo para recortar de novo</button></div>` : ''}`
       : !s.videoId && !s.sourceId && !s.sourceUrl ? '<p>Essa figurinha veio de um pacote importado sem a animação, então não dá para gerar a imagem.</p>'
       : `<p>Vou baixar esse trecho do vídeo e transformar numa figurinha animada (512×512, em loop).</p>
-        <div class="stack"><button class="btn primary" id="vMake">Gerar figurinha animada</button></div>`}`, (b) => {
+        <div class="stack"><button class="btn primary" id="vMake">Gerar figurinha animada</button></div>`}
+      ${!tooLong ? `<div class="stack" style="margin-top:8px"><button class="btn" id="vCombo">🌀 Ou combinar este som com outra imagem (foto, GIF…)</button></div>` : ''}`, (b) => {
+      $('#vCombo', b)?.addEventListener('click', () => openComboWith({ audio: s }));
       $('#vReopen', b)?.addEventListener('click', () => {
         closeModal();
         $('#url').value = s.videoId ? `https://www.youtube.com/watch?v=${s.videoId}&t=${Math.floor(s.start)}s` : s.sourceUrl;
@@ -625,6 +710,9 @@ function stickerModal(id) {
       <button class="btn" id="stAudio">${IC.wa} Enviar só o áudio (mensagem de voz)</button>
       <a class="btn" href="/media/${s.id}.mp4?download=1">${IC.dl} Baixar vídeo .mp4 (para criar no WhatsApp)</a>
       <a class="btn" href="/media/${s.id}.webp?download=1">${IC.dl} Baixar figurinha .webp</a>
+      <button class="btn" id="stComboV">🌀 Usar esta imagem com outro som</button>
+      <button class="btn" id="stBgV">✂️ Tirar o fundo da imagem (cria um Stick)</button>
+      ${!tooLong ? '<button class="btn" id="stComboA">🌀 Usar este som com outra imagem</button>' : ''}
     </div>
     <details class="howto"><summary>Como montar a figurinha com som no próprio WhatsApp</summary>
       <ol>
@@ -640,6 +728,9 @@ function stickerModal(id) {
     $('#stSound', b).onclick = (e) => sendStickerMsg(s.id, 'sound', e.currentTarget);
     $('#stPlain', b).onclick = (e) => sendStickerMsg(s.id, 'plain', e.currentTarget);
     $('#stAudio', b).onclick = (e) => sendSticker(s.id, e.currentTarget);
+    $('#stComboV', b).onclick = () => openComboWith({ visual: s });
+    $('#stBgV', b).onclick = () => bgFromSticker(s);
+    $('#stComboA', b)?.addEventListener('click', () => openComboWith({ audio: s }));
   });
 }
 
@@ -688,16 +779,22 @@ async function loadCollection(highlightId) {
 const bars = (w) => w.map((v) => `<i style="height:${Math.max(8, v)}%"></i>`).join('');
 function card(s, i, fresh) {
   const inPacks = (s.packs || []).map((id) => packs.find((p) => p.id === id)).filter(Boolean);
-  const meta = [`${s.duration.toFixed(1)}s`, s.plays ? `▶ ${s.plays}` : '', inPacks.map((p) => p.emoji).join(''), ...s.tags.map((t) => `#${t}`)].filter(Boolean).join(' · ');
+  const silent = !s.hasAudio; // Stick: só a figurinha
+  const kindTag = silent ? '🖼️ Stick' : s.kind === 'combo' ? '🌀 Combo' : '';
+  const meta = [silent ? (s.animated ? 'animada' : 'parada') : `${s.duration.toFixed(1)}s`, s.plays ? `▶ ${s.plays}` : '', inPacks.map((p) => p.emoji).join(''), ...s.tags.map((t) => `#${t}`)].filter(Boolean).join(' · ');
   return `<article class="sticker${fresh ? ' fresh' : ''}" data-id="${s.id}" style="animation-delay:${Math.min(i, 12) * 25}ms">
-    <button class="s-emoji${s.visual ? ' has-img' : ''}" data-act="play" aria-label="Tocar ${esc(s.title)}">${s.visual ? `<img src="/media/${s.id}.webp" alt="" loading="lazy"><span class="s-mini">${esc(s.emoji)}</span>` : esc(s.emoji)}${i < 9 ? `<span class="s-key">${i + 1}</span>` : ''}</button>
-    <div class="s-info"><div class="s-title" title="${esc(s.videoTitle || s.title)}">${esc(s.title)}</div><div class="s-meta">${esc(meta)}</div></div>
-    <div class="wave" data-act="play"><div class="bars">${bars(s.waveform)}</div><div class="prog">${bars(s.waveform)}</div></div>
+    <button class="s-emoji${s.visual ? ' has-img' : ''}" data-act="play" aria-label="${silent ? 'Ver' : 'Tocar'} ${esc(s.title)}">${s.visual ? `<img src="/media/${s.id}.webp" alt="" loading="lazy"><span class="s-mini">${esc(s.emoji)}</span>` : esc(s.emoji)}${i < 9 ? `<span class="s-key">${i + 1}</span>` : ''}</button>
+    <div class="s-info"><div class="s-title" title="${esc(s.videoTitle || s.title)}">${esc(s.title)}</div><div class="s-meta">${kindTag ? `<span class="kind-badge${s.kind === 'combo' ? ' combo' : ''}">${kindTag}</span> ` : ''}${esc(meta)}</div></div>
+    ${silent
+      ? `<div class="wave silent">🖼️ figurinha sem som</div>`
+      : `<div class="wave" data-act="play"><div class="bars">${bars(s.waveform)}</div><div class="prog">${bars(s.waveform)}</div></div>`}
     <div class="s-actions">
-      ${s.visual
+      ${silent
+        ? `<button class="send-btn" data-act="send-plain" title="Enviar a figurinha pro WhatsApp" aria-label="Enviar a figurinha pro WhatsApp">${IC.wa}</button>`
+        : s.visual
         ? `<button class="send-btn" data-act="send-sound" title="Enviar a figurinha com som pro meu WhatsApp" aria-label="Enviar a figurinha com som pro meu WhatsApp">${IC.wa}</button>`
         : `<button class="send-btn" data-act="send" title="Enviar o áudio pro meu WhatsApp" aria-label="Enviar o áudio pro meu WhatsApp">${IC.wa}</button>`}
-      <button class="icon-btn sticker-btn${s.visual ? ' ready' : ''}" data-act="sticker" title="${s.visual ? 'Figurinha com som' : s.duration <= STICKER_MAX + 0.05 ? 'Gerar figurinha animada' : 'Figurinha com som: só trechos de até 10s'}">${IC.sticker}</button>
+      <button class="icon-btn sticker-btn${s.visual ? ' ready' : ''}" data-act="sticker" title="${silent ? 'Opções da figurinha' : s.visual ? 'Figurinha com som' : s.duration <= STICKER_MAX + 0.05 ? 'Gerar figurinha animada' : 'Figurinha com som: só trechos de até 10s'}">${IC.sticker}</button>
       <button class="icon-btn ${s.favorite ? 'fav-on' : ''}" data-act="fav" title="Favorita">${IC.star}</button>
       <button class="icon-btn" data-act="share" title="Compartilhar">${IC.share}</button>
       <button class="icon-btn" data-act="edit" title="Editar">${IC.edit}</button>
@@ -714,6 +811,7 @@ $('#grid').addEventListener('click', async (e) => {
   if (act === 'play') playSticker(id);
   else if (act === 'send') sendSticker(id, btn);
   else if (act === 'send-sound') sendStickerMsg(id, 'sound', btn);
+  else if (act === 'send-plain') sendStickerMsg(id, 'plain', btn);
   else if (act === 'sticker') stickerModal(id);
   else if (act === 'share') shareSticker(id);
   else if (act === 'fav') {
@@ -734,6 +832,12 @@ const audio = new Audio();
 let playingId = null;
 function playSticker(id) {
   const el = $(`.sticker[data-id="${id}"]`);
+  // Stick (sem som): só reinicia a animação
+  const meta = stickers.find((x) => x.id === id);
+  if (meta && !meta.hasAudio) {
+    $$(`img[src*="/media/${id}.webp"]`).forEach((img) => { img.src = `/media/${id}.webp?play=${Date.now()}`; });
+    return;
+  }
   if (playingId === id && !audio.paused) { audio.pause(); audio.currentTime = 0; return clearPlaying(); }
   clearPlaying();
   playingId = id;
@@ -1164,14 +1268,328 @@ async function syncContactsNow(btn) {
   } catch (err) { toast(err.message, 'err'); btn.disabled = false; btn.textContent = 'Tentar de novo'; }
 }
 
+// ============ abas: Audio Stick / Stick / Combinação Caótica ============
+const MODE_TEXT = {
+  audio: {
+    step1: 'Cole um link ou envie um arquivo',
+    hint: 'O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar um vídeo ou áudio</b> para cá.',
+    welcome: ['<b>Cole</b> o link de qualquer vídeo', '<b>Marque</b> o começo e o fim do trecho', '<b>Mande</b> pro WhatsApp: áudio ou figurinha com som'],
+  },
+  sticker: {
+    step1: 'Escolha uma foto, um GIF ou um vídeo',
+    hint: 'Clique em <b>📁 Arquivo</b> (ou arraste) para usar uma <b>foto</b>, um <b>GIF</b> ou um vídeo. Também dá para colar o link de um vídeo e recortar até 10s.',
+    welcome: ['<b>Escolha</b> uma foto, um GIF ou um vídeo', '<b>Recorte</b> (vídeo: até 10s) e escolha o enquadramento', '<b>Mande</b> como figurinha, sem som'],
+  },
+};
+
+function setMode(m) {
+  if (!['audio', 'sticker', 'combo'].includes(m)) m = 'audio';
+  mode = m;
+  try { localStorage.setItem('sticks.mode', m); } catch { /* ok */ }
+  $$('#modeTabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
+  $('#studioMain').hidden = m === 'combo';
+  $('#comboPanel').hidden = m !== 'combo';
+  if (m === 'combo') { stopPreview(); renderCombo(); return; }
+  const t = MODE_TEXT[m];
+  $('#step1Title').textContent = t.step1;
+  if (!vid.kind) $('#urlHint').innerHTML = t.hint;
+  $('#welcome ol').innerHTML = t.welcome.map((x) => `<li>${x}</li>`).join('');
+  $('#soundOpts').hidden = m === 'sticker';
+  $('#fitField').hidden = m !== 'sticker';
+  // aviso de que esta peça vai para a combinação
+  let banner = $('#comboBanner');
+  if (!banner) { banner = document.createElement('div'); banner.id = 'comboBanner'; banner.className = 'mode-hint'; $('#studioMain').prepend(banner); }
+  banner.hidden = !comboReturn;
+  if (comboReturn) {
+    banner.innerHTML = `🌀 Criando a peça de <b>${comboReturn === 'visual' ? 'imagem' : 'som'}</b> para a Combinação Caótica. Assim que criar, ela volta sozinha para lá. <button class="btn small ghost" id="cancelCombo" type="button">cancelar</button>`;
+    $('#cancelCombo').onclick = () => { comboReturn = null; banner.hidden = true; };
+  }
+  if (vid.kind) {
+    if (m === 'sticker' && !isPicture() && sel.end - sel.start > STICK_ANIM_MAX) { sel.end = sel.start + STICK_ANIM_MAX; recenter(); }
+    render();
+  }
+}
+$('#modeTabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-mode]'); if (!b) return;
+  if (b.dataset.mode === 'combo') comboReturn = null; // voltou para a combinação por conta própria
+  setMode(b.dataset.mode);
+});
+function setFit(f) {
+  fit = f === 'pad' ? 'pad' : 'crop';
+  $$('#fitSeg button').forEach((x) => x.classList.toggle('on', x.dataset.fit === fit));
+  frameKey = null;
+  schedulePreview();
+}
+$('#fitSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-fit]'); if (b) setFit(b.dataset.fit);
+});
+
+// ============ ✂️ tirar o fundo (editor com IA no navegador: public/bgeditor.js) ============
+$('#bgBtn').onclick = async () => {
+  const btn = $('#bgBtn');
+  if (!vid.kind || !vid.hasVideo) return;
+  const { openBgEditor } = await import('./bgeditor.js');
+  const name = ($('#title').value.trim() || vid.title || 'figurinha').slice(0, 50);
+
+  // FOTO: o editor devolve um PNG transparente, que vira a nova origem (enquadramento "inteiro")
+  if (vid.media === 'image') {
+    openBgEditor({ mode: 'photo', src: `/api/sources/${vid.sourceId}/media`, onDone: async ({ blob }) => {
+      try {
+        const fd = new FormData();
+        fd.append('file', new File([blob], `${name} sem fundo.png`, { type: 'image/png' }));
+        const { jobId } = await uploadWithProgress('/api/sources/upload', fd, () => {});
+        const { source } = await pollJob(jobId);
+        setFit('pad');
+        openSource(source);
+        $('#title').value = `${name} sem fundo`.slice(0, 80); delete $('#title').dataset.auto;
+        toast('Fundo removido! Confira a prévia e clique em Criar ✂️', 'ok');
+      } catch (err) { toast(err.message, 'err'); }
+    } });
+    return;
+  }
+
+  // VÍDEO / GIF / YouTube: o servidor separa os quadros, o editor recorta a pessoa em cada um
+  const start = vid.media === 'gif' ? 0 : sel.start;
+  const end = vid.media === 'gif' ? Math.min(STICK_ANIM_MAX, vid.duration) : sel.end;
+  if (end - start > STICK_ANIM_MAX + 0.05) return toast(`Para tirar o fundo, marque um trecho de até ${STICK_ANIM_MAX}s.`, 'err');
+  btn.disabled = true; btn.textContent = 'Separando os quadros…';
+  let fr;
+  try {
+    fr = await api('/api/frames', { method: 'POST', body: JSON.stringify({ sourceId: isYT() ? undefined : vid.sourceId, url: isYT() ? vid.url : undefined, start, end }) });
+  } catch (err) { toast(err.message, 'err'); return; }
+  finally { btn.disabled = false; btn.textContent = '✂️ Tirar o fundo'; }
+  stopPreview();
+  openBgEditor({ mode: 'frames', token: fr.token, count: fr.count, fps: fr.fps, onDone: async ({ frames }) => {
+    const prog = $('#progress');
+    prog.hidden = false;
+    for (const li of $$('li', prog)) { li.hidden = li.dataset.step !== 'visual'; li.className = li.dataset.step === 'visual' ? 'active' : ''; }
+    $('li[data-step="visual"]', prog).textContent = 'Montando a figurinha sem fundo';
+    try {
+      const fd = new FormData();
+      frames.forEach((b, i) => fd.append('frames', b, `${String(i + 1).padStart(4, '0')}.png`));
+      for (const [k, v] of Object.entries({ title: `${name} sem fundo`, emoji, tags: $('#tags').value, fps: fr.fps, start, end,
+        ...(isYT() ? { url: vid.url } : { sourceId: vid.sourceId }) })) fd.append(k, String(v));
+      const { jobId } = await uploadWithProgress(`/api/frames/${fr.token}/result`, fd, () => {});
+      const { sticker } = await pollJob(jobId);
+      if (createPackSel.size) await api(`/api/stickers/${sticker.id}/packs`, { method: 'PUT', body: JSON.stringify({ packs: [...createPackSel] }) });
+      $('li[data-step="visual"]', prog).className = 'done';
+      await loadCollection(sticker.id);
+      if (comboReturn) backToCombo(sticker); else showCreated(sticker);
+    } catch (err) { toast(err.message, 'err'); }
+    setTimeout(() => { prog.hidden = true; }, 1200);
+  } });
+};
+
+/** Figurinha que já existe → abre no Stick para tirar o fundo (vira uma CÓPIA; a original fica). */
+async function bgFromSticker(s) {
+  closeModal();
+  try {
+    const src = await api(`/api/stickers/${s.id}/as-source`, { method: 'POST' });
+    setMode('sticker');
+    openSource(src);
+    if (src.media === 'video') { sel.start = 0; sel.end = Math.min(STICK_ANIM_MAX, src.duration); recenter(); render(); }
+    $('#title').value = s.title; delete $('#title').dataset.auto;
+    scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => $('#bgBtn').click(), 500);
+  } catch (err) { toast(err.message, 'err'); }
+}
+
+// ============ Combinação Caótica ============
+/** Limite do som na combinação: 5 s com imagem animada, 10 s com imagem parada. */
+const soundLimit = () => (combo.visual && !combo.visual.animated ? STICKER_MAX : combo.visual ? ANIM_SOUND_MAX : STICKER_MAX);
+function slotHtml(slot) {
+  const s = combo[slot];
+  const isV = slot === 'visual';
+  const head = `<div class="slot-head"><span class="n">${isV ? 1 : 2}</span>${isV ? '🖼️ Imagem' : '🔊 Som'}</div>`;
+  if (!s) {
+    return `${head}<p class="small dim" style="margin:0">${isV ? 'A cara da figurinha: da coleção ou nova (foto, GIF ou trecho de vídeo).' : `O som que ela vai fazer (até ${soundLimit()}s): da coleção ou recortado agora.`}</p>
+      <div class="stack">
+        <button class="btn" type="button" data-c="pick">🗂️ Escolher da coleção</button>
+        ${isV ? '<button class="btn" type="button" data-c="file">📁 Foto ou GIF do computador</button>' : ''}
+        <button class="btn" type="button" data-c="new">${isV ? '✂️ Recortar de um vídeo (aba Stick)' : '✂️ Recortar de um vídeo ou áudio (aba Audio Stick)'}</button>
+      </div>`;
+  }
+  return `${head}<div class="slot-card">
+      <button class="slot-thumb" type="button" data-c="${isV ? 'view' : 'listen'}" title="${isV ? 'Imagem escolhida' : 'Ouvir o som'}">${s.visual ? `<img src="/media/${s.id}.webp" alt="">` : esc(s.emoji)}</button>
+      <div class="t">${esc(s.title)}</div>
+      <div class="m">${isV ? (s.animated ? 'animada' : 'parada') : `${s.duration.toFixed(1)}s de som · toque para ouvir`}${combo.temp.has(s.id) ? ' · peça nova' : ''}</div>
+      <div class="row"><button class="btn small" type="button" data-c="pick">Trocar</button>${isV ? '<button class="btn small" type="button" data-c="bg">✂️ Sem fundo</button>' : ''}<button class="btn small ghost" type="button" data-c="clear">Remover</button></div>
+    </div>`;
+}
+
+function renderCombo() {
+  for (const slot of ['visual', 'audio']) {
+    const el = $(slot === 'visual' ? '#slotVisual' : '#slotAudio');
+    el.innerHTML = slotHtml(slot);
+    el.classList.toggle('filled', !!combo[slot]);
+  }
+  const ready = !!(combo.visual && combo.audio);
+  $('#comboOut').hidden = !ready;
+  if (!ready) return;
+  // imagem animada + som > 5s não vira figurinha com som no WhatsApp
+  const tooLongSound = combo.audio.duration > soundLimit() + 0.05;
+  let warn = $('#comboWarn');
+  if (!warn) { warn = document.createElement('div'); warn.id = 'comboWarn'; warn.className = 'mode-hint'; $('#comboOut').prepend(warn); }
+  warn.hidden = !tooLongSound;
+  warn.innerHTML = tooLongSound ? `⚠️ O som tem <b>${combo.audio.duration.toFixed(1)}s</b>, mas com imagem <b>animada</b> o WhatsApp aceita até <b>5s</b>. Troque por um som mais curto ou por uma imagem parada (foto), que aceita até 10s.` : '';
+  $('#comboBtn').disabled = tooLongSound;
+  $('#comboImg').src = `/media/${combo.visual.id}.webp`;
+  const title = $('#comboTitle');
+  if (!title.value || title.dataset.auto) { title.value = `${combo.visual.title} + ${combo.audio.title}`.slice(0, 80); title.dataset.auto = '1'; }
+  const temps = [combo.visual, combo.audio].filter((p) => combo.temp.has(p.id));
+  $('#comboDeleteRow').hidden = !temps.length;
+  $('#comboDeleteTxt').textContent = `Apagar ${temps.length === 1 ? 'a peça criada' : 'as 2 peças criadas'} só para esta combinação (não acumula repetidas)`;
+  packPicker($('#comboPacks'), comboPackSel);
+}
+$('#comboTitle').addEventListener('input', () => delete $('#comboTitle').dataset.auto);
+
+/** Abre a combinação já com uma peça encaixada (atalho das janelas de figurinha). */
+function openComboWith({ visual, audio }) {
+  closeModal();
+  if (visual) combo.visual = visual;
+  if (audio) combo.audio = audio;
+  setMode('combo');
+  scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** Peça criada numa das outras abas para a combinação: volta e encaixa. */
+function backToCombo(s) {
+  const slot = comboReturn;
+  const fits = slot === 'visual' ? s.visual : s.hasAudio && s.duration <= soundLimit() + 0.05;
+  if (!fits) {
+    toast(slot === 'visual' ? 'Essa peça ficou sem imagem. Tente de novo na aba Stick.' : `Para a combinação, o som precisa ter até ${soundLimit()}s. Recorte um trecho menor.`, 'err');
+    return; // continua na aba para tentar de novo
+  }
+  comboReturn = null;
+  combo[slot] = s;
+  combo.temp.add(s.id);
+  setMode('combo');
+  toast('Peça pronta! De volta à Combinação Caótica 🌀', 'ok');
+  scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function pickForCombo(slot) {
+  let all;
+  try { ({ stickers: all } = await api('/api/stickers')); } catch (err) { return toast(err.message, 'err'); }
+  const isV = slot === 'visual';
+  const usable = (s) => (isV ? s.visual : s.hasAudio && s.duration <= soundLimit() + 0.05);
+  const list = all.filter((s) => (isV ? s.visual : s.hasAudio));
+  openModal(`<h3>${isV ? '🖼️ Escolha a imagem' : '🔊 Escolha o som'}</h3>
+    <p class="small">${isV ? 'Qualquer figurinha com imagem: Stick, Audio Stick animado ou outra combinação.' : `Qualquer figurinha com som de até ${soundLimit()}s${combo.visual?.animated ? ' (a imagem escolhida é animada: o WhatsApp aceita até 5s de som)' : ''}.`}</p>
+    <input id="pkSearch" type="search" placeholder="Buscar por nome ou tag…" autocomplete="off">
+    <div class="pick-grid" id="pickGrid"></div>`, (b) => {
+    const norm = (x) => String(x || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const draw = () => {
+      const q = norm($('#pkSearch', b).value);
+      const shown = list.filter((s) => !q || norm(s.title).includes(q) || s.tags.some((t) => norm(t).includes(q)));
+      $('#pickGrid', b).innerHTML = shown.map((s) => `<button class="pick-item" type="button" data-id="${s.id}" ${usable(s) ? '' : `disabled title="Som com mais de ${soundLimit()}s"`}>
+          <span class="pt">${s.visual ? `<img src="/media/${s.id}.webp" alt="" loading="lazy">` : esc(s.emoji)}</span>
+          <span class="pn">${esc(s.title)}</span>
+          <span class="pm">${isV ? (s.hasAudio ? '🔊 tem som' : s.animated ? 'animada' : 'parada') : `${s.duration.toFixed(1)}s${usable(s) ? '' : ' · longo'}`}</span>
+        </button>`).join('')
+        || `<div class="picker-empty">${list.length ? 'Nada com esse nome.' : `Nada por aqui ainda. Use “${isV ? 'Foto ou GIF' : 'Recortar'}” para criar a peça.`}</div>`;
+    };
+    $('#pkSearch', b).addEventListener('input', draw);
+    $('#pickGrid', b).onclick = (e) => {
+      const it = e.target.closest('.pick-item'); if (!it || it.disabled) return;
+      combo[slot] = list.find((s) => s.id === it.dataset.id);
+      closeModal();
+      renderCombo();
+    };
+    draw();
+    setTimeout(() => $('#pkSearch', b)?.focus(), 50);
+  });
+}
+
+// Foto/GIF direto na combinação: envia, vira um Stick (peça nova) e já encaixa
+$('#comboFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  const slotEl = $('#slotVisual');
+  slotEl.innerHTML = '<div class="slot-head"><span class="n">1</span>🖼️ Imagem</div><p class="small"><span class="spin-inline"></span> Enviando e preparando a figurinha…</p>';
+  try {
+    const fd = new FormData(); fd.append('file', f);
+    const { jobId } = await uploadWithProgress('/api/sources/upload', fd, () => {});
+    const { source } = await pollJob(jobId);
+    if (!source.hasVideo) throw new Error('Esse arquivo não tem imagem. Para som, use o lado direito.');
+    const body = { mode: 'sticker', sourceId: source.id, fit: 'crop', title: source.title, emoji: '🌀',
+      start: 0, end: source.media === 'image' ? 0 : Math.min(STICK_ANIM_MAX, source.duration || STICK_ANIM_MAX) };
+    const { jobId: j2 } = await api('/api/stickers', { method: 'POST', body: JSON.stringify(body) });
+    const { sticker } = await pollJob(j2);
+    combo.visual = sticker; combo.temp.add(sticker.id);
+    await loadCollection();
+  } catch (err) { toast(err.message, 'err'); }
+  renderCombo();
+};
+
+const comboAudio = new Audio();
+function playCombo() {
+  if (!combo.audio) return;
+  comboAudio.pause();
+  comboAudio.src = `/media/${combo.audio.id}.ogg`;
+  const img = $('#comboImg');
+  const btn = $('#comboPrev');
+  btn.classList.add('on');
+  let started = false;
+  const go = () => { if (!started) { started = true; comboAudio.play().catch(() => {}); } };
+  if (combo.visual) { img.addEventListener('load', go, { once: true }); img.src = `/media/${combo.visual.id}.webp?play=${Date.now()}`; setTimeout(go, 500); } else go();
+}
+comboAudio.addEventListener('ended', () => $('#comboPrev').classList.remove('on'));
+$('#comboPrev').onclick = playCombo;
+
+$('#comboPanel').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  const slot = b.closest('.slot')?.dataset.slot;
+  const c = b.dataset.c;
+  if (c === 'pick') pickForCombo(slot);
+  else if (c === 'clear') { combo[slot] = null; renderCombo(); }
+  else if (c === 'file') $('#comboFile').click();
+  else if (c === 'bg') { const v = combo.visual; comboReturn = 'visual'; bgFromSticker(v); }
+  else if (c === 'listen') { comboAudio.pause(); comboAudio.src = `/media/${combo.audio.id}.ogg`; comboAudio.play().catch(() => {}); }
+  else if (c === 'new') {
+    comboReturn = slot;
+    setMode(slot === 'visual' ? 'sticker' : 'audio');
+    toast(slot === 'visual' ? 'Escolha uma foto, GIF ou vídeo e crie a figurinha: ela volta para a combinação 🌀' : `Recorte o som (até ${soundLimit()}s) e crie: ele volta para a combinação 🌀`);
+    scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+
+$('#comboBtn').onclick = async () => {
+  if (!combo.visual || !combo.audio) return;
+  const btn = $('#comboBtn');
+  btn.disabled = true; btn.textContent = 'Combinando o caos…';
+  try {
+    const deleteIds = $('#comboDelete').checked ? [combo.visual.id, combo.audio.id].filter((id) => combo.temp.has(id)) : [];
+    const r = await api('/api/combos', { method: 'POST', body: JSON.stringify({
+      visualId: combo.visual.id, audioId: combo.audio.id, title: $('#comboTitle').value.trim(), tags: $('#comboTags').value, deleteIds,
+    }) });
+    if (comboPackSel.size) await api(`/api/stickers/${r.sticker.id}/packs`, { method: 'PUT', body: JSON.stringify({ packs: [...comboPackSel] }) });
+    const rect = btn.getBoundingClientRect();
+    burst('🌀', rect.left + rect.width / 2, rect.top);
+    combo.visual = null; combo.audio = null; combo.temp.clear();
+    $('#comboTitle').value = ''; $('#comboTags').value = '';
+    await loadCollection(r.sticker.id);
+    renderCombo();
+    showCreated(r.sticker);
+    if (r.deleted?.length) toast(`${r.deleted.length} peça${r.deleted.length > 1 ? 's' : ''} temporária${r.deleted.length > 1 ? 's' : ''} apagada${r.deleted.length > 1 ? 's' : ''} 🧹`);
+  } catch (err) { toast(err.message, 'err'); }
+  btn.disabled = false; btn.textContent = '🌀 Criar combinação caótica';
+};
+
 // ============ ajuda (?) ============
 const HELP_TABS = {
   inicio: { label: '🚀 Começando', html: () => `
+    <h4>Três jeitos de criar (abas no topo do estúdio)</h4>
+    <div class="feat">
+      <div class="card"><div class="t"><span>🎙️</span>Audio Stick</div><p>Um trecho de vídeo ou áudio vira <b>som</b> (e, até 10s, figurinha animada com som).</p></div>
+      <div class="card"><div class="t"><span>🖼️</span>Stick</div><p><b>Só a figurinha</b>, sem som: de foto, GIF ou trecho de vídeo.</p></div>
+      <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>A <b>imagem</b> de uma + o <b>som</b> de outra. Da coleção ou criadas na hora.</p></div>
+    </div>
     <h4>Do vídeo à figurinha em 4 passos</h4>
     <div class="steps4">
       <div class="step4"><span class="n">1</span><div class="big">🔗</div><h5>Cole o link</h5><p>YouTube, Instagram, TikTok, X, Facebook… ou use <b>📁 Arquivo</b> / arraste um vídeo do PC.</p></div>
       <div class="step4"><span class="n">2</span><div class="big">✂️</div><h5>Marque o trecho</h5><p>Arraste as alças amarelas ou use <b>I</b> e <b>O</b>. O <b>▶</b> toca só o pedaço.</p></div>
-      <div class="step4"><span class="n">3</span><div class="big">🎨</div><h5>Dê a cara</h5><p>Nome, emoji, tags e pacote. Até <b>10s</b> também vira figurinha animada.</p></div>
+      <div class="step4"><span class="n">3</span><div class="big">🎨</div><h5>Dê a cara</h5><p>Nome, emoji, tags e pacote. Até <b>5s</b> vira figurinha animada com som; até <b>10s</b>, parada com som.</p></div>
       <div class="step4"><span class="n">4</span><div class="big">📲</div><h5>Envie</h5><p>O botão verde manda para o WhatsApp de quem você escolheu em <b>Enviar para</b>.</p></div>
     </div>
     <h4>Como as peças se conectam</h4>
@@ -1194,7 +1612,10 @@ const HELP_TABS = {
 
   recursos: { label: '✨ Recursos', html: () => `
     <div class="feat">
-      <div class="card"><div class="t"><span>🎞️</span>Figurinha com som</div><p>Trechos de até <b>10s</b> viram uma figurinha animada (512×512, cantos arredondados) que toca o áudio quando tocam nela.</p><span class="tag">experimental</span></div>
+      <div class="card"><div class="t"><span>🎞️</span>Figurinha com som</div><p>Trechos de até <b>5s</b> viram figurinha <b>animada</b> com som; de <b>5 a 10s</b>, figurinha <b>parada</b> com som (limites do WhatsApp).</p><span class="tag">experimental</span></div>
+      <div class="card"><div class="t"><span>🖼️</span>Stick (só a figurinha)</div><p>Figurinha <b>sem som</b> de uma <b>foto</b> (parada), de um <b>GIF</b> ou de um trecho de <b>vídeo</b> de até 10s (animada). Dá para <b>recortar quadrado</b> ou mostrar <b>inteira, com fundo transparente</b>.</p></div>
+      <div class="card"><div class="t"><span>✂️</span>Tirar o fundo</div><p>Como no WhatsApp: a IA recorta <b>pessoas</b> sozinha (até em <b>vídeo e GIF</b>, quadro a quadro) ou você <b>toca no que manter</b>. Tem pincel, sensibilidade e <b>borda branca</b>. Roda no seu navegador.</p></div>
+      <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>Junte a <b>imagem</b> de uma figurinha com o <b>som</b> de outra (até 10s). Cada peça vem da coleção ou é criada na hora. As peças criadas só para isso podem ser apagadas depois.</p></div>
       <div class="card"><div class="t"><span>🎙️</span>Áudio (mensagem de voz)</div><p>Trechos de até <b>60s</b> viram áudio com a ondinha desenhada, como se você tivesse gravado.</p></div>
       <div class="card"><div class="t"><span>📦</span>Pacotes</div><p>Organize por categoria (Memes, Futebol…). Uma figurinha pode estar em vários. Envie o pacote inteiro de uma vez.</p></div>
       <div class="card"><div class="t"><span>🎯</span>Enviar para</div><p>Você, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b> digitado. O destino vale para todos os botões até você trocar.</p></div>
@@ -1228,6 +1649,9 @@ const HELP_TABS = {
       <details><summary>Meu número pode ser bloqueado?</summary><p>A conexão não é oficial. Mandar para você mesmo é de baixíssimo risco. Para outras pessoas e grupos o risco cresce se você disparar muita coisa para muita gente — o app já espaça os envios de pacotes.</p></details>
       <details><summary>Onde ficam minhas figurinhas?</summary><p>No executável: <b>%LOCALAPPDATA%\\Audio Sticks\\data</b> (veja em ⚙ Configurações ou no menu da bandeja → Abrir pasta). Rodando pelo código: na pasta <b>data</b> do projeto.</p></details>
       <details><summary>Não aparecem meus contatos.</summary><p>Em <b>Enviar para → Contatos</b>, clique em <b>Buscar meus contatos no WhatsApp</b>. Se ainda faltar alguém, use a aba <b>Número</b>.</p></details>
+      <details><summary>Como tiro o fundo de uma figurinha?</summary><p>Na aba <b>Stick</b>, depois de carregar a foto, GIF ou vídeo, clique em <b>✂️ Tirar o fundo</b> (embaixo da prévia). Para uma figurinha que já existe: botão amarelo → <b>Tirar o fundo (cria uma cópia)</b>. Na primeira vez a IA é baixada (~22 MB, precisa de internet).</p></details>
+      <details><summary>Qual o tempo máximo?</summary><p>Figurinha <b>animada</b>: até <b>10s</b>. Figurinha com som: até <b>5s</b> de som se for animada e até <b>10s</b> se for parada (regras do WhatsApp). Áudio (mensagem de voz): até 60s.</p></details>
+      <details><summary>O app vai acumulando arquivos?</summary><p>Não muito: vídeos baixados ou enviados ficam num cache que se limpa sozinho (no máximo 25 e nada com mais de 7 dias), e dá para limpar tudo em <b>⚙ Configurações → Limpar cache</b>. Na Combinação Caótica, as peças criadas só para ela podem ser apagadas automaticamente.</p></details>
       <details><summary>Quais sites funcionam?</summary><p>Além do YouTube: Instagram, TikTok, X/Twitter, Facebook, Kwai, Reddit, Twitch, SoundCloud, Dailymotion e centenas de outros (tudo que o <b>yt-dlp</b> suporta). Conteúdo privado, de “melhores amigos” ou que exige login não dá — nesse caso, salve o vídeo no celular/PC e use <b>📁 Arquivo</b>.</p></details>
       <details><summary>O Instagram/TikTok deu erro.</summary><p>Esses sites mudam com frequência e às vezes pedem login. Feche e abra o app (o baixador se atualiza sozinho) e tente de novo. Se persistir, baixe o vídeo e envie como arquivo.</p></details>
       <details><summary>O YouTube parou de baixar.</summary><p>O YouTube muda com frequência. O app atualiza o yt-dlp sozinho ao abrir; feche e abra de novo. Pelo código, rode <b>npm run setup</b>.</p></details>
@@ -1261,6 +1685,7 @@ async function openHelp(tab = 'inicio') {
 $('#helpBtn').onclick = () => openHelp();
 
 // ============ configurações (⚙) ============
+const mb = (bytes) => `${((bytes || 0) / 1e6).toFixed((bytes || 0) < 1e7 ? 1 : 0)} MB`;
 async function openSettings() {
   let s;
   try { s = await api('/api/settings'); } catch (err) { return toast(err.message, 'err'); }
@@ -1289,6 +1714,8 @@ async function openSettings() {
       <p>Figurinhas, pacotes, configurações e a conexão do WhatsApp ficam aqui:</p>
       <div class="mono-path">${esc(s.dataDir)}</div>
       <div class="set-row" style="margin-top:10px"><button class="btn small" id="sFolder">📂 Abrir pasta</button><a class="btn small" href="/api/export">⬇ Fazer backup (.zip)</a></div>
+      <p style="margin:12px 0 8px">Sua coleção ocupa <b>${mb(s.collectionBytes)}</b>. O <b>cache</b> (vídeos baixados ou enviados, que servem para recortar de novo sem baixar outra vez) ocupa <b id="sCacheSize">${mb(s.cacheBytes)}</b>. Ele se limpa sozinho: no máximo 25 vídeos, nada com mais de 7 dias.</p>
+      <div class="set-row"><button class="btn small" id="sClear">🧹 Limpar cache agora</button><span class="dim small">a coleção não é afetada</span></div>
     </div>
     ${s.isExe ? `<div class="set-sec">
       <h4>🖥️ Aplicativo</h4>
@@ -1315,6 +1742,12 @@ async function openSettings() {
     $('#sPortGo', b).onclick = go;
     $('#sPort', b).addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
     $('#sPortRand', b).onclick = () => { $('#sPort', b).value = 3000 + Math.floor(Math.random() * 6000) + 1000; };
+    $('#sClear', b).onclick = async (e) => {
+      const btn = e.currentTarget; btn.disabled = true;
+      try { const r = await api('/api/cache/clear', { method: 'POST' }); $('#sCacheSize', b).textContent = '0 MB'; toast(`Cache limpo: ${mb(r.freed)} liberados 🧹`, 'ok'); }
+      catch (err) { toast(err.message, 'err'); }
+      btn.disabled = false;
+    };
     $('#sFolder', b).onclick = () => api('/api/open-folder', { method: 'POST' }).then(() => toast('Pasta aberta no seu PC')).catch((e) => toast(e.message, 'err'));
     $('#sTour', b).onclick = () => { closeModal(); startTour(); };
     $('#sRestart', b)?.addEventListener('click', async () => {
@@ -1354,6 +1787,7 @@ function tourSteps() {
   const hasCard = !!$('#grid .sticker');
   const steps = [
     { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas de áudio</b> e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
+    { el: '#modeTabs', emoji: '🧭', title: 'Três jeitos de criar', text: '<b>🎙️ Audio Stick</b>: trecho de vídeo vira som + figurinha. <b>🖼️ Stick</b>: só a figurinha, de foto, GIF ou vídeo. <b>🌀 Combinação Caótica</b>: a imagem de uma com o som de outra.' },
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
     { el: '#urlForm', emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar um vídeo do PC para cá.' },
   ];
@@ -1362,7 +1796,7 @@ function tourSteps() {
       { el: '#zoom', emoji: '✂️', title: '2. Marque o trecho', text: 'Arraste as <b>alças amarelas</b> para o início e o fim. Arrastar o meio move o trecho inteiro. Atalhos: <b>I</b> e <b>O</b>.' },
       { el: '#previewBtn', emoji: '▶️', title: 'Ouça antes de criar', text: 'Toca <b>só o trecho marcado</b> (ou aperte <b>espaço</b>). Ligue <b>repetir</b> para ajustar no ouvido.' },
       { el: '.details', emoji: '🎨', title: '3. Dê a cara da figurinha', text: 'A prévia mostra como a figurinha vai ficar. Escolha <b>emoji</b>, <b>nome</b>, <b>tags</b> e em quais <b>pacotes</b> ela entra.' },
-      { el: '#createBtn', emoji: '✨', title: 'Criar!', text: 'Trechos de até <b>10s</b> viram <b>figurinha animada com som</b>; até 60s viram <b>áudio</b>. Leva poucos segundos.' },
+      { el: '#createBtn', emoji: '✨', title: 'Criar!', text: 'Até <b>5s</b> vira <b>figurinha animada com som</b>; até <b>10s</b>, figurinha parada com som; até 60s, <b>áudio</b>. Leva poucos segundos.' },
     );
   } else {
     steps.push({ el: '.studio', emoji: '✂️', title: '2 e 3. Recorte e personalize', text: 'Depois de colar o link, aparecem aqui o vídeo, a <b>régua com alças amarelas</b> para marcar o trecho, a <b>prévia</b> da figurinha e o botão <b>Criar</b>.' });
@@ -1471,6 +1905,10 @@ setTimeout(() => {
 // demo da tela inicial
 $('.demo-wave').innerHTML = Array.from({ length: 22 }, (_, i) => `<i style="height:${20 + Math.abs(Math.sin(i * 1.7)) * 80}%;animation-delay:${-i * 0.09}s"></i>`).join('');
 
+// volta na aba usada da última vez
+let savedMode = 'audio';
+try { savedMode = localStorage.getItem('sticks.mode') || 'audio'; } catch { /* ok */ }
+setMode(savedMode);
 renderTarget();
 refreshWa();
 waPoll = setInterval(refreshWa, 15000);
