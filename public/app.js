@@ -4,6 +4,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const MAX_LEN = 60;
+const REPO_URL = 'https://github.com/ivandneto/zapsticks-do-caos';
 const STICKER_MAX = 10; // a figurinha com som do WhatsApp aceita até 10s de áudio
 
 function fmt(t, decimals = 1) {
@@ -1249,7 +1250,7 @@ async function openHelp(tab = 'inicio') {
     <div class="help-body" id="hBody"></div>`, (b) => {
     const show = (k) => {
       $$('#hTabs button', b).forEach((x) => x.classList.toggle('on', x.dataset.k === k));
-      $('#hBody', b).innerHTML = HELP_TABS[k].html() + `<div class="help-foot"><span>Audio Sticks ${esc(info.version || '')}</span><span>${info.url ? `Aberto em ${esc(info.url)}` : ''}</span></div>`;
+      $('#hBody', b).innerHTML = HELP_TABS[k].html() + `<div class="help-foot"><span>Audio Sticks ${esc(info.version || '')} · <a href="${REPO_URL}" target="_blank" rel="noopener">código no GitHub ↗</a></span><span>${info.url ? `Aberto em ${esc(info.url)}` : ''}</span></div>`;
     };
     $('#hTabs', b).onclick = (e) => { const x = e.target.closest('button'); if (x) show(x.dataset.k); };
     $('#hTour', b).onclick = () => { closeModal(); startTour(); };
@@ -1296,7 +1297,7 @@ async function openSettings() {
     </div>` : ''}
     <div class="set-sec">
       <h4>🧭 Ajuda</h4>
-      <div class="set-row"><button class="btn small" id="sTour">Refazer o tour</button><button class="btn small" id="sHelp">Como funciona</button><span class="dim small">versão ${esc(s.version)}</span></div>
+      <div class="set-row"><button class="btn small" id="sTour">Refazer o tour</button><button class="btn small" id="sHelp">Como funciona</button><a class="btn small" href="${REPO_URL}" target="_blank" rel="noopener">⭐ Projeto no GitHub</a><span class="dim small">versão ${esc(s.version)}</span></div>
     </div>
   </div>`, (b) => {
     const go = async () => {
@@ -1373,6 +1374,7 @@ function tourSteps() {
   if (hasCard) steps.push({ el: '#grid .sticker', emoji: '🎛️', title: 'Sua mesa de som', text: 'Toque na imagem para ouvir. <b>Verde</b> envia; <b>amarelo</b> abre as opções da figurinha com som; depois vêm favoritar, compartilhar, editar e excluir.' });
   steps.push(
     { el: '#helpBtn', emoji: '❓', title: 'Ajuda sempre à mão', text: 'Guia completo com recursos, atalhos e dúvidas frequentes.' },
+    { el: '#githubBtn', emoji: '🐙', title: 'Projeto no GitHub', text: 'O código, as novidades e as versões para baixar ficam no GitHub. Deixa uma ⭐ lá!' },
     { el: '#settingsBtn', emoji: '⚙️', title: 'Configurações', text: 'Troque a <b>porta</b> se outro programa estiver usando a mesma, veja o endereço para abrir <b>no celular</b> e onde ficam seus dados.' },
     { emoji: '🎉', title: 'Pronto!', text: 'Agora é com você: cole um link e crie a sua primeira figurinha. Dá para refazer este tour no botão <b>Tour</b> lá em cima.' },
   );

@@ -18,6 +18,7 @@ import * as sources from './lib/sources.js';
 
 const PASSWORD = process.env.APP_PASSWORD || '';
 const MAX_SECONDS = 60;
+const REPO_URL = 'https://github.com/ivandneto/zapsticks-do-caos';
 
 const app = express();
 app.disable('x-powered-by');
@@ -611,6 +612,7 @@ async function main() {
         openBrowser(localUrl());
       } catch (err) { tray.balloon('Não deu para trocar a porta', err.message); }
     },
+    github: () => openBrowser(REPO_URL),
     restart: () => restartApp(),
     quit: () => { console.log('Encerrado pelo menu da bandeja.'); process.exit(0); },
   }) : null;

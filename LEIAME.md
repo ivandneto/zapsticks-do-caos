@@ -57,7 +57,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ▮▮ Audio Sticks          [● +55 11 9…] [🧭 Tour] [?] [⚙]                  │  ← topo
+│ ▮▮ Audio Sticks       [● +55 11 9…] [🧭 Tour] [?] [GitHub] [⚙]            │  ← topo
 ├───────────────────────────────────────┬──────────────────────────────────┤
 │ 1 Cole um link ou envie um arquivo    │ Minha coleção   [Importar][Exportar]
 │ [ link…  ][Carregar][📁 Arquivo]      │ Enviar para: [Eu  Você      Trocar ▾]
@@ -77,6 +77,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
+| **GitHub** (ícone do gatinho) | Abre o [repositório do projeto](https://github.com/ivandneto/zapsticks-do-caos): código, novidades e versões para baixar. |
 | **⚙** | Configurações: porta, endereço para o celular, pasta dos dados, backup. |
 | **Estúdio** (esquerda) | Onde você cola o link, marca o trecho e cria a figurinha. |
 | **Coleção** (direita) | Suas figurinhas. Funciona como uma mesa de som: toque para ouvir. |
@@ -251,6 +252,7 @@ Passar o mouse mostra a porta e o estado do WhatsApp.
 | **Abrir pasta das figurinhas** | Abre a pasta de dados no Explorador |
 | **Ver registro (log)** | Abre `data/sticks.log` (útil para entender erros) |
 | **Trocar porta…** | Caixinha para digitar a nova porta. Funciona mesmo se a página não abrir por causa do conflito |
+| **Projeto no GitHub** | Abre o repositório no navegador |
 | **Reiniciar** | Fecha e abre o app de novo, na mesma porta |
 | **Encerrar** | Desliga o app (e some da bandeja) |
 

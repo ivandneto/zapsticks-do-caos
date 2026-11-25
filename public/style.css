@@ -66,6 +66,8 @@ kbd { font: 600 .72em var(--font); padding: .1em .45em; border-radius: 6px; back
 .top-btn:hover { border-color: var(--accent); }
 .top-btn:active { transform: scale(.94); }
 .top-btn.icon { width: 38px; padding: 0; font: 800 1.05rem var(--display); }
+a.top-btn { text-decoration: none; }
+.top-btn.gh svg { fill: currentColor; stroke: none; width: 19px; height: 19px; }
 .top-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .tour-btn { padding: 0 14px 0 11px; background: color-mix(in srgb, var(--accent) 14%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .tour-btn.pulse { animation: tourPulse 1.6s ease-in-out 3; }
@@ -437,6 +439,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .faq details { border: 1px solid var(--line); border-radius: 14px; padding: 2px 14px; margin-bottom: 8px; background: var(--bg2); }
 .faq summary { cursor: pointer; padding: 11px 0; font-weight: 700; color: var(--text); }
 .faq details p { margin: 0 0 12px; font-size: .9rem; }
+.help-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .help-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .8rem; color: var(--dim); display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
 
 /* ---------- configurações ---------- */
