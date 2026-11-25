@@ -1,0 +1,19 @@
+{
+  "name": "Audio Sticks",
+  "short_name": "Audio Sticks",
+  "description": "Recorte trechos do YouTube em figurinhas de áudio para o WhatsApp",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101017",
+  "theme_color": "#101017",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

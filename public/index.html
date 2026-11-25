@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Audio Sticks</title>
+  <meta name="theme-color" content="#101017">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">
+      <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span>Audio<b>Sticks</b></span>
+    </a>
+    <div class="top-actions">
+      <button id="waPill" class="wa-pill" data-status="disconnected" title="Conexão com o WhatsApp">
+        <span class="dot"></span><span class="label">WhatsApp</span>
+      </button>
+      <button id="tourBtn" class="top-btn tour-btn" type="button" title="Tour guiado pela plataforma">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg><span>Tour</span>
+      </button>
+      <button id="helpBtn" class="top-btn icon" type="button" title="Como funciona" aria-label="Como funciona">?</button>
+      <button id="settingsBtn" class="top-btn icon" type="button" title="Configurações" aria-label="Configurações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ESTÚDIO -->
+    <section class="studio panel">
+      <div class="step-title"><span class="num">1</span><h2>Cole um link ou envie um arquivo</h2></div>
+      <form id="urlForm" class="url-row" autocomplete="off">
+        <input id="url" type="text" inputmode="url" placeholder="YouTube, Instagram, TikTok, X, Facebook…" aria-label="Link do vídeo">
+        <button type="submit" class="btn primary">Carregar</button>
+        <button type="button" class="btn" id="fileBtn" title="Usar um vídeo ou áudio do seu computador">📁 <span>Arquivo</span></button>
+        <input id="fileIn" type="file" accept="video/*,audio/*,.mkv,.mov,.flac" hidden>
+      </form>
+      <p class="hint" id="urlHint">O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar um vídeo ou áudio</b> para cá.</p>
+
+      <div id="editor" class="editor" hidden>
+        <div class="player-wrap">
+          <div id="ytBox"><div id="player"></div></div>
+          <video id="html5" playsinline controls preload="auto" hidden></video>
+          <div id="audioOnly" class="audio-only" hidden><span>🎵</span>Arquivo só de áudio</div>
+        </div>
+        <div id="embedError" class="embed-error" hidden>
+          Esse vídeo não pode tocar fora do YouTube. Você ainda pode recortar digitando os tempos de início e fim abaixo.
+        </div>
+
+        <div class="overview-row">
+          <span class="time mono" id="curTime">0:00.0</span>
+          <div id="overview" class="overview" title="Clique para ir até esse ponto do vídeo">
+            <div class="ov-sel"></div><div class="ov-head"></div>
+          </div>
+          <span class="time mono dim" id="durTime">0:00</span>
+        </div>
+
+        <div class="step-title"><span class="num">2</span><h2>Marque o trecho</h2></div>
+        <div id="zoom" class="zoom" title="Arraste as alças amarelas para ajustar o corte">
+          <div class="z-inner">
+            <div class="z-ticks"></div>
+            <div class="z-sel"><span class="z-len mono"></span></div>
+            <div class="z-handle start" data-handle="start"><span>⟦</span></div>
+            <div class="z-handle end" data-handle="end"><span>⟧</span></div>
+            <div class="z-head"></div>
+          </div>
+        </div>
+
+        <div class="marks">
+          <div class="mark">
+            <button id="setStart" class="btn mark-btn">Início aqui <kbd>I</kbd></button>
+            <div class="fine">
+              <button class="nudge" data-which="start" data-d="-0.1" aria-label="Início 0,1s antes">−</button>
+              <input id="startIn" class="mono" aria-label="Início">
+              <button class="nudge" data-which="start" data-d="0.1" aria-label="Início 0,1s depois">+</button>
+            </div>
+          </div>
+          <button id="previewBtn" class="preview-btn" aria-label="Ouvir o trecho">
+            <svg viewBox="0 0 24 24" class="ic-play"><path d="M7 4.5v15l13-7.5z"/></svg>
+            <svg viewBox="0 0 24 24" class="ic-stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          </button>
+          <div class="mark">
+            <button id="setEnd" class="btn mark-btn">Fim aqui <kbd>O</kbd></button>
+            <div class="fine">
+              <button class="nudge" data-which="end" data-d="-0.1" aria-label="Fim 0,1s antes">−</button>
+              <input id="endIn" class="mono" aria-label="Fim">
+              <button class="nudge" data-which="end" data-d="0.1" aria-label="Fim 0,1s depois">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="under-marks">
+          <label class="switch"><input type="checkbox" id="loop"><span></span> repetir</label>
+          <span class="keys"><kbd>espaço</kbd> ouvir · <kbd>←</kbd><kbd>→</kbd> 1s · <kbd>shift</kbd> 0,1s</span>
+        </div>
+
+        <div class="step-title"><span class="num">3</span><h2>Dê a cara da figurinha</h2></div>
+        <div class="details">
+          <div class="emoji-pick">
+            <div class="prev-col">
+              <button id="stickerPrev" class="sticker-prev" type="button" title="Prévia da figurinha (clique para ouvir o trecho)">
+                <img id="prevImg" alt="Prévia da figurinha">
+                <span id="emojiNow" class="prev-emoji">🔊</span>
+              </button>
+              <span id="prevCaption" class="prev-caption"></span>
+            </div>
+            <div id="emojiGrid" class="emoji-grid"></div>
+          </div>
+          <label class="field"><span>Nome</span><input id="title" maxlength="80" placeholder="ex.: risada do Faustão"></label>
+          <label class="field"><span>Tags <em>(separe por vírgula)</em></span><input id="tags" maxlength="120" placeholder="meme, risada, futebol"></label>
+          <div class="field"><span>Pacotes <em>(opcional)</em></span><div id="createPacks" class="pack-pick"></div></div>
+        </div>
+
+        <details class="opts">
+          <summary>Ajustes de som</summary>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" id="optNorm" checked><span>Volume equalizado</span></label>
+            <label class="chip"><input type="checkbox" id="optFadeIn"><span>Entrada suave</span></label>
+            <label class="chip"><input type="checkbox" id="optFadeOut" checked><span>Saída suave</span></label>
+          </div>
+          <div class="boost">
+            <span>Aumentar volume</span>
+            <div class="seg" id="gainSeg">
+              <button type="button" data-v="0" class="on">normal</button>
+              <button type="button" data-v="3">+3 dB</button>
+              <button type="button" data-v="6">+6 dB</button>
+              <button type="button" data-v="9">🔥 +9</button>
+            </div>
+          </div>
+        </details>
+
+        <button id="createBtn" class="btn create">Criar figurinha</button>
+        <ol id="progress" class="progress" hidden>
+          <li data-step="download">Baixando o áudio do YouTube</li>
+          <li data-step="cut">Recortando e convertendo</li>
+          <li data-step="analyze">Desenhando a onda</li>
+          <li data-step="visual">Gerando a figurinha animada</li>
+        </ol>
+      </div>
+
+      <div id="welcome" class="welcome">
+        <div class="demo-wave" aria-hidden="true"></div>
+        <ol>
+          <li><b>Cole</b> o link de qualquer vídeo</li>
+          <li><b>Marque</b> o começo e o fim do trecho</li>
+          <li><b>Mande</b> pro seu WhatsApp como áudio</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- COLEÇÃO -->
+    <section class="collection panel">
+      <div class="col-head">
+        <div>
+          <h2>Minha coleção</h2>
+          <p id="stats" class="dim small"></p>
+        </div>
+        <div class="col-actions">
+          <button id="importBtn" class="btn ghost small" title="Importar um pacote .zip">Importar</button>
+          <a id="exportBtn" class="btn ghost small" href="/api/export" title="Baixar todas como pacote .zip">Exportar</a>
+          <input id="importFile" type="file" accept=".zip,application/zip" hidden>
+        </div>
+      </div>
+      <div class="target-bar">
+        <span class="dim small">Enviar para</span>
+        <button id="targetBtn" class="target-btn" type="button" title="Escolher para quem enviar"></button>
+      </div>
+      <div class="filters">
+        <input id="search" type="search" placeholder="Buscar por nome, tag ou emoji…" aria-label="Buscar">
+        <div class="seg" id="filterSeg">
+          <button data-f="all" class="on">Todas</button>
+          <button data-f="fav">★ Favoritas</button>
+        </div>
+        <select id="sort" aria-label="Ordenar">
+          <option value="recent">Recentes</option>
+          <option value="plays">Mais tocadas</option>
+          <option value="az">A–Z</option>
+        </select>
+      </div>
+      <div class="col-body">
+        <div class="col-main">
+          <div id="packTools" class="pack-tools" hidden></div>
+          <div id="grid" class="grid"></div>
+          <div id="empty" class="empty" hidden>
+            <div class="big">🎧</div>
+            <p>Nenhuma figurinha ainda.<br>Crie a primeira aqui do lado.</p>
+          </div>
+        </div>
+        <aside class="pack-side">
+          <div class="pack-side-title">Pacotes</div>
+          <nav id="packBar" class="pack-bar" aria-label="Pacotes"></nav>
+        </aside>
+      </div>
+      <p class="dim small keys-col">Dica: as teclas <kbd>1</kbd>…<kbd>9</kbd> tocam as primeiras figurinhas.</p>
+    </section>
+  </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <button class="modal-x" aria-label="Fechar">×</button>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="burst" class="burst" aria-hidden="true"></div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules/
+# ferramentas baixadas sozinhas (yt-dlp, ffmpeg, deno)
+bin/
+# coleção, cache e a sessão do WhatsApp — NUNCA publique a pasta data/whatsapp-auth
+data/
+build/
+dist/
+.playwright-mcp/
+.env
+*.log

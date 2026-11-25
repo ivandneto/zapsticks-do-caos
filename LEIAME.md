@@ -1,0 +1,346 @@
+# Audio Sticks
+
+Transforme qualquer trecho de vídeo (**YouTube, Instagram, TikTok, X, Facebook…** ou um **arquivo seu**) em **figurinha de áudio** e mande para o WhatsApp: para você mesmo, para um contato, para um grupo ou para um número. Tudo roda no seu PC e é gratuito.
+
+> Dentro do app, o botão **?** abre um guia ilustrado e o botão **Tour** faz uma apresentação guiada da tela.
+
+---
+
+## Sumário
+
+1. [Instalar e abrir](#1-instalar-e-abrir)
+2. [A tela, parte por parte](#2-a-tela-parte-por-parte)
+3. [Criar uma figurinha](#3-criar-uma-figurinha)
+4. [Conectar o WhatsApp](#4-conectar-o-whatsapp)
+5. [Enviar: para quem e como](#5-enviar-para-quem-e-como)
+6. [Figurinha com som](#6-figurinha-com-som)
+7. [Pacotes (categorias)](#7-pacotes-categorias)
+8. [Guardar, compartilhar e levar para outro PC](#8-guardar-compartilhar-e-levar-para-outro-pc)
+9. [Configurações e porta](#9-configurações-e-porta)
+10. [Ícone na bandeja (executável)](#10-ícone-na-bandeja-executável)
+11. [Usar no celular e fora de casa](#11-usar-no-celular-e-fora-de-casa)
+12. [Atalhos de teclado](#12-atalhos-de-teclado)
+13. [Problemas comuns](#13-problemas-comuns)
+14. [Para desenvolvedores](#14-para-desenvolvedores)
+
+---
+
+## 1. Instalar e abrir
+
+### Opção A: executável (para quem só quer usar)
+
+1. Descompacte o `Audio-Sticks-<versão>-win32-x64.zip` em qualquer pasta.
+2. Dê dois cliques em **`Audio Sticks.exe`**.
+3. O navegador abre sozinho, e o app fica como um **ícone na bandeja**, perto do relógio (pode estar escondido na setinha **^**).
+
+Sobre o executável:
+- Não precisa instalar Node, ffmpeg nem nada.
+- **Na primeira vez**, ele baixa as ferramentas de áudio (cerca de 200 MB). Precisa de internet e leva alguns minutos, e um balão avisa quando está preparando.
+- Se o Windows mostrar *"O Windows protegeu o computador"*, clique em **Mais informações → Executar assim mesmo**. O aviso aparece porque o programa não tem assinatura digital, que é paga.
+- Abrir o `.exe` de novo com o app já rodando só abre o navegador. Não duplica.
+- Para atualizar de versão, apague a pasta antiga e descompacte a nova. **Suas figurinhas não ficam na pasta do programa** (veja a [seção 8](#8-guardar-compartilhar-e-levar-para-outro-pc)), então nada se perde.
+
+### Opção B: pelo código (para desenvolver)
+
+Precisa do **Node 22.5 ou mais novo**.
+
+```powershell
+npm install
+npm start          # ou: npm run dev (reinicia sozinho ao salvar)
+```
+
+Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (detalhes na [seção 14](#14-para-desenvolvedores)).
+
+---
+
+## 2. A tela, parte por parte
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ▮▮ Audio Sticks          [● +55 11 9…] [🧭 Tour] [?] [⚙]                  │  ← topo
+├───────────────────────────────────────┬──────────────────────────────────┤
+│ 1 Cole um link ou envie um arquivo    │ Minha coleção   [Importar][Exportar]
+│ [ link…  ][Carregar][📁 Arquivo]      │ Enviar para: [Eu  Você      Trocar ▾]
+│ ┌───────────── vídeo ──────────────┐  │ [Buscar…] [Todas|★] [Recentes ▾]  │
+│ └──────────────────────────────────┘  │ ┌─────────────┐ ┌──────────────┐  │
+│ 2 Marque o trecho                     │ │ figurinha   │ │ PACOTES      │  │
+│ [====⟦████ 4.5s ████⟧=========]       │ │ ▶ onda      │ │ 🗂 Todas   12 │  │
+│ [Início aqui]   (▶)   [Fim aqui]      │ │ 🟢 🟨 ★ ⇪ ✎ 🗑│ │ 😂 Memes    5 │  │
+│ 3 Dê a cara da figurinha              │ └─────────────┘ │ ＋ Novo pacote│  │
+│ [prévia] Nome / Tags / Pacotes        │                 └──────────────┘  │
+│ [        Criar figurinha · 4.5s      ]│                                   │
+└───────────────────────────────────────┴──────────────────────────────────┘
+```
+
+| Parte | O que faz |
+|---|---|
+| **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
+| **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
+| **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
+| **⚙** | Configurações: porta, endereço para o celular, pasta dos dados, backup. |
+| **Estúdio** (esquerda) | Onde você cola o link, marca o trecho e cria a figurinha. |
+| **Coleção** (direita) | Suas figurinhas. Funciona como uma mesa de som: toque para ouvir. |
+| **Enviar para** | Para quem vão todos os envios (você, um contato, um grupo ou um número). |
+| **Pacotes** (coluna da direita) | Suas categorias. Clique para filtrar. |
+
+**Botões de cada figurinha**, da esquerda para a direita:
+
+| Botão | Ação |
+|---|---|
+| 🟢 WhatsApp | Envia para o destino escolhido: **figurinha com som** se ela tiver animação, ou **áudio** se não tiver. |
+| 🟨 Figurinha | Opções da figurinha animada: com som, sem som, só o áudio, baixar `.mp4` e `.webp`. |
+| ★ | Favoritar. |
+| ⇪ | Compartilhar: arquivo, link, baixar. |
+| ✎ | Editar nome, emoji, tags e pacotes. |
+| 🗑 | Excluir. |
+
+---
+
+## 3. Criar uma figurinha
+
+1. **Escolha a origem** (veja a tabela abaixo). Colar um link já carrega o vídeo.
+2. **Marque o trecho**:
+   - arraste as **alças amarelas** na régua, ou toque o vídeo e use **Início aqui (I)** e **Fim aqui (O)**;
+   - arraste o **meio** da seleção para mover o trecho inteiro;
+   - os botões **−** e **+** ajustam de 0,1 em 0,1 segundo;
+   - **▶** (ou `espaço`) toca só o trecho, e **repetir** fica tocando em loop.
+3. **Dê a cara**: a **prévia** mostra o quadro do vídeo como a figurinha vai ficar. Escolha o emoji (que aparece no cantinho), o nome, as tags e os **pacotes**.
+4. **Ajustes de som** (opcional): volume equalizado, entrada e saída suaves, reforço de volume.
+5. Clique em **Criar figurinha**.
+
+### De onde pode vir o som
+
+| Origem | Como funciona |
+|---|---|
+| **YouTube** | Abre na hora, sem baixar antes. Links com tempo (`?t=90`) já começam no ponto certo. |
+| **Instagram, TikTok, X/Twitter, Facebook, Kwai, Reddit, Twitch, SoundCloud, Dailymotion…** | Cole o link. O app **baixa o vídeo primeiro** (de alguns segundos a meio minuto) e depois você recorta igual. Funciona com tudo o que o *yt-dlp* suporta. |
+| **Arquivo do seu PC** | Botão **📁 Arquivo** ou **arraste o arquivo** para o estúdio. Vídeo (mp4, mov, webm, mkv, avi…) ou áudio (mp3, m4a, wav, ogg, flac…). Formatos que o navegador não toca são convertidos automaticamente. |
+
+- Posts **privados**, de "melhores amigos" ou que **exigem login** não podem ser baixados. Salve o vídeo no PC e use **Arquivo**.
+- Limite: mídias de até **1 hora** (transmissões ao vivo não são aceitas).
+- **Arquivo só de áudio** (mp3, por exemplo) vira figurinha de áudio, porque não há imagem para animar.
+- Os vídeos baixados ou enviados ficam num cache (as 25 origens mais recentes), para você poder recortar vários trechos sem baixar de novo.
+
+### O que é criado
+
+| Duração do trecho | O que é criado |
+|---|---|
+| até **10 s** (origem com imagem) | áudio + **figurinha animada** (512×512, até 8s em loop) + vídeo `.mp4` quadrado com som |
+| de 10 a **60 s** | só o áudio (mensagem de voz) |
+
+---
+
+## 4. Conectar o WhatsApp
+
+1. Clique no **status** do topo e depois em **Gerar QR code**.
+2. No celular: **WhatsApp → Configurações → Aparelhos conectados → Conectar um aparelho**.
+3. Aponte para o código. Pronto: o status fica verde com o seu número.
+
+A conexão fica salva. Não precisa ler o QR de novo, a menos que você desconecte.
+
+> A conexão funciona como um WhatsApp Web, por uma biblioteca **não oficial** (Baileys). Ela é gratuita. Mandar para você mesmo é de baixíssimo risco. Para outras pessoas, veja o aviso na [seção 5](#5-enviar-para-quem-e-como).
+> A sessão fica em `data/whatsapp-auth/`. **Nunca compartilhe essa pasta**: ela dá acesso ao seu WhatsApp.
+
+---
+
+## 5. Enviar: para quem e como
+
+No topo da coleção, **Enviar para** mostra o destino atual. Clique em **Trocar ▾** para escolher:
+
+| Aba | Como funciona |
+|---|---|
+| **Você** | A sua conversa "Você" (mensagem para si mesmo). É o padrão. |
+| **Contatos** | Na primeira vez, clique em **Buscar meus contatos no WhatsApp**. O app pede a sua agenda ao WhatsApp, sem desconectar. Há busca por nome ou número. |
+| **Grupos** | Todos os grupos em que você está, com o número de participantes. |
+| **Número** | Digite DDD + número (ex.: `11 98888-7777`). O app confere se ele tem WhatsApp. Se faltar o código do país, usa +55. |
+
+O destino **vale para todos os botões** (figurinha, áudio e pacote) até você trocar. Os últimos usados aparecem em **Recentes**.
+
+> **Cuidado com bloqueio:** enviar para outras pessoas por conexão não oficial aumenta o risco se você disparar muita coisa para muita gente em pouco tempo. No envio de pacotes para outras pessoas e grupos, o app espera de 2 a 3,5 segundos entre uma figurinha e outra.
+
+---
+
+## 6. Figurinha com som
+
+É o formato que o WhatsApp começou a liberar no Brasil em **24/11/2026**: uma figurinha que toca até 10 segundos de som quando tocam nela.
+
+- O botão **verde** do card envia a figurinha com som.
+- Ela é **experimental**: o Baileys ainda não suporta esse formato oficialmente, então o app monta a mensagem por conta própria. Se chegar como *"mensagem não suportada"*, use uma alternativa no botão **amarelo**:
+  - **Enviar só a figurinha** (animada, sem som);
+  - **Enviar só o áudio** (mensagem de voz);
+  - **Baixar vídeo .mp4** e criar a figurinha no próprio WhatsApp: *😊 → Figurinhas → Criar*, escolher o vídeo e ativar o áudio. Esse caminho é garantido, desde que o seu WhatsApp já tenha recebido o recurso.
+
+Figurinhas antigas, de até 10s, que ainda não têm animação: clique no botão amarelo e depois em **Gerar figurinha animada**.
+
+---
+
+## 7. Pacotes (categorias)
+
+- **＋ Novo pacote**: nome e emoji (ex.: 😂 Memes, ⚽ Futebol).
+- **Colocar figurinhas no pacote**: no passo 3 da criação (campo *Pacotes*, que fica marcado para as próximas) ou depois, pelo **✎** do card. Uma figurinha pode estar em **vários pacotes**.
+- **Clique num pacote** para filtrar a coleção. Aparece a barra do pacote:
+  - **Enviar pacote**: manda um título "📦 Memes · 8 figurinhas" e depois cada figurinha, com progresso;
+  - **⋯ Mais**:
+    - enviar sem som ou só os áudios;
+    - **baixar `.wastickers`**;
+    - exportar só esse pacote;
+    - renomear;
+    - excluir (as figurinhas continuam na coleção).
+
+**O que é `.wastickers`?** É o formato de pacote que apps gratuitos de figurinhas, como o *Sticker Maker*, importam para adicionar ao WhatsApp como **pacote de verdade**, com o botão "Adicionar ao WhatsApp". Vai só a animação, sem som. O WhatsApp exige de 3 a 30 figurinhas.
+
+---
+
+## 8. Guardar, compartilhar e levar para outro PC
+
+**Onde ficam os seus dados** (figurinhas, pacotes, configurações e a sessão do WhatsApp):
+
+| Como você usa | Pasta |
+|---|---|
+| Executável | `%LOCALAPPDATA%\Audio Sticks\data` |
+| Executável em **modo portátil** | `data\` ao lado do `.exe` (veja abaixo) |
+| Pelo código (`npm start`) | `data\` dentro do projeto |
+
+O caminho exato aparece em **⚙ Configurações → Seus dados**, que tem o botão *Abrir pasta*, e no menu da bandeja → *Abrir pasta das figurinhas*.
+
+- **Modo portátil:** crie uma pasta chamada `data` ao lado do `Audio Sticks.exe`. A partir daí, ele guarda tudo nela. Serve para pendrive.
+- **Backup:** **Exportar** (ou ⚙ → *Fazer backup*) baixa um `.zip` com todas as figurinhas **e pacotes**.
+- **Outro PC ou um amigo:** **Importar** lê esse `.zip`. O que já existe não é duplicado.
+- **Link da figurinha:** cada figurinha tem uma página (`/s/<id>`) para ouvir e baixar. Fora de casa, ela só funciona pelo túnel ([seção 11](#11-usar-no-celular-e-fora-de-casa)).
+
+---
+
+## 9. Configurações e porta
+
+O botão **⚙** abre:
+
+- **Porta do aplicativo.** O app funciona como um pequeno site no seu PC, num "número de porta" (padrão **3000**). Se outro programa usar a mesma porta, digite outra (de 1024 a 65535) e clique em **Trocar porta**:
+  - a troca é **na hora, sem reiniciar**, e a página vai sozinha para o novo endereço;
+  - se a porta escolhida estiver ocupada, nada muda e aparece um aviso;
+  - a escolha fica salva em `data/config.json`.
+- **Abrir no celular:** os endereços para usar no celular, no mesmo Wi-Fi.
+- **Seus dados:** a pasta, o botão para abri-la e o backup.
+- **Aplicativo** (só no executável): status, **Reiniciar** e **Encerrar**. Ao reiniciar, a página volta sozinha.
+- **Ajuda:** refazer o tour e abrir o guia.
+
+**Troca automática ao abrir:** se a porta salva estiver ocupada por **outro programa**, o app escolhe a próxima livre, salva e avisa (no terminal ou num balão da bandeja).
+
+**Ordem de prioridade da porta:** variável de ambiente `PORT` > `data/config.json` > 3000. Com `PORT` definida, a troca pela tela fica desativada.
+
+---
+
+## 10. Ícone na bandeja (executável)
+
+**O ícone mostra o status** com uma bolinha no canto:
+
+| Bolinha | Significa |
+|---|---|
+| 🟢 verde | App rodando e WhatsApp conectado |
+| 🟠 laranja | Iniciando, preparando as ferramentas ou WhatsApp conectando (aguardando o QR) |
+| ⚪ cinza | App rodando, WhatsApp desconectado |
+
+Passar o mouse mostra a porta e o estado do WhatsApp.
+
+**Clique com o botão esquerdo** para abrir o app no navegador. **Clique com o botão direito** para ver o menu:
+
+| Item do menu | Resultado |
+|---|---|
+| **Abrir Audio Sticks** | Abre o app no navegador |
+| ● **Rodando · http://localhost:3000** | Status do app e o endereço atual (clique para abrir) |
+| **WhatsApp: conectado (+55…)** | Status da conexão (clique para abrir e conectar, se precisar) |
+| **Abrir pasta das figurinhas** | Abre a pasta de dados no Explorador |
+| **Ver registro (log)** | Abre `data/sticks.log` (útil para entender erros) |
+| **Trocar porta…** | Caixinha para digitar a nova porta. Funciona mesmo se a página não abrir por causa do conflito |
+| **Reiniciar** | Fecha e abre o app de novo, na mesma porta |
+| **Encerrar** | Desliga o app (e some da bandeja) |
+
+Erros na hora de abrir aparecem numa caixa de mensagem, porque no executável não há janela de terminal.
+
+---
+
+## 11. Usar no celular e fora de casa
+
+**Mesmo Wi-Fi:** abra no celular um dos endereços de **⚙ → Abrir no celular** (ex.: `http://192.168.0.10:3000`).
+
+**Fora de casa (grátis), com um túnel:** com o app rodando, abra um terminal e rode:
+
+```powershell
+winget install Cloudflare.cloudflared
+cloudflared tunnel --url http://localhost:3000   # use a sua porta, se trocou
+```
+
+Ele mostra um endereço `https://….trycloudflare.com`, que muda a cada vez que você roda o comando. Pelo https, o celular também libera:
+- **Compartilhar o arquivo** direto no menu do celular (WhatsApp, Telegram…);
+- **Instalar como app** (Chrome → *Adicionar à tela inicial*). Depois, no app do YouTube, *Compartilhar → Sticks* já abre o vídeo pronto para recortar.
+
+**Com o túnel, ponha senha**, senão qualquer pessoa com o endereço usa o seu app:
+
+```powershell
+$env:APP_PASSWORD = "uma-senha-sua"; npm start
+```
+
+Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se você trocar a porta, o túnel precisa ser reiniciado apontando para a porta nova.
+
+---
+
+## 12. Atalhos de teclado
+
+| Tecla | Ação |
+|---|---|
+| `I` / `O` | Marca o início / fim do trecho no ponto atual do vídeo |
+| `espaço` | Ouve o trecho marcado (de novo para parar) |
+| `←` `→` | Volta / avança 1 s no vídeo |
+| `shift` + `←` `→` | Ajuste fino de 0,1 s |
+| `1` … `9` | Toca as primeiras figurinhas da coleção |
+| `Esc` | Fecha janelas e o tour |
+| No tour: `→` / `Enter`, `←` | Próximo / anterior |
+
+---
+
+## 13. Problemas comuns
+
+| Problema | Solução |
+|---|---|
+| A página não abre ou mostra outro site | Outro programa está na mesma porta. Use **⚙ → Trocar porta** ou, no executável, a bandeja → **Trocar porta…** |
+| *"O YouTube pediu verificação"* / não baixa | Feche e abra o app (o yt-dlp se atualiza sozinho). Pelo código: `npm run setup` |
+| Link do Instagram/TikTok dá erro | O post pode ser privado ou exigir login. Feche e abra o app (o baixador se atualiza) e tente de novo, ou salve o vídeo e use **📁 Arquivo** |
+| *"Formato não suportado"* ao enviar arquivo | Use vídeo (mp4, mov, webm, mkv…) ou áudio (mp3, m4a, wav, ogg…) |
+| O app travou ou ficou estranho | Bandeja (botão direito) → **Reiniciar**, ou ⚙ → Aplicativo → Reiniciar |
+| *"Esse vídeo não pode tocar fora do YouTube"* | O dono bloqueou o vídeo incorporado. Ainda dá para criar: digite os tempos de início e fim |
+| Figurinha com som chega "não suportada" | Formato experimental, veja a [seção 6](#6-figurinha-com-som) |
+| Não aparecem meus contatos | Enviar para → Contatos → **Buscar meus contatos no WhatsApp**, ou use a aba **Número** |
+| WhatsApp desconectou sozinho | Você encerrou a sessão no celular (Aparelhos conectados). Conecte de novo pelo status |
+| Windows bloqueia o `.exe` | **Mais informações → Executar assim mesmo** |
+| Quero ver o que aconteceu | Bandeja → **Ver registro (log)**, ou o terminal no `npm start` |
+
+---
+
+## 14. Para desenvolvedores
+
+A documentação técnica (arquitetura, rotas da API, banco, build do executável e decisões) está em **[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)**.
+
+Comandos:
+
+| Comando | O que faz |
+|---|---|
+| `npm start` | Sobe o app (porta 3000 ou a salva) |
+| `npm run dev` | Igual, reiniciando ao salvar arquivos |
+| `npm run setup` | Baixa ou atualiza o yt-dlp (e o ffmpeg, se faltar) |
+| `npm run build:exe` | Gera `dist/Audio Sticks/` e o `.zip` para distribuir |
+
+Docker (opcional, para servidor 24h):
+
+```bash
+docker build -t audio-sticks .
+docker run -d -p 3000:3000 -v sticks-data:/data -e APP_PASSWORD=troque audio-sticks
+```
+
+---
+
+## Sobre o nome
+
+O app se chamava **Sticks Audio** e passou a se chamar **Audio Sticks**. Na primeira vez que a versão nova abre, a pasta `%LOCALAPPDATA%\Sticks Audio` é renomeada para `%LOCALAPPDATA%\Audio Sticks`. Figurinhas, pacotes, porta e a conexão do WhatsApp vão junto. Pacotes `.zip` exportados com o nome antigo continuam podendo ser importados.
+
+---
+
+Baixar conteúdo do YouTube, Instagram, TikTok e de outros sites pode ir contra os termos desses serviços. Use para fins pessoais e respeite os direitos de quem criou o conteúdo.

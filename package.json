@@ -1,0 +1,33 @@
+{
+  "name": "audio-sticks",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Transforma trechos de vídeos (YouTube, Instagram, TikTok…) em figurinhas de áudio para o WhatsApp",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "build:exe": "node scripts/build-exe.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "baileys": "7.0.0-rc14",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "rcedit": "^5.0.2"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivandneto/zapsticks-do-caos.git"
+  }
+}
