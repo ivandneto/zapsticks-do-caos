@@ -29,6 +29,26 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
  🎬 vídeo  ──►  ✂️ recorta  ──►  🎨 vira figurinha  ──►  💬 WhatsApp  ──►  😂 caos instaurado
 ```
 
+## 📸 A cara do bicho
+
+<p align="center">
+  <img src="docs/screenshots/principal.png" alt="Tela principal: estúdio de recorte à esquerda, coleção de figurinhas e pacotes à direita" width="100%">
+</p>
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screenshots/estudio.png" alt="Estúdio: régua com alças, prévia da figurinha e botão criar"><br><sub><b>Estúdio</b>: marca o trecho, vê a prévia e cria</sub></td>
+    <td width="50%" align="center"><img src="docs/screenshots/figurinha-com-som.png" alt="Janela da figurinha com som"><br><sub><b>Figurinha com som</b>: com som, sem som, só áudio ou .mp4</sub><br><br><img src="docs/screenshots/celular.png" alt="Versão de celular" width="60%"><br><sub><b>No celular</b>: funciona no mesmo Wi-Fi</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/tour.png" alt="Tour guiado destacando o seletor de destino"><br><sub><b>Tour guiado</b>: para quem não lê README 👀</sub></td>
+    <td align="center"><img src="docs/screenshots/ajuda.png" alt="Guia de ajuda"><br><sub><b>Ajuda</b>: passo a passo, recursos, atalhos e dúvidas</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/screenshots/configuracoes.png" alt="Configurações: porta, celular, dados e aplicativo" width="70%"><br><sub><b>Configurações</b>: troca de porta na hora, endereço para o celular, backup, reiniciar e encerrar</sub></td>
+  </tr>
+</table>
+
 ## ✨ Funcionalidades (com seriedade questionável)
 
 | | O quê | Detalhe |
