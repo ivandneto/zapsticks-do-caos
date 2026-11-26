@@ -804,6 +804,8 @@ html:not(.web) .cafe-btn span { display: none; }
 
 /* no site: sem campo de link; o botão de arquivo vira o principal */
 .web #url, .web #urlForm button[type="submit"] { display: none; }
-.web #urlForm { justify-content: flex-start; }
+.web #urlForm { justify-content: center; }
+.web #urlHint { text-align: center; max-width: 760px; margin-left: auto; margin-right: auto; }
+.web .step-title:has(#step1Title) { justify-content: center; }
 .web #fileBtn { flex: 0 1 auto; padding: 14px 26px; font-size: 1.05rem; background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 #urlHint a { color: var(--accent); font-weight: 700; }
