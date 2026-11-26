@@ -125,6 +125,7 @@
               </button>
               <span id="prevCaption" class="prev-caption"></span>
               <div class="prev-tools">
+                <button type="button" id="frameBtn" class="btn small" hidden title="Escolha o que aparece no quadrado: arraste e dê zoom">🔍 Enquadrar</button>
                 <button type="button" id="txtBtn" class="btn small tte-btn" hidden title="Escreva na figurinha: fonte, cor, borda, tamanho e emojis">🔤 Texto e emoji</button>
                 <button type="button" id="bgBtn" class="btn small bg-btn" hidden title="Remove o fundo com IA (pessoas automático, ou toque no que manter)">✂️ Tirar o fundo</button>
               </div>
@@ -139,6 +140,15 @@
               <button type="button" data-fit="crop" class="on">◼ Recortar quadrado</button>
               <button type="button" data-fit="pad">⬚ Inteiro, fundo transparente</button>
             </div>
+          </div>
+          <div class="field" id="soundField" hidden><span>Som <em>(opcional: sem som, um áudio seu ou a sua voz)</em></span>
+            <div class="seg sound-seg" id="soundSeg">
+              <button type="button" data-s="none" class="on">🔇 Sem som</button>
+              <button type="button" data-s="file">🎵 Enviar áudio</button>
+              <button type="button" data-s="mic">🎙️ Gravar voz</button>
+            </div>
+            <div id="soundChip" class="sound-chip" hidden></div>
+            <input id="soundFile" type="file" accept="audio/*,video/*,.ogg,.opus,.m4a" hidden>
           </div>
         </div>
 
@@ -166,6 +176,7 @@
           <li data-step="cut">Recortando e convertendo</li>
           <li data-step="analyze">Desenhando a onda</li>
           <li data-step="visual">Gerando a figurinha animada</li>
+          <li data-step="sound" hidden>Juntando com o seu som</li>
         </ol>
       </div>
 

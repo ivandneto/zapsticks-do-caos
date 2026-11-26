@@ -13,7 +13,7 @@ import { readConfig, saveConfig, validPort, DEFAULT_PORT } from './lib/config.js
 import pkg from './package.json' with { type: 'json' };
 import { ensureTools, autoUpdateYtdlp } from './lib/tools.js';
 import * as db from './lib/db.js';
-import { parseVideoId, getSourceAudio, getVideoSection, getFrame, makeTrayIcon, makeAnimatedWebp, makeSquareMp4, makeStaticSticker, makeSilentMp4, makeComboMp4, extractFrames, makeAnimatedWebpFromFrames, makeSilentMp4FromFrames, cutToOgg, analyze, checkTools } from './lib/audio.js';
+import { parseVideoId, getSourceAudio, getVideoSection, getFrame, makeTrayIcon, makeAnimatedWebp, makeSquareMp4, makeStaticSticker, makeSilentMp4, makeComboMp4, cleanFrame, extractFrames, makeAnimatedWebpFromFrames, makeSilentMp4FromFrames, cutToOgg, analyze, checkTools } from './lib/audio.js';
 import * as wa from './lib/whatsapp.js';
 import * as sources from './lib/sources.js';
 
@@ -76,15 +76,15 @@ async function videoSegmentFor(s) {
 
 /** Gera a figurinha animada (.webp) e o vídeo quadrado (.mp4) a partir do trecho do vídeo. */
 // Até 5 s: figurinha ANIMADA com som. De 5 a 10 s: figurinha PARADA (1º quadro) com som — é o que o WhatsApp aceita.
-async function buildVisual(s, { overlay = null } = {}) {
+async function buildVisual(s, { overlay = null, frame = null } = {}) {
   const video = await videoSegmentFor(s);
   const animated = s.duration <= ANIM_SOUND_MAX + 0.05;
   try {
     if (animated) {
-      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration, { overlay });
-      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration, { overlay });
+      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration, { overlay, frame });
+      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration, { overlay, frame });
     } else {
-      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'), { overlay });
+      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'), { overlay, frame });
       await makeComboMp4(mediaPath(s.id, 'png'), audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
     }
   } finally {
@@ -123,6 +123,7 @@ app.post('/api/overlays', overlayUpload.single('overlay'), (req, res) => {
 app.post('/api/stickers', (req, res) => {
   if (req.body?.mode === 'sticker') return createStick(req, res);
   const { url, sourceId, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual, overlayId } = req.body || {};
+  const frame = cleanFrame(req.body?.frame);
   const videoId = sourceId ? null : parseVideoId(url);
   const source = sourceId ? sources.getSource(sourceId) : null;
   const s = Number(start), e = Number(end);
@@ -166,7 +167,7 @@ app.post('/api/stickers', (req, res) => {
     // Trechos curtos também viram figurinha animada (falhar aqui não perde o áudio)
     if (makeVisual !== false && (!source || source.hasVideo) && job.sticker.duration <= SOUND_STICKER_MAX + 0.05) {
       job.step = 'visual';
-      try { job.sticker = await buildVisual(job.sticker, { overlay }); } catch (err) {
+      try { job.sticker = await buildVisual(job.sticker, { overlay, frame }); } catch (err) {
         console.error('[figurinha]', err.message);
         // YouTube bloqueou o vídeo (o som veio do cache): desfaz e deixa a página gravar o trecho inteiro
         if (isYtBlocked(err)) { removeSticker(job.sticker.id); job.sticker = null; throw err; }
@@ -186,6 +187,7 @@ function createStick(req, res) {
   const { url, sourceId, start, end, title, emoji, tags, videoTitle, fit, overlayId } = req.body || {};
   const overlay = takeOverlay(overlayId);
   const fitMode = fit === 'pad' ? 'pad' : 'crop';
+  const frame = fitMode === 'crop' ? cleanFrame(req.body?.frame) : null;
   const videoId = sourceId ? null : parseVideoId(url);
   const source = sourceId ? sources.getSource(sourceId) : null;
   if (sourceId && !source) return fail(res, 400, 'A mídia carregada expirou. Carregue o link ou o arquivo de novo.');
@@ -207,14 +209,14 @@ function createStick(req, res) {
   (async () => {
     const id = db.newId();
     if (still) {
-      await makeStaticSticker(source.file, mediaPath(id, 'webp'), mediaPath(id, 'png'), { fit: fitMode, overlay });
+      await makeStaticSticker(source.file, mediaPath(id, 'webp'), mediaPath(id, 'png'), { fit: fitMode, overlay, frame });
     } else {
       // GIF a partir do começo vai direto (mantém a transparência); o resto é recortado antes
       const direct = source?.media === 'gif' && s < 0.05;
       const video = direct ? source.file : videoId ? await getVideoSection(videoId, s, e) : await sources.cutVideoSegment(source.file, s, e, TMP_DIR);
       try {
-        await makeAnimatedWebp(video, mediaPath(id, 'webp'), e - s, { fit: fitMode, overlay });
-        await makeSilentMp4(video, mediaPath(id, 'mp4'), e - s, { fit: fitMode, overlay });
+        await makeAnimatedWebp(video, mediaPath(id, 'webp'), e - s, { fit: fitMode, overlay, frame });
+        await makeSilentMp4(video, mediaPath(id, 'mp4'), e - s, { fit: fitMode, overlay, frame });
       } finally { if (!direct) fs.rmSync(video, { force: true }); }
     }
     job.sticker = db.insertSticker({
@@ -441,14 +443,17 @@ app.get('/api/frame', async (req, res) => {
   if (!Number.isFinite(t) || t < 0) return res.sendStatus(400);
   try {
     let jpg;
+    // fit: crop (quadrado, no enquadramento ?z=&x=&y=) | pad (inteiro) | full (quadro inteiro, para a tela de enquadrar)
+    const fit = ['pad', 'full'].includes(req.query.fit) ? req.query.fit : 'crop';
+    const frame = cleanFrame({ z: req.query.z, x: req.query.x, y: req.query.y });
     if (req.query.src) {
       const src = sources.getSource(String(req.query.src));
       if (!src || !src.hasVideo) return res.sendStatus(404);
-      jpg = await sources.frameFromFile(src.file, t, { fit: req.query.fit === 'pad' ? 'pad' : 'crop' });
+      jpg = await sources.frameFromFile(src.file, t, { fit, frame });
     } else {
       const videoId = parseVideoId(String(req.query.v || ''));
       if (!videoId) return res.sendStatus(400);
-      jpg = await getFrame(videoId, t);
+      jpg = await getFrame(videoId, t, { frame, full: fit === 'full' });
     }
     res.type('image/jpeg').set('Cache-Control', 'private, max-age=3600').send(jpg);
   } catch (err) {

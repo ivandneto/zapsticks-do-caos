@@ -127,6 +127,15 @@ let frameKey = null, frameT = null; // prévia da figurinha
 // 🔤 camadas de texto e emoji (public/texteditor.js): ficam até trocar de mídia; o PNG vai junto na criação
 const textOv = { layers: [], blob: null, url: null };
 let keepTextOv = false;
+// 🔍 enquadramento do recorte quadrado: zoom (1–4) e posição (0–1; 0,5 = centro). Fica até trocar de mídia.
+const FRAME0 = { z: 1, x: 0.5, y: 0.5 };
+// 🎵 som escolhido para o Stick (áudio enviado ou voz gravada): { file, url, duration, kind: 'file' | 'mic' }
+let swapAudio = null;
+let frame = { ...FRAME0 };
+const frameIsDefault = () => frame.z === 1 && frame.x === 0.5 && frame.y === 0.5;
+const frameQuery = () => (frameIsDefault() ? '' : `&z=${frame.z.toFixed(3)}&x=${frame.x.toFixed(3)}&y=${frame.y.toFixed(3)}`);
+/** O recorte quadrado vale aqui? (não vale para "inteiro, fundo transparente" nem para origem só de áudio) */
+const cropApplies = () => !!vid.kind && vid.hasVideo && !(mode === 'sticker' && fit === 'pad');
 
 function parseVideoId(input) {
   const s = String(input).trim();
@@ -200,6 +209,7 @@ async function loadVideo(raw) {
   hint.classList.remove('err');
   hint.textContent = 'Carregando…';
   Object.assign(vid, { kind: 'youtube', id, url: `https://www.youtube.com/watch?v=${id}`, title: '', duration: 0, sourceId: null, hasVideo: true, hasAudio: true, media: 'video', site: 'YouTube' });
+  frame = { ...FRAME0 };
   beginEditor();
   showPlayer('youtube');
 
@@ -382,7 +392,7 @@ function uploadWithProgress(url, body, onProgress) {
 }
 
 function openSource(src) {
-  if (!keepTextOv) setTextOverlay([], null);
+  if (!keepTextOv) { setTextOverlay([], null); frame = { ...FRAME0 }; }
   keepTextOv = false;
   const media = src.media || (src.hasVideo ? 'video' : 'audio');
   Object.assign(vid, { kind: 'source', id: null, url: src.url || '', title: src.title || '', duration: src.duration, sourceId: src.id,
@@ -475,8 +485,13 @@ function render() {
   else if (!vid.hasAudio) { label = `Essa mídia não tem som ${L('· use a aba Stick')}`; off = true; }
   else if (len > MAX_LEN) { label = `Trecho longo demais ${L(`(máx. ${MAX_LEN}s)`)}`; off = true; }
   else { label = `Criar figurinha ${L(`· ${len.toFixed(1)}s${!vid.hasVideo ? ' · só áudio' : len <= ANIM_SOUND_MAX ? ' · animada com som' : len <= STICKER_MAX ? ' · parada com som (animada: até 5s)' : ' · só áudio (figurinha com som: até 10s)'}`)}`; off = len < 0.3; }
+  if (mode === 'sticker' && swapAudio && comboReturn !== 'visual' && !off) label = label.replace(', sem som', '') + L(' + 🎵 com o seu som');
   btn.innerHTML = label;
   btn.disabled = off || creating;
+  const showFrame = cropApplies() && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
+  $('#frameBtn').hidden = !showFrame;
+  $('#frameBtn').classList.toggle('on', !frameIsDefault());
+  $('#frameBtn').textContent = frameIsDefault() ? '🔍 Enquadrar' : `🔍 Enquadrado (${frame.z.toFixed(1)}x)`;
   $('#bgBtn').hidden = !(mode === 'sticker' && vid.kind && vid.hasVideo);
   $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
@@ -709,7 +724,8 @@ function schedulePreview() {
     : stick ? (vid.media === 'image' ? 'Prévia · figurinha parada' : vid.media === 'gif' ? 'Prévia · GIF animado' : `Prévia · anima ${Math.min(STICK_ANIM_MAX, len).toFixed(1)}s, sem som`)
     : isPicture() ? 'Foto/GIF: use a aba Stick' : !visual ? 'Acima de 10s: vira só áudio' : len <= ANIM_SOUND_MAX ? `Prévia · anima ${len.toFixed(1)}s com som` : 'Prévia · parada com som (5 a 10s)';
   if (!visual) return;
-  const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}@${stick ? fit : 'crop'}`;
+  const fq = cropApplies() ? frameQuery() : '';
+  const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}@${stick ? fit : 'crop'}${fq}`;
   if (key === frameKey) return;
   frameKey = key;
   clearTimeout(frameT);
@@ -719,7 +735,7 @@ function schedulePreview() {
     img.onload = () => { if (frameKey === key) { $('#prevImg').src = img.src; box.classList.remove('loading'); } };
     img.onerror = () => { if (frameKey === key) box.classList.remove('loading'); };
     const t = isPicture() ? 0 : sel.start + 0.05;
-    img.src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=${stick ? fit : 'crop'}`;
+    img.src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=${stick ? fit : 'crop'}${fq}`;
   }, 450);
 }
 
@@ -737,6 +753,8 @@ $('#createBtn').onclick = async () => {
   const stick = mode === 'sticker';
   const steps = stick ? ['visual'] : ['download', 'cut', 'analyze', 'visual'];
   for (const st of ['download', 'cut', 'analyze']) $(`li[data-step="${st}"]`, prog).hidden = stick;
+  const withSound = stick && !!swapAudio && comboReturn !== 'visual';
+  $('li[data-step="sound"]', prog).hidden = !withSound;
   $('li[data-step="visual"]', prog).hidden = !stick && (sel.end - sel.start > STICKER_MAX || !vid.hasVideo);
   $('li[data-step="visual"]', prog).textContent = stick ? 'Gerando a figurinha' : 'Gerando a figurinha animada';
   $('li[data-step="download"]', prog).textContent = isYT() ? 'Baixando o áudio do YouTube' : 'Lendo a mídia carregada';
@@ -747,7 +765,7 @@ $('#createBtn').onclick = async () => {
     const { jobId } = await api('/api/stickers', {
       method: 'POST',
       body: JSON.stringify({
-        mode: stick ? 'sticker' : undefined, fit, overlayId,
+        mode: stick ? 'sticker' : undefined, fit, overlayId, frame: cropApplies() && !frameIsDefault() ? frame : undefined,
         url: isYT() ? vid.url : undefined, sourceId: isYT() ? undefined : vid.sourceId, start: sel.start, end: sel.end, videoTitle: vid.title, videoDuration: vid.duration,
         title: $('#title').value.trim() || vid.title.slice(0, 50) || 'Figurinha', emoji, tags: $('#tags').value,
         normalize: $('#optNorm').checked, fadeIn: $('#optFadeIn').checked, fadeOut: $('#optFadeOut').checked, gainDb,
@@ -762,14 +780,22 @@ $('#createBtn').onclick = async () => {
     }
     if (job.error) throw Object.assign(new Error(job.error), { code: job.code });
     if (job.warning) toast(job.warning, 'err');
+    let made = job.sticker;
+    // 🎵 Stick com som: junta a figurinha com o áudio enviado ou a voz gravada (vira uma combinação)
+    if (withSound) {
+      const vli = $('li[data-step="visual"]', prog), sli = $('li[data-step="sound"]', prog);
+      vli.className = 'done'; sli.className = 'active';
+      try { made = await attachSound(made); sli.className = 'done'; clearSwapAudio(); }
+      catch (err) { toast(`A figurinha foi criada, mas ficou sem som: ${err.message}`, 'err'); }
+    }
     show('done');
     const r = $('#createBtn').getBoundingClientRect();
-    burst(job.sticker.emoji, r.left + r.width / 2, r.top);
-    if (createPackSel.size) await api(`/api/stickers/${job.sticker.id}/packs`, { method: 'PUT', body: JSON.stringify({ packs: [...createPackSel] }) });
-    await loadCollection(job.sticker.id);
+    burst(made.emoji, r.left + r.width / 2, r.top);
+    if (createPackSel.size) await api(`/api/stickers/${made.id}/packs`, { method: 'PUT', body: JSON.stringify({ packs: [...createPackSel] }) });
+    await loadCollection(made.id);
     // peça feita para a Combinação Caótica: volta para lá já encaixada
-    if (comboReturn) backToCombo(job.sticker);
-    else showCreated(job.sticker);
+    if (comboReturn) backToCombo(made);
+    else showCreated(made);
     $('#tags').value = '';
     setTimeout(() => { prog.hidden = true; }, 1500);
   } catch (err) {
@@ -1623,6 +1649,7 @@ function setMode(m) {
   $('#welcome ol').innerHTML = t.welcome.map((x) => `<li>${x}</li>`).join('');
   $('#soundOpts').hidden = m === 'sticker';
   $('#fitField').hidden = m !== 'sticker';
+  $('#soundField').hidden = m !== 'sticker' || comboReturn === 'visual';
   // aviso de que esta peça vai para a combinação
   let banner = $('#comboBanner');
   if (!banner) { banner = document.createElement('div'); banner.id = 'comboBanner'; banner.className = 'mode-hint'; $('#studioMain').prepend(banner); }
@@ -1744,6 +1771,204 @@ $('#txtBtn').onclick = async () => {
   });
 };
 
+// ============ 🔍 enquadrar: zoom e posição do recorte quadrado ============
+// A tela mostra o quadro inteiro atrás de uma "janela" quadrada; o que aparece na janela é o que vai para a figurinha.
+// A conta é a mesma do ffmpeg (lib/audio.js → squareFilter): lado = menor lado / zoom; posição = sobra × x (ou y).
+$('#frameBtn').onclick = () => openFrameEditor();
+function openFrameEditor() {
+  if (!cropApplies()) return;
+  stopPreview();
+  const t = isPicture() ? 0 : sel.start + 0.05;
+  const src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=full`;
+  const f = { ...frame };
+  openModal(`<h3>🔍 Enquadrar</h3>
+    <p class="small">Arraste a imagem para escolher o que aparece na figurinha. Aproxime com o zoom (ou a rodinha do mouse).</p>
+    <div class="fr-stage loading" id="frStage"><img id="frImg" alt="Quadro do vídeo" draggable="false"><div class="fr-grid" aria-hidden="true"></div></div>
+    <label class="fr-zoom"><span>Zoom</span><input type="range" id="frZoom" min="1" max="4" step="0.01" aria-label="Zoom"><b id="frZoomTxt" class="mono"></b></label>
+    <div class="fr-actions"><button class="btn small ghost" id="frReset" type="button">↺ Centralizar</button><button class="btn primary" id="frOk" type="button">Pronto</button></div>`, (b) => {
+    const stage = $('#frStage', b), img = $('#frImg', b), zoomIn = $('#frZoom', b);
+    let W = 0, H = 0;
+    const layout = () => {
+      if (!W) return;
+      const S = stage.clientWidth;
+      const k = (S / Math.min(W, H)) * f.z;
+      const w = W * k, h = H * k;
+      Object.assign(img.style, { width: `${w}px`, height: `${h}px`, left: `${-(w - S) * f.x}px`, top: `${-(h - S) * f.y}px` });
+      zoomIn.value = f.z;
+      $('#frZoomTxt', b).textContent = `${f.z.toFixed(1)}x`;
+    };
+    img.onload = () => { W = img.naturalWidth; H = img.naturalHeight; stage.classList.remove('loading'); layout(); };
+    img.onerror = () => { stage.classList.remove('loading'); stage.classList.add('fail'); };
+    img.src = src;
+    zoomIn.oninput = () => { f.z = clamp(Number(zoomIn.value), 1, 4); layout(); };
+    stage.addEventListener('wheel', (e) => { e.preventDefault(); f.z = clamp(f.z * Math.exp(-e.deltaY * 0.0015), 1, 4); layout(); }, { passive: false });
+    stage.addEventListener('pointerdown', (e) => {
+      if (!W) return;
+      e.preventDefault();
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('drag');
+      let px = e.clientX, py = e.clientY;
+      const move = (ev) => {
+        const S = stage.clientWidth, k = (S / Math.min(W, H)) * f.z;
+        const sx = W * k - S, sy = H * k - S; // quanto a imagem sobra para cada lado
+        if (sx > 0.5) f.x = clamp(f.x - (ev.clientX - px) / sx, 0, 1);
+        if (sy > 0.5) f.y = clamp(f.y - (ev.clientY - py) / sy, 0, 1);
+        px = ev.clientX; py = ev.clientY;
+        layout();
+      };
+      const up = () => { stage.classList.remove('drag'); stage.removeEventListener('pointermove', move); };
+      stage.addEventListener('pointermove', move);
+      stage.addEventListener('pointerup', up, { once: true });
+      stage.addEventListener('pointercancel', up, { once: true });
+    });
+    $('#frReset', b).onclick = () => { Object.assign(f, FRAME0); layout(); };
+    $('#frOk', b).onclick = () => {
+      frame = { z: Math.round(f.z * 1000) / 1000, x: Math.round(f.x * 1000) / 1000, y: Math.round(f.y * 1000) / 1000 };
+      if (frame.z === 1 && Math.abs(frame.x - 0.5) < 0.005 && Math.abs(frame.y - 0.5) < 0.005) frame = { ...FRAME0 };
+      closeModal();
+      frameKey = null;
+      render();
+      if (textOv.blob) toast('O enquadramento mudou: confira se o texto continua no lugar 🔤');
+    };
+  });
+}
+
+// ============ 🎵 som no Stick: um áudio seu ou a sua voz ============
+// Por baixo, a figurinha é criada sem som e depois juntada com o áudio (o mesmo caminho da Combinação Caótica);
+// as duas peças intermediárias são apagadas e fica só o resultado.
+const swapPlayer = new Audio();
+const stickSoundLimit = () => (vid.media === 'image' ? STICKER_MAX : ANIM_SOUND_MAX);
+function setSwapAudio(file, kind, duration = null) {
+  clearSwapAudio(false);
+  swapAudio = { file, kind, duration, url: URL.createObjectURL(file) };
+  if (duration == null) {
+    const a = new Audio();
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => { if (swapAudio?.file === file && Number.isFinite(a.duration)) { swapAudio.duration = a.duration; drawSwapAudio(); } };
+    a.src = swapAudio.url;
+  }
+  drawSwapAudio();
+}
+function clearSwapAudio(redraw = true) {
+  if (swapAudio) { swapPlayer.pause(); URL.revokeObjectURL(swapAudio.url); }
+  swapAudio = null;
+  if (redraw) drawSwapAudio();
+}
+function drawSwapAudio() {
+  const kind = swapAudio?.kind || 'none';
+  $$('#soundSeg button').forEach((x) => x.classList.toggle('on', x.dataset.s === kind));
+  const chip = $('#soundChip');
+  chip.hidden = !swapAudio;
+  if (swapAudio) {
+    const d = swapAudio.duration, lim = stickSoundLimit();
+    const name = swapAudio.kind === 'mic' ? 'Sua voz' : swapAudio.file.name;
+    chip.innerHTML = `<button type="button" class="btn small" data-a="play" title="Ouvir">▶</button>
+      <span class="sc-name">${swapAudio.kind === 'mic' ? '🎙️' : '🎵'} <b>${esc(name)}</b>${d ? ` · ${d.toFixed(1)}s` : ''}${d && d > lim + 0.05 ? ` <em>· usa os primeiros ${lim}s</em>` : ''}</span>
+      <button type="button" class="btn small ghost" data-a="x" title="Tirar o som">✕</button>`;
+  }
+  render();
+}
+$('#soundSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-s]'); if (!b) return;
+  if (b.dataset.s === 'none') clearSwapAudio();
+  else if (b.dataset.s === 'file') $('#soundFile').click();
+  else openVoiceRecorder({ max: stickSoundLimit(), onDone: (file, dur) => setSwapAudio(file, 'mic', dur) });
+});
+$('#soundFile').onchange = (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (f) setSwapAudio(f, 'file');
+};
+$('#soundChip').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-a]'); if (!b || !swapAudio) return;
+  if (b.dataset.a === 'x') return clearSwapAudio();
+  swapPlayer.src = swapAudio.url;
+  swapPlayer.currentTime = 0;
+  swapPlayer.play().catch(() => {});
+});
+/** Figurinha sem som recém-criada + o som escolhido → figurinha com som (as peças intermediárias são apagadas). */
+async function attachSound(st) {
+  const limit = st.animated ? ANIM_SOUND_MAX : STICKER_MAX;
+  const source = await uploadSourceFile(swapAudio.file);
+  if (!source.hasAudio) throw new Error('esse arquivo não tem som.');
+  const long = source.duration > limit + 0.05;
+  const { jobId } = await api('/api/stickers', { method: 'POST', body: JSON.stringify({
+    sourceId: source.id, start: 0, end: Math.min(limit, source.duration), title: `Som · ${st.title}`.slice(0, 80), videoTitle: source.title,
+    emoji: '🔊', makeVisual: false, normalize: true, fadeOut: long,
+  }) });
+  const { sticker: aud } = await pollJob(jobId);
+  const r = await api('/api/combos', { method: 'POST', body: JSON.stringify({
+    visualId: st.id, audioId: aud.id, title: st.title, emoji: st.emoji, tags: $('#tags').value, deleteIds: [st.id, aud.id],
+  }) });
+  if (long) toast(`O som tinha ${source.duration.toFixed(1)}s: usei os primeiros ${limit}s (limite do WhatsApp para figurinha ${st.animated ? 'animada' : 'parada'}).`);
+  return r.sticker;
+}
+
+// ============ 🎙️ gravar a voz (microfone) ============
+function openVoiceRecorder({ max = STICKER_MAX, onDone }) {
+  if (!navigator.mediaDevices?.getUserMedia || !('MediaRecorder' in window)) {
+    return toast(window.isSecureContext ? 'Este navegador não consegue gravar áudio.'
+      : 'O navegador só libera o microfone no próprio computador (localhost) ou em conexão segura (https). Grave pelo PC ou envie um áudio.', 'err');
+  }
+  let stream = null, rec = null, timer = null, t0 = 0, blob = null, url = null, dur = 0;
+  const release = () => { clearInterval(timer); stream?.getTracks().forEach((t) => t.stop()); stream = null; };
+  openModal(`<h3>🎙️ Gravar voz</h3>
+    <p class="small">Até <b>${max}s</b>. Aperte o botão vermelho, fale e aperte de novo para parar.</p>
+    <div class="vr">
+      <button type="button" class="vr-btn" id="vrBtn" aria-label="Gravar"><span></span></button>
+      <div class="vr-bar"><i id="vrBar"></i></div>
+      <div class="vr-time mono" id="vrTime">0,0s de ${max}s</div>
+      <audio id="vrPlay" controls hidden></audio>
+    </div>
+    <div class="fr-actions"><span></span><button class="btn primary" id="vrOk" type="button" disabled>Usar esta gravação</button></div>`, (b) => {
+    const btn = $('#vrBtn', b), bar = $('#vrBar', b), time = $('#vrTime', b), play = $('#vrPlay', b), ok = $('#vrOk', b);
+    const show = (sec) => { bar.style.width = `${Math.min(100, (sec / max) * 100)}%`; time.textContent = `${sec.toFixed(1).replace('.', ',')}s de ${max}s`; };
+    const stop = () => { clearInterval(timer); if (rec?.state === 'recording') rec.stop(); };
+    const start = async () => {
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+      catch (err) {
+        return toast(err.name === 'NotAllowedError' ? 'O microfone não foi liberado. Clique no cadeado da barra de endereço e permita o microfone.'
+          : err.name === 'NotFoundError' ? 'Nenhum microfone encontrado.' : `Não consegui abrir o microfone: ${err.message}`, 'err');
+      }
+      if (modal.hidden) return release(); // fechou a janela enquanto o navegador perguntava
+      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
+      const chunks = [];
+      rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : undefined);
+      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      rec.onstop = () => {
+        release();
+        dur = Math.min(max, (performance.now() - t0) / 1000);
+        btn.classList.remove('on'); btn.setAttribute('aria-label', 'Gravar de novo');
+        if (dur < 0.4) { time.textContent = 'Curto demais. Grave de novo.'; return; }
+        blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
+        if (url) URL.revokeObjectURL(url);
+        url = URL.createObjectURL(blob);
+        play.src = url; play.hidden = false;
+        ok.disabled = false;
+      };
+      blob = null; ok.disabled = true; play.hidden = true;
+      rec.start();
+      t0 = performance.now();
+      show(0);
+      btn.classList.add('on'); btn.setAttribute('aria-label', 'Parar');
+      // para um pouquinho antes do limite, para o arquivo não passar dele por causa do atraso do gravador
+      timer = setInterval(() => { const sec = (performance.now() - t0) / 1000; show(Math.min(max, sec)); if (sec >= max - 0.15) stop(); }, 50);
+    };
+    btn.onclick = () => (rec?.state === 'recording' ? stop() : start());
+    ok.onclick = () => {
+      if (!blob) return;
+      const ext = /mp4/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
+      const file = new File([blob], `Minha voz.${ext}`, { type: blob.type });
+      closeModal();
+      onDone(file, dur);
+    };
+  });
+  modalClosed = () => {
+    if (rec?.state === 'recording') { rec.onstop = null; rec.stop(); }
+    release();
+    if (url) URL.revokeObjectURL(url);
+  };
+}
+
 /** Figurinha que já existe → abre no Stick para tirar o fundo (vira uma CÓPIA; a original fica). */
 async function bgFromSticker(s) {
   closeModal();
@@ -1770,6 +1995,7 @@ function slotHtml(slot) {
       <div class="stack">
         <button class="btn" type="button" data-c="pick">🗂️ Escolher da coleção</button>
         <button class="btn" type="button" data-c="file">${isV ? '📁 Foto, GIF ou vídeo do computador' : '📁 Áudio ou vídeo do computador'}</button>
+        ${isV ? '' : '<button class="btn" type="button" data-c="mic">🎙️ Gravar minha voz</button>'}
         <button class="btn" type="button" data-c="new">${isV ? '✂️ Recortar de um vídeo (aba Stick)' : '✂️ Recortar de um vídeo ou áudio (aba Audio Stick)'}</button>
       </div>
       <p class="slot-drop">📋 Ou <b>arraste</b> para cá, ou passe o mouse aqui e aperte <b>CTRL+V</b> (imagem copiada, arquivo ou link)</p>`;
@@ -1937,6 +2163,7 @@ $('#comboPanel').addEventListener('click', (e) => {
     $('#comboFile').click();
   }
   else if (c === 'bg') { const v = combo.visual; comboReturn = 'visual'; bgFromSticker(v); }
+  else if (c === 'mic') openVoiceRecorder({ max: soundLimit(), onDone: (file) => comboTake('audio', { file }) });
   else if (c === 'listen') { comboAudio.pause(); comboAudio.src = `/media/${combo.audio.id}.ogg`; comboAudio.play().catch(() => {}); }
   else if (c === 'new') {
     comboReturn = slot;
@@ -2005,7 +2232,7 @@ const HELP_TABS = {
   recursos: { label: '✨ Recursos', html: () => `
     <div class="feat">
       <div class="card"><div class="t"><span>🎞️</span>Figurinha com som</div><p>Trechos de até <b>5s</b> viram figurinha <b>animada</b> com som; de <b>5 a 10s</b>, figurinha <b>parada</b> com som (limites do WhatsApp).</p><span class="tag">experimental</span></div>
-      <div class="card"><div class="t"><span>🖼️</span>Stick (só a figurinha)</div><p>Figurinha <b>sem som</b> de uma <b>foto</b> (parada), de um <b>GIF</b> ou de um trecho de <b>vídeo</b> de até 10s (animada). Dá para <b>recortar quadrado</b> ou mostrar <b>inteira, com fundo transparente</b>.</p></div>
+      <div class="card"><div class="t"><span>🖼️</span>Stick (só a figurinha)</div><p>Figurinha <b>sem som</b> de uma <b>foto</b> (parada), de um <b>GIF</b> ou de um trecho de <b>vídeo</b> de até 10s (animada). Dá para <b>recortar quadrado</b> (com <b>🔍 Enquadrar</b>: zoom e arrastar para escolher a parte que aparece) ou mostrar <b>inteira, com fundo transparente</b>. Em <b>Som</b>, dá para <b>enviar um áudio</b> ou <b>gravar a sua voz</b> e ela vira figurinha com som.</p></div>
       <div class="card"><div class="t"><span>✂️</span>Tirar o fundo</div><p>Como no WhatsApp: a IA recorta <b>pessoas</b> sozinha (até em <b>vídeo e GIF</b>, quadro a quadro) ou você <b>toca no que manter</b>. Tem pincel, sensibilidade e <b>borda branca</b>. Roda no seu navegador.</p></div>
       <div class="card"><div class="t"><span>🔤</span>Texto e emoji</div><p>Escreva na figurinha com a <b>fonte</b>, a <b>cor</b>, a <b>borda</b>, o <b>tamanho</b> e a <b>inclinação</b> que quiser, e cole <b>emojis</b>. Arraste para posicionar. Tem o atalho <b>Meme clássico</b> (em cima e embaixo). Vale para foto, GIF e vídeo.</p></div>
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>Junte a <b>imagem</b> de uma figurinha com o <b>som</b> de outra (até 10s). Cada peça vem da coleção ou é criada na hora. As peças criadas só para isso podem ser apagadas depois.</p></div>
