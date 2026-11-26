@@ -80,7 +80,9 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
 | **GitHub** (ícone do gatinho) | Abre o [repositório do projeto](https://github.com/ivandneto/zapsticks-do-caos): código, novidades e versões para baixar. |
 | **⚙** | Configurações: porta, endereço para o celular, pasta dos dados, backup. |
-| **Estúdio** (esquerda) | Onde você cola o link, marca o trecho e cria a figurinha. |
+| **Estúdio** (esquerda) | Onde você cola o link, marca o trecho e cria a figurinha. Aceita **arrastar** um arquivo e **Ctrl+V** (imagem copiada, arquivo ou link). |
+| **Abas do estúdio** | **🎙️ Audio Stick** (som + figurinha), **🖼️ Stick** (só a figurinha) e **🌀 Combinação Caótica** (a imagem de uma + o som de outra). |
+| **🔤 Texto e emoji** e **✂️ Tirar o fundo** (embaixo da prévia, no passo 3) | Escrever na figurinha (fonte, cor, borda, emoji) e recortar o fundo com IA. |
 | **Coleção** (direita) | Suas figurinhas. Funciona como uma mesa de som: toque para ouvir. |
 | **Enviar para** | Para quem vão todos os envios (você, um contato, um grupo ou um número). |
 | **Pacotes** (coluna da direita) | Suas categorias. Clique para filtrar. |

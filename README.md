@@ -47,6 +47,10 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
     <td width="50%" align="center"><img src="docs/screenshots/figurinha-com-som.png" alt="Janela da figurinha com som"><br><sub><b>Figurinha com som</b>: com som, sem som, só áudio ou .mp4</sub><br><br><img src="docs/screenshots/celular.png" alt="Versão de celular" width="60%"><br><sub><b>No celular</b>: funciona no mesmo Wi-Fi</sub></td>
   </tr>
   <tr>
+    <td align="center"><img src="docs/screenshots/texto-emoji.png" alt="Editor de texto e emoji com meme clássico sobre a figurinha"><br><sub><b>🔤 Texto e emoji</b>: fonte de meme, cor, borda e emoji arrastável</sub></td>
+    <td align="center"><img src="docs/screenshots/combinacao.png" alt="Combinação Caótica: imagem de uma figurinha mais o som de outra"><br><sub><b>🌀 Combinação Caótica</b>: o gato com a voz do Zé Roberto. Arrasta ou cola (Ctrl+V) direto na caixa</sub></td>
+  </tr>
+  <tr>
     <td align="center"><img src="docs/screenshots/tour.png" alt="Tour guiado destacando o seletor de destino"><br><sub><b>Tour guiado</b>: para quem não lê README 👀</sub></td>
     <td align="center"><img src="docs/screenshots/ajuda.png" alt="Guia de ajuda"><br><sub><b>Ajuda</b>: passo a passo, recursos, atalhos e dúvidas</sub></td>
   </tr>

@@ -1811,7 +1811,6 @@ const HELP_TABS = {
     <div class="feat">
       <div class="card"><div class="t"><span>🎙️</span>Audio Stick</div><p>Um trecho de vídeo ou áudio vira <b>som</b> (e, até 10s, figurinha animada com som).</p></div>
       <div class="card"><div class="t"><span>🖼️</span>Stick</div><p><b>Só a figurinha</b>, sem som: de foto, GIF ou trecho de vídeo.</p></div>
-      <div class="card"><div class="t"><span>🔤</span>Texto e emoji</div><p>Escreva na figurinha com a <b>fonte</b>, a <b>cor</b>, a <b>borda</b>, o <b>tamanho</b> e a <b>inclinação</b> que quiser, e cole <b>emojis</b>. Arraste para posicionar. Tem o atalho <b>Meme clássico</b> (em cima e embaixo). Vale para foto, GIF e vídeo.</p></div>
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>A <b>imagem</b> de uma + o <b>som</b> de outra. Da coleção ou criadas na hora.</p></div>
     </div>
     <h4>Do vídeo à figurinha em 4 passos</h4>
@@ -1844,6 +1843,7 @@ const HELP_TABS = {
       <div class="card"><div class="t"><span>🎞️</span>Figurinha com som</div><p>Trechos de até <b>5s</b> viram figurinha <b>animada</b> com som; de <b>5 a 10s</b>, figurinha <b>parada</b> com som (limites do WhatsApp).</p><span class="tag">experimental</span></div>
       <div class="card"><div class="t"><span>🖼️</span>Stick (só a figurinha)</div><p>Figurinha <b>sem som</b> de uma <b>foto</b> (parada), de um <b>GIF</b> ou de um trecho de <b>vídeo</b> de até 10s (animada). Dá para <b>recortar quadrado</b> ou mostrar <b>inteira, com fundo transparente</b>.</p></div>
       <div class="card"><div class="t"><span>✂️</span>Tirar o fundo</div><p>Como no WhatsApp: a IA recorta <b>pessoas</b> sozinha (até em <b>vídeo e GIF</b>, quadro a quadro) ou você <b>toca no que manter</b>. Tem pincel, sensibilidade e <b>borda branca</b>. Roda no seu navegador.</p></div>
+      <div class="card"><div class="t"><span>🔤</span>Texto e emoji</div><p>Escreva na figurinha com a <b>fonte</b>, a <b>cor</b>, a <b>borda</b>, o <b>tamanho</b> e a <b>inclinação</b> que quiser, e cole <b>emojis</b>. Arraste para posicionar. Tem o atalho <b>Meme clássico</b> (em cima e embaixo). Vale para foto, GIF e vídeo.</p></div>
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>Junte a <b>imagem</b> de uma figurinha com o <b>som</b> de outra (até 10s). Cada peça vem da coleção ou é criada na hora. As peças criadas só para isso podem ser apagadas depois.</p></div>
       <div class="card"><div class="t"><span>🎙️</span>Áudio (mensagem de voz)</div><p>Trechos de até <b>60s</b> viram áudio com a ondinha desenhada, como se você tivesse gravado.</p></div>
       <div class="card"><div class="t"><span>📦</span>Pacotes</div><p>Organize por categoria (Memes, Futebol…). Uma figurinha pode estar em vários. Envie o pacote inteiro de uma vez.</p></div>
