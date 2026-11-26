@@ -634,3 +634,9 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .vr-bar i { display: block; height: 100%; width: 0; background: var(--danger); }
 .vr-time { font-size: .85rem; color: var(--dim); }
 .vr audio { width: min(300px, 100%); }
+
+/* atalho do enquadrar em cima do vídeo */
+.player-frame-btn { position: absolute; top: 10px; right: 10px; z-index: 3; padding: 7px 12px; border-radius: 11px; border: 1px solid rgba(255,255,255,.25); background: rgba(10,10,16,.72); color: #fff; font-size: .85rem; font-weight: 700; backdrop-filter: blur(6px); transition: transform .15s, border-color .15s; }
+.player-frame-btn:hover { border-color: var(--accent); }
+.player-frame-btn:active { transform: scale(.95); }
+.player-frame-btn.on { border-color: var(--accent); color: var(--accent); }

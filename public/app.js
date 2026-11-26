@@ -492,6 +492,11 @@ function render() {
   $('#frameBtn').hidden = !showFrame;
   $('#frameBtn').classList.toggle('on', !frameIsDefault());
   $('#frameBtn').textContent = frameIsDefault() ? '🔍 Enquadrar' : `🔍 Enquadrado (${frame.z.toFixed(1)}x)`;
+  // o mesmo botão em cima do vídeo, onde a gente procura primeiro
+  const fbp = $('#frameBtnPlayer');
+  fbp.hidden = !showFrame;
+  fbp.classList.toggle('on', !frameIsDefault());
+  fbp.textContent = $('#frameBtn').textContent;
   $('#bgBtn').hidden = !(mode === 'sticker' && vid.kind && vid.hasVideo);
   $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
@@ -1775,6 +1780,7 @@ $('#txtBtn').onclick = async () => {
 // A tela mostra o quadro inteiro atrás de uma "janela" quadrada; o que aparece na janela é o que vai para a figurinha.
 // A conta é a mesma do ffmpeg (lib/audio.js → squareFilter): lado = menor lado / zoom; posição = sobra × x (ou y).
 $('#frameBtn').onclick = () => openFrameEditor();
+$('#frameBtnPlayer').onclick = () => openFrameEditor();
 function openFrameEditor() {
   if (!cropApplies()) return;
   stopPreview();
