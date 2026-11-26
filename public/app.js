@@ -69,6 +69,15 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   baixar.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 21h14"/></svg><span>Baixar para Windows</span>';
   document.querySelector('.top-actions')?.prepend(baixar);
 
+  // ☕ Me paga um café: Pix (QR + copia e cola), gerado no build a partir de web/apoio.json
+  const cafe = document.createElement('button');
+  cafe.type = 'button';
+  cafe.className = 'top-btn cafe-btn';
+  cafe.title = 'Curtiu? Me paga um café (Pix de qualquer valor)';
+  cafe.innerHTML = '☕ <span>Me paga um café</span>';
+  baixar.after(cafe);
+  cafe.onclick = () => openCafe();
+
   // 📣 Quadro na tela inicial: por que baixar o app (mandar direto no WhatsApp e o resto)
   const promo = document.createElement('section');
   promo.className = 'app-promo';
@@ -90,8 +99,10 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
       <a class="btn ap-btn" href="${RELEASES}" target="_blank" rel="noopener">⬇ Baixar para Windows <small></small></a>
       <ol class="ap-steps"><li>Extraia o <b>.zip</b></li><li>Dois cliques em <b>Audio Sticks.exe</b></li><li>Leia o <b>QR code</b> com o WhatsApp</li></ol>
     </div>
+    <button type="button" class="ap-cafe" data-cafe>☕ O app e o site são grátis. Curtiu? <b>Me paga um café</b> (Pix de qualquer valor)</button>
     <p class="ap-note">O Windows pode avisar que o app não é conhecido: clique em <b>Mais informações → Executar assim mesmo</b>. É só porque ele não tem assinatura digital paga. O código é aberto, no <a href="https://github.com/ivandneto/zapsticks-do-caos" target="_blank" rel="noopener">GitHub</a>.</p>`;
   $('#welcome')?.append(promo);
+  $('[data-cafe]', promo).onclick = () => openCafe();
 
   const promoBtn = $('.ap-btn', promo);
   fetch('https://api.github.com/repos/ivandneto/zapsticks-do-caos/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
@@ -140,6 +151,27 @@ function burst(emoji, x = innerWidth / 2, y = innerHeight / 2) {
     box.append(s);
     setTimeout(() => s.remove(), 1300);
   }
+}
+
+// ============ ☕ me paga um café (versão web) ============
+async function openCafe() {
+  let pix = null;
+  try { pix = await (await fetch('/web/pix.json')).json(); } catch { /* sem Pix montado */ }
+  if (!pix?.copiaECola) return toast('O Pix não está disponível agora.', 'err');
+  openModal(`<div class="cafe">
+      <div class="cafe-cup">☕</div>
+      <h3>Me paga um café?</h3>
+      <p>O Audio Sticks é grátis, sem anúncio e sem cadastro. Se ele te salvou no grupo da família, qualquer valor ajuda a manter o caos funcionando. 🌀</p>
+      <img class="cafe-qr" src="/web/pix.svg" alt="QR code do Pix" width="220" height="220">
+      <p class="small">Abra o app do seu banco → <b>Pix</b> → <b>Ler QR code</b>. Você escolhe o valor.</p>
+      <div class="cafe-copy"><input readonly value="${esc(pix.copiaECola)}" aria-label="Pix copia e cola"><button class="btn primary small" type="button" id="cafeCopy">Copiar</button></div>
+      <p class="small dim">Pix copia e cola · vai para <b>${esc(pix.nome)}</b></p>
+    </div>`, (b) => {
+    $('#cafeCopy', b).onclick = async () => {
+      try { await navigator.clipboard.writeText(pix.copiaECola); } catch { $('.cafe-copy input', b).select(); document.execCommand('copy'); }
+      toast('Pix copiado! Cole no app do banco em "Pix copia e cola" ☕', 'ok');
+    };
+  });
 }
 
 // ============ modal ============

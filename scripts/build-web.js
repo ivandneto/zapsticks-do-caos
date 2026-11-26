@@ -3,6 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import QRCode from 'qrcode';
+import { pixCopiaECola } from './pix.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist-web');
@@ -18,6 +20,13 @@ const html = fs.readFileSync(index, 'utf8');
 const marcas = `<meta charset="utf-8">\n  <meta name="motor" content="navegador">\n  <meta name="versao" content="${pkg.version}-web">`;
 if (!html.includes('<meta charset="utf-8">')) throw new Error('index.html mudou: não achei <meta charset="utf-8">');
 fs.writeFileSync(index, html.replace('<meta charset="utf-8">', marcas));
+
+// ☕ "Me paga um café": Pix copia e cola + QR (SVG) gerados aqui, a partir de web/apoio.json (dados públicos)
+const apoio = JSON.parse(fs.readFileSync(path.join(root, 'web', 'apoio.json'), 'utf8'));
+const pix = pixCopiaECola(apoio);
+fs.writeFileSync(path.join(out, 'web', 'pix.svg'), await QRCode.toString(pix, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#101017', light: '#ffffff' } }));
+fs.writeFileSync(path.join(out, 'web', 'pix.json'), JSON.stringify({ copiaECola: pix, nome: apoio.nome }));
+fs.rmSync(path.join(out, 'web', 'apoio.json'));
 
 const files = [];
 const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else files.push(p); } };

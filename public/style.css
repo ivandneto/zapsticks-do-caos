@@ -780,3 +780,17 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .ap-note { margin: 14px 0 0; color: var(--dim); font-size: .8rem; }
 .ap-note a { color: var(--accent); }
 @media (max-width: 520px) { .app-promo { padding: 16px; } .ap-head h3 { font-size: 1.2rem; } }
+
+/* ☕ me paga um café (só no site) */
+.cafe-btn { padding: 0 14px; width: auto; }
+@media (max-width: 760px) { .cafe-btn span { display: none; } .cafe-btn { width: 38px; padding: 0; } }
+.ap-cafe { display: block; width: 100%; margin-top: 14px; padding: 10px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--dim); font-size: .88rem; text-align: center; }
+.ap-cafe b { color: var(--accent); }
+.ap-cafe:hover { border-style: solid; }
+.cafe { text-align: center; display: grid; justify-items: center; gap: 6px; }
+.cafe-cup { font-size: 46px; line-height: 1; }
+.cafe h3 { padding-right: 0 !important; }
+.cafe p { margin: 0 0 6px !important; }
+.cafe-qr { width: 220px; height: 220px; border-radius: 16px; background: #fff; padding: 6px; margin: 6px 0; }
+.cafe-copy { display: flex; gap: 6px; width: 100%; }
+.cafe-copy input { flex: 1; min-width: 0; font: .78rem ui-monospace, monospace; }
