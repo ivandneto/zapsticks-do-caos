@@ -287,6 +287,7 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 - **Reiniciar** (`restartApp`): fecha a bandeja e a porta, inicia `process.execPath` destacado (com `NO_BROWSER=1`) e sai. Como a porta já foi fechada, a nova cópia não se confunde com uma "instância já aberta". Na página, `waitForComeback()` consulta `/api/ping` e recarrega.
 - Se o Node morre, o stdin fecha (`ReadLine` devolve null) e o ícone some junto.
 - **Atenção:** o stdin é lido com `StreamReader([Console]::OpenStandardInput())`. **Não use `[Console]::In`**: no Windows PowerShell ele é sincronizado, e o `ReadLineAsync()` dele bloqueia a thread da interface até chegar a próxima linha. O ícone continua recebendo o status, mas não responde a cliques.
+- **Atenção (janelas modais):** `MessageBox` e `InputBox` rodam um laço de mensagens próprio, e o `Timer` **continua disparando** dentro dele. Por isso o tick marca a linha como lida (`ReadLineAsync` de novo) **antes** de tratá-la, pausa o timer enquanto a janela está aberta e usa `$script:busy` contra reentrada. Sem isso, um único `about` abria janelas sem parar (bug da 1.1.1 antes da correção).
 - **Atenção:** o script fica numa *template string* do JS. Não use crase (o escape do PowerShell) dentro dele; use `[Environment]::NewLine`.
 
 ## Página (`public/app.js`)
