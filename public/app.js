@@ -68,14 +68,41 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   baixar.title = 'App para Windows: tudo do site + baixar de links (Instagram, TikTok…) e mandar direto no WhatsApp';
   baixar.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 21h14"/></svg><span>Baixar para Windows</span>';
   document.querySelector('.top-actions')?.prepend(baixar);
+
+  // 📣 Quadro na tela inicial: por que baixar o app (mandar direto no WhatsApp e o resto)
+  const promo = document.createElement('section');
+  promo.className = 'app-promo';
+  promo.innerHTML = `
+    <div class="ap-head">
+      <span class="ap-badge">App para Windows · grátis</span>
+      <h3>Quer mandar <span>direto no WhatsApp</span>? Baixe o app.</h3>
+      <p>O site cria a figurinha e você baixa o arquivo. O app faz tudo isso <b>e ainda manda pra quem você quiser</b>, num clique, sem baixar e reenviar.</p>
+    </div>
+    <ul class="ap-list">
+      <li><i>📲</i><div><b>Envio direto pelo seu WhatsApp</b><span>Para você, um contato, um grupo ou um número. Conecta uma vez pelo QR code, igual ao WhatsApp Web.</span></div></li>
+      <li><i>🔊</i><div><b>Figurinha com som chega pronta</b><span>Quem recebe toca e ouve. Nada de montar no celular.</span></div></li>
+      <li><i>🔗</i><div><b>Cola o link e pronto</b><span>YouTube, Instagram, TikTok, X, Facebook, Kwai… o app baixa o vídeo sozinho. No site, só arquivo seu.</span></div></li>
+      <li><i>📦</i><div><b>Pacote inteiro de uma vez</b><span>Manda a categoria toda (Memes, Futebol, Indiretas…) com um clique.</span></div></li>
+      <li><i>🎛️</i><div><b>Mesa de som</b><span>Teclas 1 a 9 tocam as suas figurinhas. Para reuniões on-line (não recomendamos).</span></div></li>
+      <li><i>🔒</i><div><b>Tudo fica no seu PC</b><span>Sem cadastro e sem nuvem: as figurinhas e a conexão ficam com você. E é de graça.</span></div></li>
+    </ul>
+    <div class="ap-cta">
+      <a class="btn ap-btn" href="${RELEASES}" target="_blank" rel="noopener">⬇ Baixar para Windows <small></small></a>
+      <ol class="ap-steps"><li>Extraia o <b>.zip</b></li><li>Dois cliques em <b>Audio Sticks.exe</b></li><li>Leia o <b>QR code</b> com o WhatsApp</li></ol>
+    </div>
+    <p class="ap-note">O Windows pode avisar que o app não é conhecido: clique em <b>Mais informações → Executar assim mesmo</b>. É só porque ele não tem assinatura digital paga. O código é aberto, no <a href="https://github.com/ivandneto/zapsticks-do-caos" target="_blank" rel="noopener">GitHub</a>.</p>`;
+  $('#welcome')?.append(promo);
+
+  const promoBtn = $('.ap-btn', promo);
   fetch('https://api.github.com/repos/ivandneto/zapsticks-do-caos/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
     .then((r) => (r.ok ? r.json() : null))
     .then((rel) => {
       const zip = rel?.assets?.find((a) => /win32.*\.zip$/i.test(a.name));
       if (!zip) return;
-      baixar.href = zip.browser_download_url;
-      baixar.removeAttribute('target');
-      baixar.querySelector('span').innerHTML = `Baixar para Windows <small>${rel.tag_name} · ${Math.round(zip.size / 1e6)} MB</small>`;
+      const info = `${rel.tag_name} · ${Math.round(zip.size / 1e6)} MB`;
+      for (const a of [baixar, promoBtn]) { a.href = zip.browser_download_url; a.removeAttribute('target'); }
+      baixar.querySelector('span').innerHTML = `Baixar para Windows <small>${info}</small>`;
+      $('small', promoBtn).textContent = info;
     })
     .catch(() => { /* fica o link da página de downloads */ });
 }
