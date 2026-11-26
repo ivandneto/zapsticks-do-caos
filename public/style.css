@@ -782,7 +782,11 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 @media (max-width: 520px) { .app-promo { padding: 16px; } .ap-head h3 { font-size: 1.2rem; } }
 
 /* ☕ me paga um café (só no site) */
-.cafe-btn { padding: 0 14px; width: auto; }
+.cafe-btn { padding: 0 14px; width: auto; font-size: 1.05rem; }
+.cafe-btn span { font-size: .9rem; }
+/* no app o topo já é cheio: só o ícone (a frase vem ao passar o mouse) */
+html:not(.web) .cafe-btn { width: 38px; padding: 0; }
+html:not(.web) .cafe-btn span { display: none; }
 @media (max-width: 760px) { .cafe-btn span { display: none; } .cafe-btn { width: 38px; padding: 0; } }
 .ap-cafe { display: block; width: 100%; margin-top: 14px; padding: 10px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--dim); font-size: .88rem; text-align: center; }
 .ap-cafe b { color: var(--accent); }

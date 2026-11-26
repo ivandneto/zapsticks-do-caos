@@ -16,6 +16,9 @@ import * as db from './lib/db.js';
 import { parseVideoId, getSourceAudio, getVideoSection, getFrame, makeTrayIcon, makeAnimatedWebp, makeSquareMp4, makeStaticSticker, makeSilentMp4, makeComboMp4, cleanFrame, extractFrames, makeAnimatedWebpFromFrames, makeSilentMp4FromFrames, cutToOgg, analyze, checkTools } from './lib/audio.js';
 import * as wa from './lib/whatsapp.js';
 import * as sources from './lib/sources.js';
+import { pixCopiaECola } from './lib/pix.js';
+import QRCode from 'qrcode';
+import apoio from './web/apoio.json' with { type: 'json' };
 
 const PASSWORD = process.env.APP_PASSWORD || '';
 const MAX_SECONDS = 60;
@@ -698,6 +701,15 @@ app.post('/api/whatsapp/check', async (req, res) => {
 
 // --- Diagnóstico ---
 app.get('/api/ping', (req, res) => res.send('pong'));
+
+// ☕ "Me paga um café": o mesmo Pix do site (web/apoio.json), nas mesmas rotas que lá são arquivos
+const PIX = pixCopiaECola(apoio);
+let pixSvg = null;
+app.get('/web/pix.json', (req, res) => res.json({ copiaECola: PIX, nome: apoio.nome }));
+app.get('/web/pix.svg', async (req, res) => {
+  pixSvg ||= await QRCode.toString(PIX, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#101017', light: '#ffffff' } });
+  res.type('image/svg+xml').set('Cache-Control', 'public, max-age=86400').send(pixSvg);
+});
 app.get('/api/health', async (req, res) => res.json(await checkTools()));
 
 // --- Página pública de uma figurinha (link para compartilhar) ---

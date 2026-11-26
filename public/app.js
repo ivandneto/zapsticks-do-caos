@@ -69,14 +69,7 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   baixar.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 21h14"/></svg><span>Baixar para Windows</span>';
   document.querySelector('.top-actions')?.prepend(baixar);
 
-  // ☕ Me paga um café: Pix (QR + copia e cola), gerado no build a partir de web/apoio.json
-  const cafe = document.createElement('button');
-  cafe.type = 'button';
-  cafe.className = 'top-btn cafe-btn';
-  cafe.title = 'Curtiu? Me paga um café (Pix de qualquer valor)';
-  cafe.innerHTML = '☕ <span>Me paga um café</span>';
-  baixar.after(cafe);
-  cafe.onclick = () => openCafe();
+  baixar.after(cafeButton()); // no site, o ☕ fica ao lado do "Baixar", com o texto
 
   // 📣 Quadro na tela inicial: por que baixar o app (mandar direto no WhatsApp e o resto)
   const promo = document.createElement('section');
@@ -153,7 +146,18 @@ function burst(emoji, x = innerWidth / 2, y = innerHeight / 2) {
   }
 }
 
-// ============ ☕ me paga um café (versão web) ============
+// ============ ☕ me paga um café (app e site) ============
+// O Pix vem de /web/pix.json e /web/pix.svg: no site são arquivos (scripts/build-web.js); no app, rotas do server.js.
+function cafeButton() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'top-btn cafe-btn';
+  b.title = 'Curtiu? Me paga um café (Pix de qualquer valor)';
+  b.setAttribute('aria-label', 'Me paga um café');
+  b.innerHTML = '☕ <span>Me paga um café</span>';
+  b.onclick = () => openCafe();
+  return b;
+}
 async function openCafe() {
   let pix = null;
   try { pix = await (await fetch('/web/pix.json')).json(); } catch { /* sem Pix montado */ }
@@ -2630,7 +2634,7 @@ async function openHelp(tab = 'inicio') {
     <div class="help-body" id="hBody"></div>`, (b) => {
     const show = (k) => {
       $$('#hTabs button', b).forEach((x) => x.classList.toggle('on', x.dataset.k === k));
-      $('#hBody', b).innerHTML = HELP_TABS[k].html() + `<div class="help-foot"><span>Audio Sticks ${esc(info.version || '')} · <a href="${REPO_URL}" target="_blank" rel="noopener">código no GitHub ↗</a></span><span>${info.url ? `Aberto em ${esc(info.url)}` : ''}</span></div>`;
+      $('#hBody', b).innerHTML = HELP_TABS[k].html() + `<div class="help-foot"><span>Audio Sticks ${esc(info.version || '')} · <a href="${REPO_URL}" target="_blank" rel="noopener">código no GitHub ↗</a> · <a href="#" data-cafe-link>☕ me paga um café</a></span><span>${info.url ? `Aberto em ${esc(info.url)}` : ''}</span></div>`;
     };
     $('#hTabs', b).onclick = (e) => { const x = e.target.closest('button'); if (x) show(x.dataset.k); };
     $('#hTour', b).onclick = () => { closeModal(); startTour(); };
@@ -2860,6 +2864,9 @@ addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); go(-1); }
 }, true);
 $('#tourBtn').onclick = startTour;
+// ☕ no topo do app (só o ícone; no site ele já foi posto ao lado do "Baixar")
+if (MOTOR.kind !== 'navegador') $('#tourBtn').before(cafeButton());
+document.addEventListener('click', (e) => { if (e.target.closest('[data-cafe-link]')) { e.preventDefault(); openCafe(); } });
 
 // Primeira visita: abre o tour sozinho (uma vez)
 setTimeout(() => {
