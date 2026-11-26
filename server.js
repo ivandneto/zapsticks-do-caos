@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import AdmZip from 'adm-zip';
+import { withStickerInfo } from './lib/webpexif.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -75,15 +76,15 @@ async function videoSegmentFor(s) {
 
 /** Gera a figurinha animada (.webp) e o vídeo quadrado (.mp4) a partir do trecho do vídeo. */
 // Até 5 s: figurinha ANIMADA com som. De 5 a 10 s: figurinha PARADA (1º quadro) com som — é o que o WhatsApp aceita.
-async function buildVisual(s) {
+async function buildVisual(s, { overlay = null } = {}) {
   const video = await videoSegmentFor(s);
   const animated = s.duration <= ANIM_SOUND_MAX + 0.05;
   try {
     if (animated) {
-      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration);
-      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
+      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration, { overlay });
+      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration, { overlay });
     } else {
-      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'));
+      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'), { overlay });
       await makeComboMp4(mediaPath(s.id, 'png'), audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
     }
   } finally {
@@ -99,11 +100,26 @@ const friendlyError = (err) => /Sign in|bot/i.test(err.message) ? 'O YouTube ped
 // --- Criação (em segundo plano, com etapas que a página acompanha) ---
 const jobs = new Map();
 
+// Camada de texto e emoji (PNG 512x512 transparente desenhado na página). Vive em tmp/ até ser usada na criação.
+const overlayPath = (id) => (/^[a-f0-9-]{36}$/.test(String(id || '')) ? path.join(TMP_DIR, `ov-${id}.png`) : null);
+const takeOverlay = (id) => { const p = overlayPath(id); return p && fs.existsSync(p) ? p : null; };
+const dropOverlay = (p) => { if (p) fs.rmSync(p, { force: true }); };
+const overlayUpload = multer({ dest: TMP_DIR, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
+app.post('/api/overlays', overlayUpload.single('overlay'), (req, res) => {
+  if (!req.file) return fail(res, 400, 'Camada de texto não recebida.');
+  const head = fs.readFileSync(req.file.path).subarray(0, 8);
+  if (!head.equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) { fs.rmSync(req.file.path, { force: true }); return fail(res, 400, 'A camada de texto precisa ser PNG.'); }
+  const id = randomUUID();
+  fs.renameSync(req.file.path, overlayPath(id));
+  setTimeout(() => dropOverlay(overlayPath(id)), 30 * 60 * 1000).unref();
+  res.status(201).json({ id });
+});
+
 // Origem: { url } do YouTube, ou { sourceId } de um link de outro site / arquivo já carregado (POST /api/sources…)
 // mode: 'audio' (Audio Stick, padrão) ou 'sticker' (Stick: só a figurinha, sem som)
 app.post('/api/stickers', (req, res) => {
   if (req.body?.mode === 'sticker') return createStick(req, res);
-  const { url, sourceId, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual } = req.body || {};
+  const { url, sourceId, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual, overlayId } = req.body || {};
   const videoId = sourceId ? null : parseVideoId(url);
   const source = sourceId ? sources.getSource(sourceId) : null;
   const s = Number(start), e = Number(end);
@@ -121,6 +137,7 @@ app.post('/api/stickers', (req, res) => {
   setTimeout(() => jobs.delete(job.id), 10 * 60 * 1000);
   res.status(202).json({ jobId: job.id });
 
+  const overlay = takeOverlay(overlayId);
   (async () => {
     const src = source ? { file: source.file, offset: 0 } : await getSourceAudio(videoId, s, e, Number(videoDuration) || 0);
     try {
@@ -146,7 +163,7 @@ app.post('/api/stickers', (req, res) => {
     // Trechos curtos também viram figurinha animada (falhar aqui não perde o áudio)
     if (makeVisual !== false && (!source || source.hasVideo) && job.sticker.duration <= SOUND_STICKER_MAX + 0.05) {
       job.step = 'visual';
-      try { job.sticker = await buildVisual(job.sticker); } catch (err) {
+      try { job.sticker = await buildVisual(job.sticker, { overlay }); } catch (err) {
         console.error('[figurinha]', err.message);
         job.warning = 'O áudio foi criado, mas a figurinha animada falhou. Tente de novo pelo botão da figurinha.';
       }
@@ -156,12 +173,13 @@ app.post('/api/stickers', (req, res) => {
     console.error('[criar]', err.message);
     job.step = 'error';
     job.error = friendlyError(err);
-  });
+  }).finally(() => dropOverlay(overlay));
 });
 
 /** Stick: figurinha sem som, de um trecho de vídeo (até 10 s), de um GIF ou de uma foto. */
 function createStick(req, res) {
-  const { url, sourceId, start, end, title, emoji, tags, videoTitle, fit } = req.body || {};
+  const { url, sourceId, start, end, title, emoji, tags, videoTitle, fit, overlayId } = req.body || {};
+  const overlay = takeOverlay(overlayId);
   const fitMode = fit === 'pad' ? 'pad' : 'crop';
   const videoId = sourceId ? null : parseVideoId(url);
   const source = sourceId ? sources.getSource(sourceId) : null;
@@ -184,14 +202,14 @@ function createStick(req, res) {
   (async () => {
     const id = db.newId();
     if (still) {
-      await makeStaticSticker(source.file, mediaPath(id, 'webp'), mediaPath(id, 'png'), { fit: fitMode });
+      await makeStaticSticker(source.file, mediaPath(id, 'webp'), mediaPath(id, 'png'), { fit: fitMode, overlay });
     } else {
       // GIF a partir do começo vai direto (mantém a transparência); o resto é recortado antes
       const direct = source?.media === 'gif' && s < 0.05;
       const video = direct ? source.file : videoId ? await getVideoSection(videoId, s, e) : await sources.cutVideoSegment(source.file, s, e, TMP_DIR);
       try {
-        await makeAnimatedWebp(video, mediaPath(id, 'webp'), e - s, { fit: fitMode });
-        await makeSilentMp4(video, mediaPath(id, 'mp4'), e - s, { fit: fitMode });
+        await makeAnimatedWebp(video, mediaPath(id, 'webp'), e - s, { fit: fitMode, overlay });
+        await makeSilentMp4(video, mediaPath(id, 'mp4'), e - s, { fit: fitMode, overlay });
       } finally { if (!direct) fs.rmSync(video, { force: true }); }
     }
     job.sticker = db.insertSticker({
@@ -205,7 +223,7 @@ function createStick(req, res) {
     console.error('[stick]', err.message);
     job.step = 'error';
     job.error = friendlyError(err);
-  });
+  }).finally(() => dropOverlay(overlay));
 }
 
 // --- Combinação Caótica: a IMAGEM de uma figurinha + o SOM de outra ---
@@ -302,7 +320,8 @@ app.post('/api/frames/:token/result', frameUpload.array('frames', 200), (req, re
   fs.mkdirSync(out, { recursive: true });
   // a ordem vem do nome que a página dá (0001.png, 0002.png…)
   files.sort((a, b) => a.originalname.localeCompare(b.originalname)).forEach((f, i) => fs.renameSync(f.path, path.join(out, `${String(i + 1).padStart(4, '0')}.png`)));
-  const { title, emoji, tags, sourceId, url, start, end, fps } = req.body || {};
+  const { title, emoji, tags, sourceId, url, start, end, fps, overlayId } = req.body || {};
+  const overlay = takeOverlay(overlayId);
   const source = sourceId ? sources.getSource(sourceId) : null;
   const videoId = sourceId ? null : parseVideoId(url);
   const rate = Math.min(30, Math.max(4, Number(fps) || FRAMES_FPS));
@@ -312,8 +331,8 @@ app.post('/api/frames/:token/result', frameUpload.array('frames', 200), (req, re
   res.status(202).json({ jobId: job.id });
   (async () => {
     const id = db.newId();
-    await makeAnimatedWebpFromFrames(out, rate, mediaPath(id, 'webp'));
-    await makeSilentMp4FromFrames(out, rate, mediaPath(id, 'mp4'));
+    await makeAnimatedWebpFromFrames(out, rate, mediaPath(id, 'webp'), { overlay });
+    await makeSilentMp4FromFrames(out, rate, mediaPath(id, 'mp4'), { overlay });
     const s = Number(start) || 0;
     job.sticker = db.insertSticker({
       id, kind: 'sticker', animated: true, visual: true, waveform: [], duration: files.length / rate, start: s, end: Number(end) || s + files.length / rate,
@@ -326,7 +345,7 @@ app.post('/api/frames/:token/result', frameUpload.array('frames', 200), (req, re
     console.error('[sem fundo]', err.message);
     job.step = 'error';
     job.error = `Não consegui montar a figurinha: ${err.message}`;
-  }).finally(() => fs.rmSync(framesDir(token), { recursive: true, force: true }));
+  }).finally(() => { fs.rmSync(framesDir(token), { recursive: true, force: true }); dropOverlay(overlay); });
 });
 
 /** Figurinha existente → origem editável (para tirar o fundo e criar uma CÓPIA; a original fica intacta). */
@@ -502,13 +521,14 @@ app.post('/api/stickers/:id/send', async (req, res) => {
  *  Sem imagem, cai para mensagem de voz; sem som (Stick), vai como figurinha comum. */
 async function sendOne(s, mode = 'sound', to = 'me') {
   const hasVisual = s.visual && fs.existsSync(mediaPath(s.id, 'webp'));
-  const webp = () => fs.readFileSync(mediaPath(s.id, 'webp'));
+  // o nome e o emoji vão dentro do .webp: é o que o WhatsApp mostra ao tocar na figurinha (não existe legenda)
+  const webp = () => withStickerInfo(fs.readFileSync(mediaPath(s.id, 'webp')), { name: s.title, emojis: [s.emoji] });
   if (!s.hasAudio) {
     if (!hasVisual) throw new Error('Essa figurinha perdeu a imagem.');
     await wa.sendSticker(to, webp(), { animated: s.animated });
   } else if (mode === 'audio' || !hasVisual) await wa.sendVoice(to, fs.readFileSync(audioPath(s.id)), { seconds: s.duration, waveform: s.waveform });
   else if (mode === 'plain') await wa.sendSticker(to, webp(), { animated: s.animated });
-  else await wa.sendSoundSticker(to, fs.readFileSync(mediaPath(s.id, 'webp')), fs.readFileSync(audioPath(s.id)), { seconds: s.duration });
+  else await wa.sendSoundSticker(to, webp(), fs.readFileSync(audioPath(s.id)), { seconds: s.duration });
   db.bump(s.id, 'sends');
 }
 

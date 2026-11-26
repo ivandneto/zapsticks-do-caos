@@ -74,7 +74,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 | Parte | O que faz |
 |---|---|
-| **Versão** (ao lado do logo, ex.: `v1.1.1`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
+| **Versão** (ao lado do logo, ex.: `v1.2.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
@@ -171,6 +171,24 @@ Na aba Stick, embaixo da prévia, o botão **✂️ Tirar o fundo** abre um edit
 - **Na primeira vez**, o navegador baixa a biblioteca e os modelos de IA (~22 MB, do Google). Depois ficam guardados. Por isso precisa de internet na primeira vez.
 - **Limitações:** cabelo e bordas finas podem ficar serrilhados (use o pincel). No vídeo/GIF, só funciona o recorte automático de **pessoas**.
 
+#### 🔤 Texto e emoji
+
+No passo 3, embaixo da prévia, o botão **🔤 Texto e emoji** abre um editor para escrever na figurinha. Funciona no **Stick** e no **Audio Stick** (com imagem), em **foto, GIF e vídeo**: o texto fica fixo por cima da animação inteira.
+
+| Recurso | Como |
+|---|---|
+| **＋ Texto** | Quantos quiser, com quebra de linha. Texto comprido demais encolhe sozinho para caber |
+| **＋ Emoji** | Escolha na grade ou cole qualquer emoji |
+| 😂 **Meme clássico** | Texto branco com borda preta, em cima e embaixo |
+| **Fonte** | Impact (a de meme), Anton, Bangers, Luckiest Guy, Permanent Marker, Pacifico, Lobster, Bricolage, Arial Black e Comic Sans |
+| **Cor** e **borda** | Cores prontas ou qualquer outra. A borda tem cor e espessura (0 = sem borda) |
+| **Tamanho** e **inclinação** | Pelos controles, ou a **rodinha do mouse** em cima do item escolhido |
+| **Mover** | Arraste no quadro. **Delete** apaga o item escolhido |
+
+- Clique em **Usar**: o texto aparece na **prévia**, e o botão mostra quantos itens há. Depois é só **Criar figurinha**.
+- O texto vale até você **trocar de vídeo ou foto** (no ✂️ Tirar o fundo de uma foto, ele continua). Para tirar, abra o editor e clique em **Limpar tudo**.
+- As fontes vêm do Google Fonts na primeira vez (precisa de internet). Sem internet, entra uma fonte parecida.
+
 > Soltar uma foto ou um GIF na aba Audio Stick troca sozinho para a aba Stick, já que eles não têm som.
 
 > **.webp animado** (o formato do Giphy e das figurinhas salvas do WhatsApp) é tratado como **animação**. Quem lê a animação é o navegador (Edge ou Chrome atualizados), e o app monta uma cópia sem perda que funciona em qualquer versão do ffmpeg.
@@ -233,6 +251,8 @@ O destino **vale para todos os botões** (figurinha, áudio e pacote) até você
   - **Enviar só a figurinha** (animada, sem som);
   - **Enviar só o áudio** (mensagem de voz);
   - **Baixar vídeo .mp4** e criar a figurinha no próprio WhatsApp: *😊 → Figurinhas → Criar*, escolher o vídeo e ativar o áudio. Esse caminho é garantido, desde que o seu WhatsApp já tenha recebido o recurso.
+
+> **Nome da figurinha:** o WhatsApp **não tem legenda** em figurinha. O app grava o **nome** e o **emoji** dentro dela (como nome do pacote, com autor "Audio Sticks"), e quem recebe vê isso ao **tocar na figurinha** no celular. Para o texto aparecer na conversa, escreva **na imagem** com **🔤 Texto e emoji**.
 
 Figurinhas antigas, de até 10s, que ainda não têm imagem: clique no botão amarelo e depois em **Gerar figurinha animada** (até 5s fica animada; de 5 a 10s, parada).
 
@@ -367,8 +387,10 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 
 | Problema | Solução |
 |---|---|
+| O **nome** ou a "legenda" do GIF não aparece no WhatsApp | Figurinha não tem legenda no WhatsApp. O app grava o nome e o emoji **dentro** da figurinha: quem recebe vê ao **tocar nela** no celular. Para ler na conversa, escreva **na imagem** com **🔤 Texto e emoji** |
+| A janela "Editar figurinha" fechava ao copiar o nome | Corrigido na 1.2.0: selecionar um texto e soltar o mouse fora da caixa não fecha mais a janela |
 | A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
-| Qual versão eu tenho? | Ao lado do logo (`v1.1.1`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
+| Qual versão eu tenho? | Ao lado do logo (`v1.2.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
 | *"Foto e GIF não têm som"* | Use a aba **🖼️ Stick** (só a figurinha) ou a **🌀 Combinação Caótica** para juntar com um som |
 | A combinação não aceita o som | Com imagem **animada**, o som pode ter até **5s**; com imagem **parada**, até **10s**. Recorte um trecho menor ou use uma foto |
 | O "Tirar o fundo" não carrega | Na primeira vez, ele baixa a IA de recorte (~22 MB) da internet. Confira a conexão e tente de novo |

@@ -120,10 +120,14 @@
             <div class="prev-col">
               <button id="stickerPrev" class="sticker-prev" type="button" title="Prévia da figurinha (clique para ouvir o trecho)">
                 <img id="prevImg" alt="Prévia da figurinha">
+                <img id="prevOv" class="prev-ov" alt="">
                 <span id="emojiNow" class="prev-emoji">🔊</span>
               </button>
               <span id="prevCaption" class="prev-caption"></span>
-              <button type="button" id="bgBtn" class="btn small bg-btn" hidden title="Remove o fundo com IA (pessoas automático, ou toque no que manter)">✂️ Tirar o fundo</button>
+              <div class="prev-tools">
+                <button type="button" id="txtBtn" class="btn small tte-btn" hidden title="Escreva na figurinha: fonte, cor, borda, tamanho e emojis">🔤 Texto e emoji</button>
+                <button type="button" id="bgBtn" class="btn small bg-btn" hidden title="Remove o fundo com IA (pessoas automático, ou toque no que manter)">✂️ Tirar o fundo</button>
+              </div>
             </div>
             <div id="emojiGrid" class="emoji-grid"></div>
           </div>

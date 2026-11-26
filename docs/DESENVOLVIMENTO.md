@@ -30,10 +30,13 @@ Para quem vai manter ou evoluir o código. O guia de uso está no [LEIAME](../LE
 | `lib/tools.js` | Resolve os binários (variável de ambiente > `bin/` > PATH), baixa o que faltar e roda `yt-dlp -U` em segundo plano |
 | `lib/audio.js` | `getSourceAudio`, `cutToOgg`, `analyze` (forma de onda), `getVideoSection`, `makeAnimatedWebp`, `makeSquareMp4`, `getFrame`, `makeTrayIcon` |
 | `lib/sources.js` | Origens além do YouTube: `fetchUrl` (qualquer site do yt-dlp), `addUpload` (arquivo), `probe` (duração e se tem imagem), conversão para formato tocável, `cutVideoSegment`, `frameFromFile`; cache em `data/cache/sources/` |
+| `lib/webpexif.js` | Grava nome e emoji dentro do `.webp` (EXIF lido pelo WhatsApp) na hora do envio |
 | `lib/db.js` | Tabelas `stickers`, `packs` e `pack_items`, mais as funções de consulta |
 | `lib/whatsapp.js` | Conexão Baileys, agenda local, grupos, verificação de número e envios (voz, figurinha, figurinha com som, texto) |
 | `lib/tray.js` | Script PowerShell (codificado em Base64) que desenha o ícone e o menu; conversa com o Node por stdin e stdout |
 | `public/index.html`, `app.js`, `style.css` | A página: estúdio, coleção, pacotes, destino, ajuda, configurações e tour |
+| `public/bgeditor.js` | ✂️ Editor de tirar o fundo (IA no navegador) |
+| `public/texteditor.js` | 🔤 Editor de texto e emoji (camada PNG 512×512) |
 | `public/public.css` | Estilo da página pública de uma figurinha |
 | `public/manifest.webmanifest`, `sw.js` | PWA (instalar no celular e *share target* do YouTube) |
 | `scripts/setup.js` | `npm run setup`: força o download ou atualização do yt-dlp (e do ffmpeg, se faltar) |
@@ -105,7 +108,7 @@ pack_items(pack_id, sticker_id, added_at, PK(pack_id, sticker_id))   -- N:N
 | Aba | Rota | Arquivos gerados |
 |---|---|---|
 | Audio Stick | `POST /api/stickers` | `.ogg` + (≤10s com imagem) `.webp` animado + `.mp4` com som |
-| Stick | `POST /api/stickers` com `mode: 'sticker'`, `fit: 'crop'\|'pad'` | foto: `.webp` parado (≤100 KB) + `.png` (molde); GIF/vídeo (≤10s): `.webp` animado + `.mp4` mudo (molde) |
+| Stick | `POST /api/stickers` com `mode: 'sticker'`, `fit: 'crop'\|'pad'`, `overlayId?` (texto e emoji) | foto: `.webp` parado (≤100 KB) + `.png` (molde); GIF/vídeo (≤10s): `.webp` animado + `.mp4` mudo (molde) |
 | Combinação Caótica | `POST /api/combos` `{visualId, audioId, title, tags, deleteIds}` | copia o `.webp` da imagem e o `.ogg` do som; `.mp4` = molde da imagem em loop + som (`makeComboMp4`) |
 
 - **Enquadramento** (`stickerFilter` em `lib/audio.js`): `crop` = quadrado central + máscara de cantos arredondados; `pad` = imagem inteira em 512×512 com fundo transparente (preserva a transparência de PNG e de GIF começando do zero).
@@ -138,6 +141,20 @@ pack_items(pack_id, sticker_id, added_at, PK(pack_id, sticker_id))   -- N:N
 - **Saída** (`compose`): recorta pela caixa do que sobrou (`alphaBox`), centraliza em 512×512 e aplica a **borda branca** (silhueta branca desenhada em 24 deslocamentos de raio 12 px). Foto → PNG enviado como nova origem (`/api/sources/upload`) e aberto com `fit: 'pad'`.
 - **Vídeo/GIF:** `POST /api/frames {sourceId | url, start, end}` → o servidor extrai os quadros (12 fps, cabendo em 512, `extractFrames`) em `tmp/frames-<token>/in` → a página lê `GET /api/frames/:token/0001.png…`, recorta cada um (mesma caixa para todos, união das caixas, para a figurinha não "pular") → `POST /api/frames/:token/result` (multipart `frames[]` + título, emoji, tags, fps, origem) → `makeAnimatedWebpFromFrames` (≤ 490 KB; baixa a qualidade e depois pula quadros) + `makeSilentMp4FromFrames` (molde sobre fundo escuro) → Stick animado. A pasta de quadros é apagada no fim (e o `cleanupOnStart` pega sobras com mais de 1 dia).
 - **Figurinha existente:** `POST /api/stickers/:id/as-source` copia o molde (`.png` ou `.mp4`) para uma origem nova. A página abre no Stick e dispara o editor. O resultado é uma **cópia**.
+
+## 🔤 Texto e emoji (`public/texteditor.js`)
+
+- **Página:** o editor desenha as camadas (`{type: 'text'|'emoji', text, font, size, color, stroke, strokeW, rot, upper, x, y, anchor?}`) num canvas **512×512 transparente**, o tamanho final da figurinha. O fundo de referência é a prévia `#prevImg` (`/api/frame`, já no enquadramento). `anchor: 'top'|'bottom'` (Meme clássico) faz o texto crescer para dentro a partir da borda; arrastar converte para centro. Texto mais largo que 488 px encolhe sozinho.
+- **Fontes:** Impact, Arial Black e Comic Sans do sistema; Anton, Bangers, Luckiest Guy, Permanent Marker, Pacifico e Lobster do Google Fonts (link inserido ao abrir o editor; `document.fonts.load` com limite de 2,5 s antes de exportar). Emoji com `Segoe UI Emoji` / `Apple Color Emoji` / `Noto Color Emoji`.
+- **Estado:** `textOv = {layers, blob, url}` em `app.js`. A camada aparece sobre a prévia (`#prevOv`) e é zerada em `openSource`, menos no recorte sem fundo de foto (`keepTextOv`).
+- **Envio:** na criação, `uploadTextOverlay()` → `POST /api/overlays` (multipart `overlay`, PNG ≤ 5 MB, assinatura conferida) → `{id}` → `overlayId` no corpo de `POST /api/stickers` (Audio Stick e Stick) ou no multipart de `/api/frames/:token/result`. O arquivo (`tmp/ov-<uuid>.png`) é apagado no fim da criação ou em 30 min.
+- **Servidor** (`lib/audio.js`): `withOverlay` acrescenta `-loop 1 -i camada.png` e `[base][ovl]overlay=0:0:shortest=1:format=auto` **depois** do enquadramento (recorte com máscara ou inteiro), então o texto pode passar por cima dos cantos arredondados. Vale para `makeAnimatedWebp`, `makeStaticSticker` (o `.png` molde também leva o texto, então a Combinação herda), `makeSilentMp4`, `makeSquareMp4` (`videoWithOverlay`) e os `…FromFrames`.
+
+## Nome dentro da figurinha (`lib/webpexif.js`)
+
+- O WhatsApp não tem legenda em figurinha. O que ele lê é o bloco **EXIF** do `.webp`: um TIFF com a tag `0x5741` contendo o JSON `{sticker-pack-id, sticker-pack-name, sticker-pack-publisher, emojis}`. Aparece ao tocar na figurinha (celular).
+- `withStickerInfo(webp, {name, emojis})` é aplicado **na hora do envio** (`sendOne`), com `name` = título atual e autor "Audio Sticks". Assim, renomear vale para o próximo envio, e os arquivos guardados não mudam.
+- Remove o EXIF antigo, acrescenta o bloco no fim e liga a bandeira EXIF do `VP8X`. Um `.webp` simples (`VP8 `/`VP8L`) ganha um `VP8X` com o tamanho lido do bitstream. Em qualquer erro, devolve o original.
 
 ## .webp animado e links diretos de imagem
 
@@ -230,7 +247,8 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 | `POST /api/combos` | `{visualId, audioId, title, emoji, tags, deleteIds}` → `{sticker, deleted}` |
 | `POST /api/frames` | `{sourceId \| url, start, end}` (≤10 s) → `{token, count, fps}` |
 | `GET /api/frames/:token/:nnnn.png` | Quadro original para o editor |
-| `POST /api/frames/:token/result` | Multipart `frames[]` (PNG recortados) + `title, emoji, tags, fps, sourceId\|url, start, end` → `202 {jobId}` (Stick animado) |
+| `POST /api/frames/:token/result` | Multipart `frames[]` (PNG recortados) + `title, emoji, tags, fps, sourceId\|url, start, end, overlayId?` → `202 {jobId}` (Stick animado) |
+| `POST /api/overlays` | Multipart `overlay` (PNG 512×512 transparente, ≤ 5 MB) → `201 {id}`. Usado uma vez como `overlayId` |
 | `POST /api/stickers/:id/as-source` | Molde da figurinha → nova origem (para tirar o fundo de uma cópia) |
 | `POST /api/sources/animated` | Multipart `original` + `frames[]` (PNG) + `fps` → `202 {jobId}` (origem `media: 'gif'`) |
 | `POST /api/sources/image-url` | `{url}` → `{image: true, id, name, type}` ou `{image: false}` |

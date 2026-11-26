@@ -72,7 +72,14 @@ function openModal(html, onOpen, { wide = false } = {}) {
 }
 function closeModal() { modal.hidden = true; modalClosed?.(); modalClosed = null; }
 let modalClosed = null;
-modal.addEventListener('click', (e) => { if (e.target === modal || e.target.closest('.modal-x') || e.target.closest('[data-close]')) closeModal(); });
+// Fecha pelo fundo só se o clique COMEÇOU no fundo: selecionar um texto (para copiar) e soltar o mouse
+// fora da caixa conta como "clique no fundo" para o navegador, e fechava a janela.
+let downOnBackdrop = false;
+modal.addEventListener('pointerdown', (e) => { downOnBackdrop = e.target === modal; });
+modal.addEventListener('click', (e) => {
+  if ((e.target === modal && downOnBackdrop) || e.target.closest('.modal-x') || e.target.closest('[data-close]')) closeModal();
+  downOnBackdrop = false;
+});
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
 
 function confirmBox(title, text, okLabel = 'Confirmar', danger = false) {
@@ -111,6 +118,9 @@ const sel = { start: 0, end: 5 };
 let previewing = false;
 let creating = false;
 let frameKey = null, frameT = null; // prévia da figurinha
+// 🔤 camadas de texto e emoji (public/texteditor.js): ficam até trocar de mídia; o PNG vai junto na criação
+const textOv = { layers: [], blob: null, url: null };
+let keepTextOv = false;
 
 function parseVideoId(input) {
   const s = String(input).trim();
@@ -360,6 +370,8 @@ function uploadWithProgress(url, body, onProgress) {
 }
 
 function openSource(src) {
+  if (!keepTextOv) setTextOverlay([], null);
+  keepTextOv = false;
   const media = src.media || (src.hasVideo ? 'video' : 'audio');
   Object.assign(vid, { kind: 'source', id: null, url: src.url || '', title: src.title || '', duration: src.duration, sourceId: src.id,
     hasVideo: src.hasVideo, hasAudio: src.hasAudio !== false, media, site: src.site });
@@ -454,6 +466,7 @@ function render() {
   btn.innerHTML = label;
   btn.disabled = off || creating;
   $('#bgBtn').hidden = !(mode === 'sticker' && vid.kind && vid.hasVideo);
+  $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
 }
 
@@ -654,10 +667,11 @@ $('#createBtn').onclick = async () => {
   const show = (step) => { const i = steps.indexOf(step); $$('li', prog).forEach((li, j) => li.className = j < i || step === 'done' ? 'done' : j === i ? 'active' : ''); };
   show(steps[0]);
   try {
+    const overlayId = await uploadTextOverlay();
     const { jobId } = await api('/api/stickers', {
       method: 'POST',
       body: JSON.stringify({
-        mode: stick ? 'sticker' : undefined, fit,
+        mode: stick ? 'sticker' : undefined, fit, overlayId,
         url: isYT() ? vid.url : undefined, sourceId: isYT() ? undefined : vid.sourceId, start: sel.start, end: sel.end, videoTitle: vid.title, videoDuration: vid.duration,
         title: $('#title').value.trim() || vid.title.slice(0, 50) || 'Figurinha', emoji, tags: $('#tags').value,
         normalize: $('#optNorm').checked, fadeIn: $('#optFadeIn').checked, fadeOut: $('#optFadeOut').checked, gainDb,
@@ -1420,6 +1434,7 @@ $('#bgBtn').onclick = async () => {
         const { jobId } = await uploadWithProgress('/api/sources/upload', fd, () => {});
         const { source } = await pollJob(jobId);
         setFit('pad');
+        keepTextOv = true;
         openSource(source);
         $('#title').value = `${name} sem fundo`.slice(0, 80); delete $('#title').dataset.auto;
         toast('Fundo removido! Confira a prévia e clique em Criar ✂️', 'ok');
@@ -1447,6 +1462,8 @@ $('#bgBtn').onclick = async () => {
     try {
       const fd = new FormData();
       frames.forEach((b, i) => fd.append('frames', b, `${String(i + 1).padStart(4, '0')}.png`));
+      const overlayId = await uploadTextOverlay();
+      if (overlayId) fd.append('overlayId', overlayId);
       for (const [k, v] of Object.entries({ title: `${name} sem fundo`, emoji, tags: $('#tags').value, fps: fr.fps, start, end,
         ...(isYT() ? { url: vid.url } : { sourceId: vid.sourceId }) })) fd.append(k, String(v));
       const { jobId } = await uploadWithProgress(`/api/frames/${fr.token}/result`, fd, () => {});
@@ -1458,6 +1475,40 @@ $('#bgBtn').onclick = async () => {
     } catch (err) { toast(err.message, 'err'); }
     setTimeout(() => { prog.hidden = true; }, 1200);
   } });
+};
+
+// ============ 🔤 texto e emoji ============
+function setTextOverlay(layers, blob) {
+  if (textOv.url) URL.revokeObjectURL(textOv.url);
+  Object.assign(textOv, { layers, blob, url: blob ? URL.createObjectURL(blob) : null });
+  const img = $('#prevOv');
+  if (textOv.url) img.src = textOv.url; else img.removeAttribute('src');
+  $('#stickerPrev').classList.toggle('has-ov', !!blob);
+  const b = $('#txtBtn');
+  b.classList.toggle('on', !!blob);
+  b.textContent = blob ? `🔤 Texto e emoji (${layers.length})` : '🔤 Texto e emoji';
+}
+/** Manda a camada para o servidor (vale para UMA criação) e devolve o id, ou undefined se não houver texto. */
+async function uploadTextOverlay() {
+  if (!textOv.blob) return undefined;
+  const fd = new FormData();
+  fd.append('overlay', textOv.blob, 'texto.png');
+  const r = await fetch('/api/overlays', { method: 'POST', body: fd });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Não consegui enviar o texto da figurinha.');
+  return data.id;
+}
+$('#txtBtn').onclick = async () => {
+  if (!vid.kind) return;
+  stopPreview();
+  const { openTextEditor } = await import('./texteditor.js');
+  openTextEditor({
+    bg: $('#prevImg').src, pad: mode === 'sticker' && fit === 'pad', layers: textOv.layers,
+    onDone: ({ layers, blob }) => {
+      setTextOverlay(layers, blob);
+      if (blob) toast('Texto pronto! Ele vai em cima da figurinha inteira 🔤', 'ok');
+    },
+  });
 };
 
 /** Figurinha que já existe → abre no Stick para tirar o fundo (vira uma CÓPIA; a original fica). */
@@ -1661,6 +1712,7 @@ const HELP_TABS = {
     <div class="feat">
       <div class="card"><div class="t"><span>🎙️</span>Audio Stick</div><p>Um trecho de vídeo ou áudio vira <b>som</b> (e, até 10s, figurinha animada com som).</p></div>
       <div class="card"><div class="t"><span>🖼️</span>Stick</div><p><b>Só a figurinha</b>, sem som: de foto, GIF ou trecho de vídeo.</p></div>
+      <div class="card"><div class="t"><span>🔤</span>Texto e emoji</div><p>Escreva na figurinha com a <b>fonte</b>, a <b>cor</b>, a <b>borda</b>, o <b>tamanho</b> e a <b>inclinação</b> que quiser, e cole <b>emojis</b>. Arraste para posicionar. Tem o atalho <b>Meme clássico</b> (em cima e embaixo). Vale para foto, GIF e vídeo.</p></div>
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>A <b>imagem</b> de uma + o <b>som</b> de outra. Da coleção ou criadas na hora.</p></div>
     </div>
     <h4>Do vídeo à figurinha em 4 passos</h4>
@@ -1728,6 +1780,8 @@ const HELP_TABS = {
       <details><summary>Onde ficam minhas figurinhas?</summary><p>No executável: <b>%LOCALAPPDATA%\\Audio Sticks\\data</b> (veja em ⚙ Configurações ou no menu da bandeja → Abrir pasta). Rodando pelo código: na pasta <b>data</b> do projeto.</p></details>
       <details><summary>Não aparecem meus contatos.</summary><p>Em <b>Enviar para → Contatos</b>, clique em <b>Buscar meus contatos no WhatsApp</b>. Se ainda faltar alguém, use a aba <b>Número</b>.</p></details>
       <details><summary>Como tiro o fundo de uma figurinha?</summary><p>Na aba <b>Stick</b>, depois de carregar a foto, GIF ou vídeo, clique em <b>✂️ Tirar o fundo</b> (embaixo da prévia). Para uma figurinha que já existe: botão amarelo → <b>Tirar o fundo (cria uma cópia)</b>. Na primeira vez a IA é baixada (~22 MB, precisa de internet).</p></details>
+      <details><summary>Como escrevo na figurinha?</summary><p>No passo 3, embaixo da prévia, clique em <b>🔤 Texto e emoji</b>. Use <b>＋ Texto</b>, <b>＋ Emoji</b> ou <b>Meme clássico</b>, arraste no quadro para posicionar e clique em <b>Usar</b>. O texto aparece na prévia e fica fixo por cima da animação inteira. Ele vale até você trocar de vídeo ou foto.</p></details>
+      <details><summary>Por que o nome (ou a legenda) não aparece no WhatsApp?</summary><p>Figurinha <b>não tem legenda</b> no WhatsApp, nem quando vem de um GIF. O app grava o <b>nome</b> e o <b>emoji</b> dentro da figurinha: quem recebe vê ao <b>tocar nela</b> no celular (o nome aparece como nome do pacote, e o autor como "Audio Sticks"). Para ler na conversa, escreva o texto <b>na imagem</b> com <b>🔤 Texto e emoji</b>.</p></details>
       <details><summary>Qual o tempo máximo?</summary><p>Figurinha <b>animada</b>: até <b>10s</b>. Figurinha com som: até <b>5s</b> de som se for animada e até <b>10s</b> se for parada (regras do WhatsApp). Áudio (mensagem de voz): até 60s.</p></details>
       <details><summary>O app vai acumulando arquivos?</summary><p>Não muito: vídeos baixados ou enviados ficam num cache que se limpa sozinho (no máximo 25 e nada com mais de 7 dias), e dá para limpar tudo em <b>⚙ Configurações → Limpar cache</b>. Na Combinação Caótica, as peças criadas só para ela podem ser apagadas automaticamente.</p></details>
       <details><summary>Quais sites funcionam?</summary><p>Além do YouTube: Instagram, TikTok, X/Twitter, Facebook, Kwai, Reddit, Twitch, SoundCloud, Dailymotion e centenas de outros (tudo que o <b>yt-dlp</b> suporta). Conteúdo privado, de “melhores amigos” ou que exige login não dá — nesse caso, salve o vídeo no celular/PC e use <b>📁 Arquivo</b>.</p></details>
@@ -1873,7 +1927,7 @@ function tourSteps() {
     steps.push(
       { el: '#zoom', emoji: '✂️', title: '2. Marque o trecho', text: 'Arraste as <b>alças amarelas</b> para o início e o fim. Arrastar o meio move o trecho inteiro. Atalhos: <b>I</b> e <b>O</b>.' },
       { el: '#previewBtn', emoji: '▶️', title: 'Ouça antes de criar', text: 'Toca <b>só o trecho marcado</b> (ou aperte <b>espaço</b>). Ligue <b>repetir</b> para ajustar no ouvido.' },
-      { el: '.details', emoji: '🎨', title: '3. Dê a cara da figurinha', text: 'A prévia mostra como a figurinha vai ficar. Escolha <b>emoji</b>, <b>nome</b>, <b>tags</b> e em quais <b>pacotes</b> ela entra.' },
+      { el: '.details', emoji: '🎨', title: '3. Dê a cara da figurinha', text: 'A prévia mostra como a figurinha vai ficar. Escolha <b>emoji</b>, <b>nome</b>, <b>tags</b> e em quais <b>pacotes</b> ela entra. Em <b>🔤 Texto e emoji</b>, escreva na figurinha com a fonte, a cor e a borda que quiser.' },
       { el: '#createBtn', emoji: '✨', title: 'Criar!', text: 'Até <b>5s</b> vira <b>figurinha animada com som</b>; até <b>10s</b>, figurinha parada com som; até 60s, <b>áudio</b>. Leva poucos segundos.' },
     );
   } else {

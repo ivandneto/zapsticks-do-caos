@@ -18,7 +18,7 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 
 <br>
 
-[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.1.1%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.2.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
 
 <sub>Sem instalar nada: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
 
@@ -66,6 +66,7 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 | ✂️ | **Corte cirúrgico** | Régua com zoom, alças arrastáveis, ajuste de 0,1s. Precisão de neurocirurgião, propósito de meme. |
 | 🎞️ | **Figurinha com som** | Até 5s: animada com som. De 5 a 10s: parada com som (são as regras do WhatsApp, não nossas). *(experimental: o WhatsApp lançou isso ontem, literalmente)* |
 | ✂️ | **Tirar o fundo** | Igual ao WhatsApp: IA recorta a pessoa sozinha (até em **vídeo e GIF**, quadro a quadro), ou você toca no que quer manter. Pincel, sensibilidade e borda branca. Roda no seu navegador, nada vai para a nuvem. |
+| 🔤 | **Texto e emoji** | Escreve na figurinha com fonte de meme (Impact, Bangers, Comic Sans 🤡…), cor, borda, tamanho e inclinação, e cola emoji por cima. Tem botão "Meme clássico". Em foto, GIF e vídeo. |
 | 🎙️ | **Áudio com ondinha** | Chega como se você mesmo tivesse gravado. Ninguém precisa saber. |
 | 📦 | **Pacotes** | Organize por categoria: 😂 Memes, ⚽ Futebol, 🙄 Indiretas pro grupo. Manda o pacote inteiro de uma vez. |
 | 🎯 | **Enviar para** | Você, um contato, um grupo ou um número digitado. Mira e dispara. |
