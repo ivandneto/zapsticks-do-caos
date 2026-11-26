@@ -40,8 +40,7 @@
     <!-- ESTÚDIO -->
     <section class="studio panel">
       <nav class="mode-tabs" id="modeTabs" aria-label="O que criar">
-        <button type="button" data-mode="audio" class="on"><span class="mt-ico">🎙️</span><span class="mt-txt"><b>Audio Stick</b><small>som + figurinha</small></span></button>
-        <button type="button" data-mode="sticker"><span class="mt-ico">🖼️</span><span class="mt-txt"><b>Stick</b><small>só a figurinha</small></span></button>
+        <button type="button" data-mode="create" class="on"><span class="mt-ico">🎬</span><span class="mt-txt"><b>Criar</b><small>figurinha com ou sem som, ou áudio</small></span></button>
         <button type="button" data-mode="combo"><span class="mt-ico">🌀</span><span class="mt-txt"><b>Combinação Caótica</b><small>imagem de uma + som de outra</small></span></button>
       </nav>
 
@@ -56,6 +55,7 @@
       <p class="hint" id="urlHint">O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar um vídeo ou áudio</b> para cá.</p>
 
       <div id="editor" class="editor" hidden>
+       <div class="ed-left">
         <div class="player-wrap">
           <div id="ytBox"><div id="player"></div></div>
           <video id="html5" playsinline controls preload="auto" hidden></video>
@@ -115,8 +115,33 @@
           <span class="keys"><kbd>espaço</kbd> ouvir · <kbd>←</kbd><kbd>→</kbd> 1s · <kbd>shift</kbd> 0,1s</span>
         </div>
         </div>
+       </div>
 
-        <div class="step-title"><span class="num" id="step3Num">3</span><h2>Dê a cara da figurinha</h2></div>
+       <div class="ed-right">
+        <div class="step-title"><span class="num" id="step3Num">3</span><h2>Som e visual</h2></div>
+        <div class="field sound-field" id="soundField"><span>Som</span>
+            <div class="seg sound-seg" id="soundSeg">
+              <button type="button" data-s="video" class="on">🔊 Do vídeo</button>
+              <button type="button" data-s="none">🔇 Sem som</button>
+              <button type="button" data-s="file">🎵 Enviar áudio</button>
+              <button type="button" data-s="mic">🎙️ Gravar voz</button>
+            </div>
+            <div id="soundChip" class="sound-chip" hidden></div>
+            <input id="soundFile" type="file" accept="audio/*,video/*,.ogg,.opus,.m4a" hidden>
+          </div>
+
+        <div class="field visual-field" id="fitField"><span>Visual</span>
+          <div class="visual-row">
+            <div class="seg fit-seg" id="fitSeg">
+              <button type="button" data-fit="crop" class="on" title="Recorta um quadrado (escolha qual parte em Enquadrar)">◼ Quadrado</button>
+              <button type="button" data-fit="pad" title="Mostra a imagem toda, com fundo transparente em volta">⬚ Inteiro</button>
+            </div>
+            <button type="button" id="frameBtn" class="btn small" hidden title="Escolha o que aparece no quadrado: arraste e dê zoom">🔍 Enquadrar</button>
+            <button type="button" id="bgBtn" class="btn small bg-btn" hidden title="Remove o fundo com IA (pessoas automático, ou toque no que manter)">✂️ Tirar o fundo</button>
+            <button type="button" id="txtBtn" class="btn small tte-btn" hidden title="Escreva na figurinha: fonte, cor, borda, tamanho e emojis">🔤 Texto e emoji</button>
+          </div>
+        </div>
+
         <div class="details">
           <div class="emoji-pick">
             <div class="prev-col">
@@ -126,32 +151,12 @@
                 <span id="emojiNow" class="prev-emoji">🔊</span>
               </button>
               <span id="prevCaption" class="prev-caption"></span>
-              <div class="prev-tools">
-                <button type="button" id="frameBtn" class="btn small" hidden title="Escolha o que aparece no quadrado: arraste e dê zoom">🔍 Enquadrar</button>
-                <button type="button" id="txtBtn" class="btn small tte-btn" hidden title="Escreva na figurinha: fonte, cor, borda, tamanho e emojis">🔤 Texto e emoji</button>
-                <button type="button" id="bgBtn" class="btn small bg-btn" hidden title="Remove o fundo com IA (pessoas automático, ou toque no que manter)">✂️ Tirar o fundo</button>
-              </div>
             </div>
             <div id="emojiGrid" class="emoji-grid"></div>
           </div>
           <label class="field"><span>Nome</span><input id="title" maxlength="80" placeholder="ex.: risada do Faustão"></label>
           <label class="field"><span>Tags <em>(separe por vírgula)</em></span><input id="tags" maxlength="120" placeholder="meme, risada, futebol"></label>
           <div class="field"><span>Pacotes <em>(opcional)</em></span><div id="createPacks" class="pack-pick"></div></div>
-          <div class="field" id="fitField" hidden><span>Enquadramento</span>
-            <div class="seg fit-seg" id="fitSeg">
-              <button type="button" data-fit="crop" class="on">◼ Recortar quadrado</button>
-              <button type="button" data-fit="pad">⬚ Inteiro, fundo transparente</button>
-            </div>
-          </div>
-          <div class="field" id="soundField" hidden><span>Som <em>(opcional: sem som, um áudio seu ou a sua voz)</em></span>
-            <div class="seg sound-seg" id="soundSeg">
-              <button type="button" data-s="none" class="on">🔇 Sem som</button>
-              <button type="button" data-s="file">🎵 Enviar áudio</button>
-              <button type="button" data-s="mic">🎙️ Gravar voz</button>
-            </div>
-            <div id="soundChip" class="sound-chip" hidden></div>
-            <input id="soundFile" type="file" accept="audio/*,video/*,.ogg,.opus,.m4a" hidden>
-          </div>
         </div>
 
         <details class="opts" id="soundOpts">
@@ -172,7 +177,9 @@
           </div>
         </details>
 
-        <button id="createBtn" class="btn create">Criar figurinha</button>
+        <div class="create-bar">
+          <p id="createSummary" class="create-summary" hidden></p>
+          <button id="createBtn" class="btn create">Criar figurinha</button>
         <ol id="progress" class="progress" hidden>
           <li data-step="download">Baixando o áudio do YouTube</li>
           <li data-step="cut">Recortando e convertendo</li>
@@ -180,6 +187,8 @@
           <li data-step="visual">Gerando a figurinha animada</li>
           <li data-step="sound" hidden>Juntando com o seu som</li>
         </ol>
+        </div>
+       </div>
       </div>
 
       <div id="welcome" class="welcome">

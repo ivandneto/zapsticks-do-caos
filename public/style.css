@@ -85,8 +85,8 @@ a.top-btn { text-decoration: none; }
 
 /* ---------- layout ---------- */
 .layout { display: grid; gap: 20px; padding: 20px 16px 60px; max-width: 1400px; margin: 0 auto; }
-@media (min-width: 1100px) { .layout { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; padding: 24px 24px 60px; }
-  .collection { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; } }
+/* estúdio em cima, na largura toda; a coleção vem embaixo */
+@media (min-width: 1100px) { .layout { max-width: 1600px; padding: 24px 24px 60px; } }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 20px; box-shadow: var(--shadow); min-width: 0; }
 @media (max-width: 520px) { .panel { padding: 16px; border-radius: 20px; } .layout { padding: 12px 12px 60px; gap: 14px; } }
 
@@ -647,3 +647,34 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .frame-ov { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
 .fo-box { position: absolute; border: 2px solid var(--accent); border-radius: 11%; box-shadow: 0 0 0 9999px rgba(0,0,0,.5); transition: left .2s, top .2s, width .2s, height .2s; }
 .fo-box span { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); padding: 1px 8px; border-radius: 8px; background: var(--accent); color: #1d1b16; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ---------- editor em duas colunas: vídeo + trecho | som, visual e criar ---------- */
+.ed-right .step-title:first-child { margin-top: 22px; }
+.ed-right > .field { margin-bottom: 12px; }
+.sound-seg, .fit-seg { flex-wrap: wrap; }
+.visual-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.visual-row .btn.small { padding: 7px 11px; }
+#frameBtn.on, .tte-btn.on { border-color: var(--accent); color: var(--accent); }
+.ed-right .details { grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 4px; }
+.ed-right .emoji-pick { grid-row: auto; grid-column: 1 / -1; grid-template-columns: auto 1fr; align-items: start; gap: 14px; }
+.ed-right .emoji-grid { grid-template-columns: repeat(8, 1fr); width: auto; }
+.ed-right .details > .field:last-child { grid-column: 1 / -1; }
+.ed-right .opts { margin-top: 12px; }
+.create-bar { margin-top: 14px; }
+.create-bar .create { margin-top: 8px; }
+.create-summary { margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--bg2); border: 1px solid var(--line); font-size: .88rem; color: var(--dim); }
+.create-summary b { color: var(--text); }
+.create-summary i { font-style: normal; opacity: .8; }
+.create-summary.warn { border-color: color-mix(in srgb, var(--danger) 50%, transparent); color: var(--text); }
+@media (min-width: 1100px) {
+  .editor:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(380px, 1fr); gap: 28px; align-items: start; margin-top: 16px; }
+  /* vídeo mais baixo, para o trecho caber na mesma tela */
+  .editor .player-wrap { margin-top: 0; aspect-ratio: auto; height: clamp(240px, 40vh, 440px); }
+  .editor .step-title { margin: 16px 0 10px; }
+  .ed-right .step-title:first-child { margin-top: 0; }
+  /* a coluna de ajustes acompanha a rolagem, então o botão Criar está sempre à mão */
+  .ed-right { position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow: auto; padding-right: 4px; scrollbar-width: thin; }
+  /* resumo + Criar presos no rodapé da coluna: aparecem mesmo em tela baixa */
+  .create-bar { position: sticky; bottom: 0; z-index: 2; margin-top: 10px; padding: 10px 0 2px; background: linear-gradient(to bottom, transparent, var(--panel) 14px); }
+}
+@media (max-width: 520px) { .ed-right .details { grid-template-columns: 1fr; } .ed-right .emoji-grid { grid-template-columns: repeat(7, 1fr); } }

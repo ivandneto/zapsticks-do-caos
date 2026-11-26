@@ -103,17 +103,19 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 ## 3. Criar uma figurinha
 
-No topo do estúdio há **três abas**:
+No topo do estúdio há **duas abas**:
 
 | Aba | Cria | De onde |
 |---|---|---|
-| 🎙️ **Audio Stick** | **Som** (mensagem de voz) e, para trechos de até 10s, figurinha **com som** (animada até 5s, parada de 5 a 10s) | Trecho de vídeo ou áudio (link ou arquivo) |
-| 🖼️ **Stick** | **Só a figurinha, sem som**: parada (foto) ou animada (GIF ou vídeo, até 10s). Com **✂️ Tirar o fundo** | Foto (jpg, png, webp), GIF, vídeo (link ou arquivo) |
+| 🎬 **Criar** | Figurinha **com ou sem som** (animada ou parada) ou **áudio** (mensagem de voz). Você escolhe o som | Vídeo, foto, GIF ou áudio (link ou arquivo) |
 | 🌀 **Combinação Caótica** | Figurinha com a **imagem de uma** e o **som de outra** | Peças da sua coleção **ou** criadas na hora |
 
-A aba usada fica lembrada para a próxima vez.
+### 🎬 Criar
 
-### 🎙️ Audio Stick
+A tela tem duas colunas (no celular, uma embaixo da outra):
+
+- **Esquerda: o vídeo e o trecho.** O vídeo mostra a **moldura da figurinha** por cima, e embaixo fica a régua para marcar o trecho.
+- **Direita: tudo o que configura a figurinha**, sempre visível: **Som**, **Visual**, prévia e emoji, nome, tags, pacotes e o botão **Criar**. Logo acima do botão, uma linha diz **o que vai ser criado** (ex.: *Vira figurinha animada com som · 3,0s*).
 
 1. **Escolha a origem** (veja a tabela abaixo). Colar um link já carrega o vídeo.
 2. **Marque o trecho**:
@@ -121,9 +123,21 @@ A aba usada fica lembrada para a próxima vez.
    - arraste o **meio** da seleção para mover o trecho inteiro;
    - os botões **−** e **+** ajustam de 0,1 em 0,1 segundo;
    - **▶** (ou `espaço`) toca só o trecho, e **repetir** fica tocando em loop.
-3. **Dê a cara**: a **prévia** mostra o quadro do vídeo como a figurinha vai ficar. Escolha o emoji (que aparece no cantinho), o nome, as tags e os **pacotes**.
-4. **Ajustes de som** (opcional): volume equalizado, entrada e saída suaves, reforço de volume.
-5. Clique em **Criar figurinha**.
+3. **Som**: escolha de onde vem o som da figurinha:
+
+   | Som | Trecho | Vira |
+   |---|---|---|
+   | 🔊 **Do vídeo** | até 5s | figurinha **animada com som** (e o áudio) |
+   | 🔊 **Do vídeo** | 5 a 10s | figurinha **parada com som** (o 1º quadro) |
+   | 🔊 **Do vídeo** | 10 a 60s | **só áudio** (mensagem de voz) |
+   | 🔇 **Sem som** | até 10s | figurinha **animada** (foto: parada), sem som |
+   | 🎵 **Enviar áudio** / 🎙️ **Gravar voz** | até 10s | figurinha com **o seu som** (até 5s se animada, 10s se parada) |
+
+   Foto e GIF não têm som, então **Do vídeo** fica desligado. Um arquivo **só de áudio** vira áudio direto.
+4. **Visual**: **◼ Quadrado** (escolha a parte em **🔍 Enquadrar**) ou **⬚ Inteiro** (a imagem toda, fundo transparente), além de **✂️ Tirar o fundo** e **🔤 Texto e emoji**.
+5. **Dê a cara**: emoji (aparece no cantinho da prévia), nome, tags e **pacotes**.
+6. **Ajustes de som** (opcional, quando há som): volume equalizado, entrada e saída suaves, reforço de volume.
+7. Clique em **Criar**.
 
 ### De onde pode vir o som
 
@@ -163,7 +177,9 @@ A aba usada fica lembrada para a próxima vez.
 | de 5 a **10 s** (origem com imagem) | áudio + **figurinha parada com som** (o 1º quadro do trecho) + vídeo `.mp4` |
 | de 10 a **60 s** | só o áudio (mensagem de voz) |
 
-### 🖼️ Stick (só a figurinha)
+### 🖼️ Figurinha sem som, foto e GIF
+
+Em **Som**, escolha **🔇 Sem som** (com foto e GIF ele já vem escolhido).
 
 1. Clique em **📁 Arquivo** (ou arraste) para usar uma **foto** ou um **GIF**, ou cole o link de um vídeo.
 2. Vídeo: marque um trecho de **até 10s**. Foto e GIF não têm esse passo (o GIF usa os primeiros 10s).

@@ -76,15 +76,15 @@ async function videoSegmentFor(s) {
 
 /** Gera a figurinha animada (.webp) e o vídeo quadrado (.mp4) a partir do trecho do vídeo. */
 // Até 5 s: figurinha ANIMADA com som. De 5 a 10 s: figurinha PARADA (1º quadro) com som — é o que o WhatsApp aceita.
-async function buildVisual(s, { overlay = null, frame = null } = {}) {
+async function buildVisual(s, { overlay = null, frame = null, fit = 'crop' } = {}) {
   const video = await videoSegmentFor(s);
   const animated = s.duration <= ANIM_SOUND_MAX + 0.05;
   try {
     if (animated) {
-      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration, { overlay, frame });
-      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration, { overlay, frame });
+      await makeAnimatedWebp(video, mediaPath(s.id, 'webp'), s.duration, { overlay, frame, fit });
+      await makeSquareMp4(video, audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration, { overlay, frame, fit });
     } else {
-      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'), { overlay, frame });
+      await makeStaticSticker(video, mediaPath(s.id, 'webp'), mediaPath(s.id, 'png'), { overlay, frame, fit });
       await makeComboMp4(mediaPath(s.id, 'png'), audioPath(s.id), mediaPath(s.id, 'mp4'), s.duration);
     }
   } finally {
@@ -119,18 +119,19 @@ app.post('/api/overlays', overlayUpload.single('overlay'), (req, res) => {
 });
 
 // Origem: { url } do YouTube, ou { sourceId } de um link de outro site / arquivo já carregado (POST /api/sources…)
-// mode: 'audio' (Audio Stick, padrão) ou 'sticker' (Stick: só a figurinha, sem som)
+// mode: 'audio' (som do vídeo, padrão) ou 'sticker' (só a figurinha, sem som; o som próprio é juntado depois pela página)
 app.post('/api/stickers', (req, res) => {
   if (req.body?.mode === 'sticker') return createStick(req, res);
   const { url, sourceId, start, end, title, emoji, tags, videoTitle, videoDuration, fadeIn, fadeOut, normalize, gainDb, makeVisual, overlayId } = req.body || {};
-  const frame = cleanFrame(req.body?.frame);
+  const fitMode = req.body?.fit === 'pad' ? 'pad' : 'crop';
+  const frame = fitMode === 'crop' ? cleanFrame(req.body?.frame) : null;
   const videoId = sourceId ? null : parseVideoId(url);
   const source = sourceId ? sources.getSource(sourceId) : null;
   const s = Number(start), e = Number(end);
   if (sourceId && !source) return fail(res, 400, 'A mídia carregada expirou. Carregue o link ou o arquivo de novo.');
   if (!sourceId && !videoId) return fail(res, 400, 'Link inválido.');
-  if (source && (source.media === 'image' || source.media === 'gif')) return fail(res, 400, 'Foto e GIF não têm som. Use a aba “Stick” para criar só a figurinha, ou a “Combinação Caótica” para juntar com um som.');
-  if (source && !source.hasAudio) return fail(res, 400, 'Essa mídia não tem som. Use a aba “Stick” para criar só a figurinha.');
+  if (source && (source.media === 'image' || source.media === 'gif')) return fail(res, 400, 'Foto e GIF não têm som. Em Som, escolha “Sem som”, “Enviar áudio” ou “Gravar voz”, ou use a “Combinação Caótica” para juntar com um som.');
+  if (source && !source.hasAudio) return fail(res, 400, 'Essa mídia não tem som. Em Som, escolha “Sem som”, “Enviar áudio” ou “Gravar voz”.');
   if (source && e > source.duration + 0.5) return fail(res, 400, 'O fim do trecho passa do fim da mídia.');
   if (!Number.isFinite(s) || !Number.isFinite(e) || s < 0 || e <= s) return fail(res, 400, 'Marque o início e o fim do trecho.');
   if (e - s > MAX_SECONDS) return fail(res, 400, `O trecho pode ter no máximo ${MAX_SECONDS} segundos.`);
@@ -167,7 +168,7 @@ app.post('/api/stickers', (req, res) => {
     // Trechos curtos também viram figurinha animada (falhar aqui não perde o áudio)
     if (makeVisual !== false && (!source || source.hasVideo) && job.sticker.duration <= SOUND_STICKER_MAX + 0.05) {
       job.step = 'visual';
-      try { job.sticker = await buildVisual(job.sticker, { overlay, frame }); } catch (err) {
+      try { job.sticker = await buildVisual(job.sticker, { overlay, frame, fit: fitMode }); } catch (err) {
         console.error('[figurinha]', err.message);
         // YouTube bloqueou o vídeo (o som veio do cache): desfaz e deixa a página gravar o trecho inteiro
         if (isYtBlocked(err)) { removeSticker(job.sticker.id); job.sticker = null; throw err; }
@@ -250,7 +251,7 @@ app.post('/api/combos', async (req, res) => {
   if (aud.duration > soundMax + 0.05) {
     return fail(res, 400, vis.animated
       ? `Com imagem animada, o som pode ter até ${ANIM_SOUND_MAX}s (esse tem ${aud.duration.toFixed(1)}s). Escolha um som mais curto ou uma imagem parada (foto), que aceita até ${SOUND_STICKER_MAX}s.`
-      : `A figurinha com som aceita até ${SOUND_STICKER_MAX}s de áudio, e esse som tem ${aud.duration.toFixed(1)}s. Crie um trecho menor no Audio Stick.`);
+      : `A figurinha com som aceita até ${SOUND_STICKER_MAX}s de áudio, e esse som tem ${aud.duration.toFixed(1)}s. Crie um trecho menor (Som: “Do vídeo”).`);
   }
   // molde da imagem: .png (foto) ou o .mp4 da figurinha (só a parte de vídeo é usada)
   const master = !vis.animated && fs.existsSync(mediaPath(vis.id, 'png')) ? mediaPath(vis.id, 'png') : mediaPath(vis.id, 'mp4');

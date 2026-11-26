@@ -13,7 +13,8 @@ const AUDIO_MAX = 60;      // Audio Stick: trecho de até 60 s
 const STICK_ANIM_MAX = 10; // figurinha animada: até 10 s (limite do WhatsApp)
 const ANIM_SOUND_MAX = 5;  // figurinha ANIMADA com som: até 5 s de áudio (parada aceita até 10 s)
 let MAX_LEN = AUDIO_MAX;
-// aba atual: 'audio' (Audio Stick) | 'sticker' (Stick) | 'combo' (Combinação Caótica)
+// aba 🎬 Criar tem dois "motores", escolhidos pelo campo Som: 'audio' (som do vídeo) | 'sticker' (sem som, ou um som seu,
+// juntado depois). A outra aba é 'combo' (Combinação Caótica).
 let mode = 'audio';
 let fit = 'crop';          // enquadramento do Stick: 'crop' (quadrado) | 'pad' (inteiro, fundo transparente)
 let comboReturn = null;    // 'visual' | 'audio' quando uma peça está sendo criada para a combinação
@@ -135,7 +136,7 @@ let frame = { ...FRAME0 };
 const frameIsDefault = () => frame.z === 1 && frame.x === 0.5 && frame.y === 0.5;
 const frameQuery = () => (frameIsDefault() ? '' : `&z=${frame.z.toFixed(3)}&x=${frame.x.toFixed(3)}&y=${frame.y.toFixed(3)}`);
 /** O recorte quadrado vale aqui? (não vale para "inteiro, fundo transparente" nem para origem só de áudio) */
-const cropApplies = () => !!vid.kind && vid.hasVideo && !(mode === 'sticker' && fit === 'pad');
+const cropApplies = () => !!vid.kind && vid.hasVideo && fit !== 'pad';
 
 function parseVideoId(input) {
   const s = String(input).trim();
@@ -397,8 +398,11 @@ function openSource(src) {
   const media = src.media || (src.hasVideo ? 'video' : 'audio');
   Object.assign(vid, { kind: 'source', id: null, url: src.url || '', title: src.title || '', duration: src.duration, sourceId: src.id,
     hasVideo: src.hasVideo, hasAudio: src.hasAudio !== false, media, site: src.site });
-  // foto/GIF só fazem sentido como figurinha sem som: troca para a aba Stick (a não ser na combinação)
-  if ((media === 'image' || media === 'gif') && mode === 'audio') { setMode('sticker'); toast('Foto ou GIF: abri a aba Stick (figurinha sem som) 🖼️'); }
+  // o Som se ajusta à mídia: foto, GIF e vídeo mudo não têm "som do vídeo"; arquivo só de áudio só tem ele
+  if (!comboReturn) {
+    if (mode === 'audio' && (media === 'image' || media === 'gif' || !vid.hasAudio)) setMode('sticker');
+    else if (mode === 'sticker' && !src.hasVideo) { clearSwapAudio(false); setMode('audio'); }
+  }
   beginEditor();
   if (media === 'image' || media === 'gif') {
     showPlayer('image');
@@ -476,17 +480,19 @@ function render() {
   const L = (t) => `<span class="len">${t}</span>`;
   let label, off;
   if (mode === 'sticker') {
-    if (!vid.hasVideo) { label = `Essa mídia é só áudio ${L('· use o Audio Stick')}`; off = true; }
+    if (!vid.hasVideo) { label = `Essa mídia é só áudio ${L('· em Som, escolha “Do vídeo”')}`; off = true; }
     else if (vid.media === 'image') { label = `Criar figurinha ${L('· parada (foto)')}`; off = false; }
     else if (vid.media === 'gif') { label = `Criar figurinha ${L(`· GIF animado${vid.duration > STICK_ANIM_MAX ? ` (primeiros ${STICK_ANIM_MAX}s)` : ''}`)}`; off = false; }
     else if (len > MAX_LEN) { label = `Trecho longo demais ${L(`(máx. ${MAX_LEN}s de animação)`)}`; off = true; }
     else { label = `Criar figurinha ${L(`· ${len.toFixed(1)}s · animada, sem som`)}`; off = len < 0.3; }
-  } else if (isPicture()) { label = `Foto e GIF não têm som ${L('· use Stick ou Combinação')}`; off = true; }
-  else if (!vid.hasAudio) { label = `Essa mídia não tem som ${L('· use a aba Stick')}`; off = true; }
+  } else if (isPicture()) { label = `Foto e GIF não têm som ${L('· em Som, escolha outra opção')}`; off = true; }
+  else if (!vid.hasAudio) { label = `Esse vídeo não tem som ${L('· em Som, escolha outra opção')}`; off = true; }
   else if (len > MAX_LEN) { label = `Trecho longo demais ${L(`(máx. ${MAX_LEN}s)`)}`; off = true; }
   else { label = `Criar figurinha ${L(`· ${len.toFixed(1)}s${!vid.hasVideo ? ' · só áudio' : len <= ANIM_SOUND_MAX ? ' · animada com som' : len <= STICKER_MAX ? ' · parada com som (animada: até 5s)' : ' · só áudio (figurinha com som: até 10s)'}`)}`; off = len < 0.3; }
   if (mode === 'sticker' && swapAudio && comboReturn !== 'visual' && !off) label = label.replace(', sem som', '') + L(' + 🎵 com o seu som');
-  btn.innerHTML = label;
+  // o detalhe (duração, tipo) fica no resumo logo acima; o botão diz só o que vai criar
+  const onlyAudio = mode === 'audio' && (!vid.hasVideo || len > STICKER_MAX + 0.05);
+  btn.innerHTML = off || !vid.kind ? label : onlyAudio ? '🎵 Criar áudio' : swapAudio && mode === 'sticker' ? '✨ Criar figurinha com som' : '✨ Criar figurinha';
   btn.disabled = off || creating;
   const showFrame = cropApplies() && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
   $('#frameBtn').hidden = !showFrame;
@@ -498,9 +504,35 @@ function render() {
   fbp.classList.toggle('on', !frameIsDefault());
   fbp.textContent = $('#frameBtn').textContent;
   drawFrameOverlay();
-  $('#bgBtn').hidden = !(mode === 'sticker' && vid.kind && vid.hasVideo);
+  drawSummary(label, off);
+  // tirar o fundo com o som do vídeo: a animação sem fundo leva o som junto (até 5s, limite da figurinha animada com som)
+  $('#bgBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= ANIM_SOUND_MAX + 0.05)));
   $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
+}
+
+/** Explica, em uma linha, o que o botão Criar vai fazer com o som e o trecho escolhidos. */
+function drawSummary(label, off) {
+  const el = $('#createSummary');
+  if (!el) return;
+  el.hidden = !vid.kind;
+  if (!vid.kind) return;
+  const len = sel.end - sel.start, k = soundKind(), n = (x) => `${x.toFixed(1).replace('.', ',')}s`;
+  let txt;
+  if (off) txt = `⚠️ ${label.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()}`;
+  else if (k === 'video') {
+    txt = !vid.hasVideo ? `🎵 Vira <b>áudio</b> (mensagem de voz) · ${n(len)}`
+      : len <= ANIM_SOUND_MAX + 0.05 ? `🎞️ Vira <b>figurinha animada com som</b> · ${n(len)} <i>+ o áudio</i>`
+      : len <= STICKER_MAX + 0.05 ? `🖼️ Vira <b>figurinha parada com som</b> · ${n(len)} <i>(animada só até 5s)</i>`
+      : `🎵 Vira <b>só áudio</b> · ${n(len)} <i>(figurinha com som só até 10s)</i>`;
+  } else {
+    const still = vid.media === 'image';
+    const what = still ? 'figurinha parada' : 'figurinha animada';
+    txt = k === 'none' ? `${still ? '🖼️' : '🎞️'} Vira <b>${what}, sem som</b>${still ? '' : ` · ${n(vid.media === 'gif' ? Math.min(STICK_ANIM_MAX, vid.duration) : len)}`}`
+      : `${k === 'mic' ? '🎙️' : '🎵'} Vira <b>${what} com ${k === 'mic' ? 'a sua voz' : 'o seu áudio'}</b> <i>(som até ${stickSoundLimit()}s)</i>`;
+  }
+  el.innerHTML = txt;
+  el.classList.toggle('warn', !!off);
 }
 
 // laço de animação: cabeçote de leitura + parar no fim do trecho
@@ -725,13 +757,13 @@ function schedulePreview() {
   const stick = mode === 'sticker';
   const visual = !!vid.kind && vid.hasVideo && (stick || len <= STICKER_MAX);
   box.classList.toggle('has-img', visual);
-  box.classList.toggle('pad', stick && fit === 'pad');
+  box.classList.toggle('pad', fit === 'pad');
   $('#prevCaption').textContent = !vid.kind ? '' : !vid.hasVideo ? 'Origem só de áudio: vira áudio'
     : stick ? (vid.media === 'image' ? 'Prévia · figurinha parada' : vid.media === 'gif' ? 'Prévia · GIF animado' : `Prévia · anima ${Math.min(STICK_ANIM_MAX, len).toFixed(1)}s, sem som`)
     : isPicture() ? 'Foto/GIF: use a aba Stick' : !visual ? 'Acima de 10s: vira só áudio' : len <= ANIM_SOUND_MAX ? `Prévia · anima ${len.toFixed(1)}s com som` : 'Prévia · parada com som (5 a 10s)';
   if (!visual) return;
   const fq = cropApplies() ? frameQuery() : '';
-  const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}@${stick ? fit : 'crop'}${fq}`;
+  const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}@${fit}${fq}`;
   if (key === frameKey) return;
   frameKey = key;
   clearTimeout(frameT);
@@ -741,7 +773,7 @@ function schedulePreview() {
     img.onload = () => { if (frameKey === key) { $('#prevImg').src = img.src; box.classList.remove('loading'); } };
     img.onerror = () => { if (frameKey === key) box.classList.remove('loading'); };
     const t = isPicture() ? 0 : sel.start + 0.05;
-    img.src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=${stick ? fit : 'crop'}${fq}`;
+    img.src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=${fit}${fq}`;
   }, 450);
 }
 
@@ -1627,25 +1659,22 @@ async function syncContactsNow(btn) {
   } catch (err) { toast(err.message, 'err'); btn.disabled = false; btn.textContent = 'Tentar de novo'; }
 }
 
-// ============ abas: Audio Stick / Stick / Combinação Caótica ============
-const MODE_TEXT = {
-  audio: {
-    step1: 'Cole um link ou envie um arquivo',
-    hint: 'O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar um vídeo ou áudio</b> para cá.',
-    welcome: ['<b>Cole</b> o link de qualquer vídeo', '<b>Marque</b> o começo e o fim do trecho', '<b>Mande</b> pro WhatsApp: áudio ou figurinha com som'],
-  },
-  sticker: {
-    step1: 'Escolha uma foto, um GIF ou um vídeo',
-    hint: 'Clique em <b>📁 Arquivo</b> (ou arraste) para usar uma <b>foto</b>, um <b>GIF</b> ou um vídeo. Também dá para colar o link de um vídeo e recortar até 10s.',
-    welcome: ['<b>Escolha</b> uma foto, um GIF ou um vídeo', '<b>Recorte</b> (vídeo: até 10s) e escolha o enquadramento', '<b>Mande</b> como figurinha, sem som'],
-  },
+// ============ abas: 🎬 Criar (motor 'audio' ou 'sticker', pelo campo Som) / 🌀 Combinação Caótica ============
+const CREATE_TEXT = {
+  step1: 'Cole um link ou envie um arquivo',
+  hint: 'O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar</b> um vídeo, áudio, foto ou GIF para cá.',
+  welcome: ['<b>Cole</b> um link ou escolha um vídeo, foto ou GIF', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Mande</b> pro WhatsApp: figurinha com ou sem som, ou áudio'],
 };
+const MODE_TEXT = { audio: CREATE_TEXT, sticker: CREATE_TEXT };
 
+let lastCreate = 'audio'; // o motor da aba Criar, para voltar a ele depois da Combinação
 function setMode(m) {
+  if (m === 'create') m = lastCreate;
   if (!['audio', 'sticker', 'combo'].includes(m)) m = 'audio';
   mode = m;
+  if (m !== 'combo') lastCreate = m;
   try { localStorage.setItem('sticks.mode', m); } catch { /* ok */ }
-  $$('#modeTabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === m));
+  $$('#modeTabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === (m === 'combo' ? 'combo' : 'create')));
   $('#studioMain').hidden = m === 'combo';
   $('#comboPanel').hidden = m !== 'combo';
   if (m === 'combo') { stopPreview(); renderCombo(); return; }
@@ -1653,9 +1682,7 @@ function setMode(m) {
   $('#step1Title').textContent = t.step1;
   if (!vid.kind) $('#urlHint').innerHTML = t.hint;
   $('#welcome ol').innerHTML = t.welcome.map((x) => `<li>${x}</li>`).join('');
-  $('#soundOpts').hidden = m === 'sticker';
-  $('#fitField').hidden = m !== 'sticker';
-  $('#soundField').hidden = m !== 'sticker' || comboReturn === 'visual';
+  syncSoundUI();
   // aviso de que esta peça vai para a combinação
   let banner = $('#comboBanner');
   if (!banner) { banner = document.createElement('div'); banner.id = 'comboBanner'; banner.className = 'mode-hint'; $('#studioMain').prepend(banner); }
@@ -1665,7 +1692,7 @@ function setMode(m) {
     $('#cancelCombo').onclick = () => { comboReturn = null; banner.hidden = true; };
   }
   if (vid.kind) {
-    if (m === 'sticker' && !isPicture() && sel.end - sel.start > STICK_ANIM_MAX) { sel.end = sel.start + STICK_ANIM_MAX; recenter(); }
+    if (m === 'sticker' && !isPicture() && vid.hasVideo && sel.end - sel.start > STICK_ANIM_MAX) { sel.end = sel.start + STICK_ANIM_MAX; recenter(); }
     render();
   }
 }
@@ -1678,7 +1705,7 @@ function setFit(f) {
   fit = f === 'pad' ? 'pad' : 'crop';
   $$('#fitSeg button').forEach((x) => x.classList.toggle('on', x.dataset.fit === fit));
   frameKey = null;
-  schedulePreview();
+  render(); // Enquadrar e a moldura só valem no quadrado
 }
 $('#fitSeg').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-fit]'); if (b) setFit(b.dataset.fit);
@@ -1713,6 +1740,8 @@ $('#bgBtn').onclick = async () => {
   const start = vid.media === 'gif' ? 0 : sel.start;
   const end = vid.media === 'gif' ? Math.min(STICK_ANIM_MAX, vid.duration) : sel.end;
   if (end - start > STICK_ANIM_MAX + 0.05) return toast(`Para tirar o fundo, marque um trecho de até ${STICK_ANIM_MAX}s.`, 'err');
+  const keepVideoSound = mode === 'audio' && vid.hasAudio;
+  if (keepVideoSound && end - start > ANIM_SOUND_MAX + 0.05) return toast(`Com o som do vídeo, a figurinha animada aceita até ${ANIM_SOUND_MAX}s. Marque um trecho menor (ou escolha “Sem som”).`, 'err');
   btn.disabled = true; btn.textContent = 'Separando os quadros…';
   let fr;
   try {
@@ -1733,7 +1762,14 @@ $('#bgBtn').onclick = async () => {
       for (const [k, v] of Object.entries({ title: `${name} sem fundo`, emoji, tags: $('#tags').value, fps: fr.fps, start, end,
         ...(isYT() ? { url: vid.url } : { sourceId: vid.sourceId }) })) fd.append(k, String(v));
       const { jobId } = await uploadWithProgress(`/api/frames/${fr.token}/result`, fd, () => {});
-      const { sticker } = await pollJob(jobId);
+      let { sticker } = await pollJob(jobId);
+      if (!comboReturn && (keepVideoSound || swapAudio)) {
+        $('li[data-step="visual"]', prog).textContent = 'Juntando com o som';
+        try {
+          if (keepVideoSound) sticker = await attachVideoSound(sticker, start, end);
+          else { sticker = await attachSound(sticker); clearSwapAudio(); }
+        } catch (err) { toast(`A figurinha sem fundo foi criada, mas ficou sem som: ${err.message}`, 'err'); }
+      }
       if (createPackSel.size) await api(`/api/stickers/${sticker.id}/packs`, { method: 'PUT', body: JSON.stringify({ packs: [...createPackSel] }) });
       $('li[data-step="visual"]', prog).className = 'done';
       await loadCollection(sticker.id);
@@ -1769,7 +1805,7 @@ $('#txtBtn').onclick = async () => {
   stopPreview();
   const { openTextEditor } = await import('./texteditor.js');
   openTextEditor({
-    bg: $('#prevImg').src, pad: mode === 'sticker' && fit === 'pad', layers: textOv.layers,
+    bg: $('#prevImg').src, pad: fit === 'pad', layers: textOv.layers,
     onDone: ({ layers, blob }) => {
       setTextOverlay(layers, blob);
       if (blob) toast('Texto pronto! Ele vai em cima da figurinha inteira 🔤', 'ok');
@@ -1903,9 +1939,32 @@ function clearSwapAudio(redraw = true) {
   swapAudio = null;
   if (redraw) drawSwapAudio();
 }
+/** Qual opção do campo Som está valendo. */
+const soundKind = () => (mode === 'audio' ? 'video' : swapAudio?.kind || 'none');
+/** Botões do campo Som e o que depende dele (ajustes de som, peça da combinação). */
+function syncSoundUI() {
+  const kind = soundKind();
+  const noVideoSound = !!vid.kind && (isPicture() || !vid.hasAudio);
+  const audioOnly = !!vid.kind && !vid.hasVideo;
+  $$('#soundSeg button').forEach((x) => {
+    x.classList.toggle('on', x.dataset.s === kind);
+    x.disabled = x.dataset.s === 'video' ? noVideoSound : audioOnly;
+    x.title = x.dataset.s === 'video' && noVideoSound ? (isPicture() ? 'Foto e GIF não têm som' : 'Esse vídeo não tem som')
+      : x.dataset.s !== 'video' && audioOnly ? 'Arquivo só de áudio: vira áudio com o som dele' : '';
+  });
+  // peça para a combinação: o som é definido por ela (imagem = sem som; som = do vídeo)
+  $('#soundField').hidden = !!comboReturn;
+  $('#soundOpts').hidden = kind === 'none';
+  $('#fitField').hidden = audioOnly;
+}
+function setSound(k) {
+  if (k === 'video') { clearSwapAudio(false); setMode('audio'); }
+  else if (k === 'none') { clearSwapAudio(false); setMode('sticker'); }
+  else if (k === 'file') $('#soundFile').click();
+  else openVoiceRecorder({ max: stickSoundLimit(), onDone: (file, dur) => { setSwapAudio(file, 'mic', dur); setMode('sticker'); } });
+}
 function drawSwapAudio() {
-  const kind = swapAudio?.kind || 'none';
-  $$('#soundSeg button').forEach((x) => x.classList.toggle('on', x.dataset.s === kind));
+  syncSoundUI();
   const chip = $('#soundChip');
   chip.hidden = !swapAudio;
   if (swapAudio) {
@@ -1918,18 +1977,16 @@ function drawSwapAudio() {
   render();
 }
 $('#soundSeg').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-s]'); if (!b) return;
-  if (b.dataset.s === 'none') clearSwapAudio();
-  else if (b.dataset.s === 'file') $('#soundFile').click();
-  else openVoiceRecorder({ max: stickSoundLimit(), onDone: (file, dur) => setSwapAudio(file, 'mic', dur) });
+  const b = e.target.closest('button[data-s]'); if (!b || b.disabled) return;
+  setSound(b.dataset.s);
 });
 $('#soundFile').onchange = (e) => {
   const f = e.target.files[0]; e.target.value = '';
-  if (f) setSwapAudio(f, 'file');
+  if (f) { setSwapAudio(f, 'file'); setMode('sticker'); }
 };
 $('#soundChip').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-a]'); if (!b || !swapAudio) return;
-  if (b.dataset.a === 'x') return clearSwapAudio();
+  if (b.dataset.a === 'x') { clearSwapAudio(false); return setMode(vid.kind && vid.hasAudio && !isPicture() ? 'audio' : 'sticker'); }
   swapPlayer.src = swapAudio.url;
   swapPlayer.currentTime = 0;
   swapPlayer.play().catch(() => {});
@@ -1942,13 +1999,27 @@ async function attachSound(st) {
   const long = source.duration > limit + 0.05;
   const { jobId } = await api('/api/stickers', { method: 'POST', body: JSON.stringify({
     sourceId: source.id, start: 0, end: Math.min(limit, source.duration), title: `Som · ${st.title}`.slice(0, 80), videoTitle: source.title,
-    emoji: '🔊', makeVisual: false, normalize: true, fadeOut: long,
+    emoji: '🔊', makeVisual: false, normalize: $('#optNorm').checked, fadeIn: $('#optFadeIn').checked, fadeOut: long || $('#optFadeOut').checked, gainDb,
   }) });
   const { sticker: aud } = await pollJob(jobId);
   const r = await api('/api/combos', { method: 'POST', body: JSON.stringify({
     visualId: st.id, audioId: aud.id, title: st.title, emoji: st.emoji, tags: $('#tags').value, deleteIds: [st.id, aud.id],
   }) });
   if (long) toast(`O som tinha ${source.duration.toFixed(1)}s: usei os primeiros ${limit}s (limite do WhatsApp para figurinha ${st.animated ? 'animada' : 'parada'}).`);
+  return r.sticker;
+}
+
+/** Figurinha (sem fundo) + o som do próprio vídeo no mesmo trecho. */
+async function attachVideoSound(st, start, end) {
+  const { jobId } = await api('/api/stickers', { method: 'POST', body: JSON.stringify({
+    url: isYT() ? vid.url : undefined, sourceId: isYT() ? undefined : vid.sourceId, start, end, videoTitle: vid.title, videoDuration: vid.duration,
+    title: `Som · ${st.title}`.slice(0, 80), emoji: '🔊', makeVisual: false,
+    normalize: $('#optNorm').checked, fadeIn: $('#optFadeIn').checked, fadeOut: $('#optFadeOut').checked, gainDb,
+  }) });
+  const { sticker: aud } = await pollJob(jobId);
+  const r = await api('/api/combos', { method: 'POST', body: JSON.stringify({
+    visualId: st.id, audioId: aud.id, title: st.title, emoji: st.emoji, tags: $('#tags').value, deleteIds: [st.id, aud.id],
+  }) });
   return r.sticker;
 }
 
@@ -2045,7 +2116,7 @@ function slotHtml(slot) {
         <button class="btn" type="button" data-c="pick">🗂️ Escolher da coleção</button>
         <button class="btn" type="button" data-c="file">${isV ? '📁 Foto, GIF ou vídeo do computador' : '📁 Áudio ou vídeo do computador'}</button>
         ${isV ? '' : '<button class="btn" type="button" data-c="mic">🎙️ Gravar minha voz</button>'}
-        <button class="btn" type="button" data-c="new">${isV ? '✂️ Recortar de um vídeo (aba Stick)' : '✂️ Recortar de um vídeo ou áudio (aba Audio Stick)'}</button>
+        <button class="btn" type="button" data-c="new">${isV ? '✂️ Recortar de um vídeo (tela Criar)' : '✂️ Recortar de um vídeo ou áudio (tela Criar)'}</button>
       </div>
       <p class="slot-drop">📋 Ou <b>arraste</b> para cá, ou passe o mouse aqui e aperte <b>CTRL+V</b> (imagem copiada, arquivo ou link)</p>`;
   }
@@ -2097,7 +2168,7 @@ function backToCombo(s) {
   const slot = comboReturn;
   const fits = slot === 'visual' ? s.visual : s.hasAudio && s.duration <= soundLimit() + 0.05;
   if (!fits) {
-    toast(slot === 'visual' ? 'Essa peça ficou sem imagem. Tente de novo na aba Stick.' : `Para a combinação, o som precisa ter até ${soundLimit()}s. Recorte um trecho menor.`, 'err');
+    toast(slot === 'visual' ? 'Essa peça ficou sem imagem. Tente de novo com um vídeo, foto ou GIF.' : `Para a combinação, o som precisa ter até ${soundLimit()}s. Recorte um trecho menor.`, 'err');
     return; // continua na aba para tentar de novo
   }
   comboReturn = null;
@@ -2115,7 +2186,7 @@ async function pickForCombo(slot) {
   const usable = (s) => (isV ? s.visual : s.hasAudio && s.duration <= soundLimit() + 0.05);
   const list = all.filter((s) => (isV ? s.visual : s.hasAudio));
   openModal(`<h3>${isV ? '🖼️ Escolha a imagem' : '🔊 Escolha o som'}</h3>
-    <p class="small">${isV ? 'Qualquer figurinha com imagem: Stick, Audio Stick animado ou outra combinação.' : `Qualquer figurinha com som de até ${soundLimit()}s${combo.visual?.animated ? ' (a imagem escolhida é animada: o WhatsApp aceita até 5s de som)' : ''}.`}</p>
+    <p class="small">${isV ? 'Qualquer figurinha com imagem: com ou sem som, ou outra combinação.' : `Qualquer figurinha com som de até ${soundLimit()}s${combo.visual?.animated ? ' (a imagem escolhida é animada: o WhatsApp aceita até 5s de som)' : ''}.`}</p>
     <input id="pkSearch" type="search" placeholder="Buscar por nome ou tag…" autocomplete="off">
     <div class="pick-grid" id="pickGrid"></div>`, (b) => {
     const norm = (x) => String(x || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
@@ -2247,10 +2318,9 @@ $('#comboBtn').onclick = async () => {
 // ============ ajuda (?) ============
 const HELP_TABS = {
   inicio: { label: '🚀 Começando', html: () => `
-    <h4>Três jeitos de criar (abas no topo do estúdio)</h4>
+    <h4>Dois jeitos de criar (abas no topo do estúdio)</h4>
     <div class="feat">
-      <div class="card"><div class="t"><span>🎙️</span>Audio Stick</div><p>Um trecho de vídeo ou áudio vira <b>som</b> (e, até 10s, figurinha animada com som).</p></div>
-      <div class="card"><div class="t"><span>🖼️</span>Stick</div><p><b>Só a figurinha</b>, sem som: de foto, GIF ou trecho de vídeo.</p></div>
+      <div class="card"><div class="t"><span>🎬</span>Criar</div><p>De um vídeo, foto ou GIF. Em <b>Som</b>, escolha: <b>do vídeo</b>, <b>sem som</b>, <b>um áudio seu</b> ou <b>a sua voz</b>. O app mostra o que vai virar antes de criar.</p></div>
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>A <b>imagem</b> de uma + o <b>som</b> de outra. Da coleção ou criadas na hora.</p></div>
     </div>
     <h4>Do vídeo à figurinha em 4 passos</h4>
@@ -2281,7 +2351,7 @@ const HELP_TABS = {
   recursos: { label: '✨ Recursos', html: () => `
     <div class="feat">
       <div class="card"><div class="t"><span>🎞️</span>Figurinha com som</div><p>Trechos de até <b>5s</b> viram figurinha <b>animada</b> com som; de <b>5 a 10s</b>, figurinha <b>parada</b> com som (limites do WhatsApp).</p><span class="tag">experimental</span></div>
-      <div class="card"><div class="t"><span>🖼️</span>Stick (só a figurinha)</div><p>Figurinha <b>sem som</b> de uma <b>foto</b> (parada), de um <b>GIF</b> ou de um trecho de <b>vídeo</b> de até 10s (animada). Dá para <b>recortar quadrado</b> (com <b>🔍 Enquadrar</b>: zoom e arrastar para escolher a parte que aparece) ou mostrar <b>inteira, com fundo transparente</b>. Em <b>Som</b>, dá para <b>enviar um áudio</b> ou <b>gravar a sua voz</b> e ela vira figurinha com som.</p></div>
+      <div class="card"><div class="t"><span>🎬</span>Uma tela para tudo</div><p>Em <b>Som</b>: <b>do vídeo</b>, <b>sem som</b>, <b>um áudio seu</b> ou <b>a sua voz</b>. Em <b>Visual</b>: <b>quadrado</b> (com <b>🔍 Enquadrar</b>: zoom e posição, e a moldura aparece em cima do vídeo) ou <b>inteiro, com fundo transparente</b>. A linha acima do botão Criar diz o que vai sair.</p></div>
       <div class="card"><div class="t"><span>✂️</span>Tirar o fundo</div><p>Como no WhatsApp: a IA recorta <b>pessoas</b> sozinha (até em <b>vídeo e GIF</b>, quadro a quadro) ou você <b>toca no que manter</b>. Tem pincel, sensibilidade e <b>borda branca</b>. Roda no seu navegador.</p></div>
       <div class="card"><div class="t"><span>🔤</span>Texto e emoji</div><p>Escreva na figurinha com a <b>fonte</b>, a <b>cor</b>, a <b>borda</b>, o <b>tamanho</b> e a <b>inclinação</b> que quiser, e cole <b>emojis</b>. Arraste para posicionar. Tem o atalho <b>Meme clássico</b> (em cima e embaixo). Vale para foto, GIF e vídeo.</p></div>
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>Junte a <b>imagem</b> de uma figurinha com o <b>som</b> de outra (até 10s). Cada peça vem da coleção ou é criada na hora. As peças criadas só para isso podem ser apagadas depois.</p></div>
@@ -2461,7 +2531,7 @@ function tourSteps() {
   const hasCard = !!$('#grid .sticker');
   const steps = [
     { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas de áudio</b> e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
-    { el: '#modeTabs', emoji: '🧭', title: 'Três jeitos de criar', text: '<b>🎙️ Audio Stick</b>: trecho de vídeo vira som + figurinha. <b>🖼️ Stick</b>: só a figurinha, de foto, GIF ou vídeo. <b>🌀 Combinação Caótica</b>: a imagem de uma com o som de outra.' },
+    { el: '#modeTabs', emoji: '🧭', title: 'Dois jeitos de criar', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra.' },
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
     { el: '#urlForm', emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar um vídeo do PC para cá.' },
   ];
