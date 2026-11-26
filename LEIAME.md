@@ -75,7 +75,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 | Parte | O que faz |
 |---|---|
-| **Versão** (ao lado do logo, ex.: `v1.3.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
+| **Versão** (ao lado do logo, ex.: `v1.4.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
@@ -168,9 +168,16 @@ A aba usada fica lembrada para a próxima vez.
 1. Clique em **📁 Arquivo** (ou arraste) para usar uma **foto** ou um **GIF**, ou cole o link de um vídeo.
 2. Vídeo: marque um trecho de **até 10s**. Foto e GIF não têm esse passo (o GIF usa os primeiros 10s).
 3. Escolha o **enquadramento**:
-   - **◼ Recortar quadrado**: pega o centro e arredonda os cantos;
+   - **◼ Recortar quadrado**: arredonda os cantos e pega o centro, ou a parte que você escolher em **🔍 Enquadrar** (veja abaixo);
    - **⬚ Inteiro, fundo transparente**: mostra a imagem toda, sem cortar (ótimo para fotos recortadas e PNGs com transparência).
-4. **Criar figurinha**. O botão verde do card envia como figurinha comum (sem som).
+4. **Som** (opcional): **🔇 Sem som** (o normal), **🎵 Enviar áudio** (um arquivo seu) ou **🎙️ Gravar voz** (pelo microfone, na hora). Com som, ela vira **figurinha com som**: até **5s** de som se for animada, até **10s** se for parada (foto). Som mais comprido usa só o começo, e o app avisa.
+5. **Criar figurinha**. O botão verde do card envia como figurinha comum (sem som) ou com som, se você escolheu um.
+
+> 🎙️ **Gravar voz** só funciona no PC (endereço `localhost`): o navegador não libera o microfone no celular pelo Wi-Fi (`http://192.168…`). No celular, use **🎵 Enviar áudio**.
+
+#### 🔍 Enquadrar (zoom e posição)
+
+Embaixo da prévia, o botão **🔍 Enquadrar** mostra o quadro inteiro atrás de uma moldura quadrada. **Arraste** a imagem para escolher o que aparece e **dê zoom** (até 4x) pela barra ou pela rodinha do mouse. **↺ Centralizar** volta ao padrão. Funciona no **Stick** (recorte quadrado) e no **Audio Stick** com imagem, em foto, GIF e vídeo. O botão passa a mostrar o zoom escolhido (ex.: *Enquadrado (2.0x)*), que vale até você trocar de mídia.
 
 #### ✂️ Tirar o fundo (estilo WhatsApp)
 
@@ -223,6 +230,7 @@ Junta a **imagem** de uma figurinha com o **som** de outra.
 2. **Som** (lado direito): até **5s** se a imagem for **animada**, e até **10s** se for **parada** (limites do WhatsApp):
    - **Escolher da coleção**: qualquer figurinha com som dentro do limite;
    - **📁 Áudio ou vídeo do computador**: vira o som na hora;
+   - **🎙️ Gravar minha voz**: grava pelo microfone (até o limite) e encaixa;
    - **✂️ Recortar de um vídeo ou áudio**: abre a aba Audio Stick e a peça volta sozinha.
 
    **Direto na caixa:** cada caixa também aceita **arrastar** (arquivo, ou imagem arrastada de outra página) e **Ctrl+V** com o mouse em cima dela (imagem copiada, sem precisar salvar, arquivo ou link). Se o vídeo ou o som passar do limite, abre a aba certa para você marcar o trecho, e a peça volta encaixada.
@@ -414,7 +422,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | Colei um GIF e ele ficou parado | Ao **copiar a imagem**, o navegador guarda só o primeiro quadro. **Arraste** o GIF para o app ou cole o **link** dele |
 | A janela "Editar figurinha" fechava ao copiar o nome | Corrigido na 1.2.0: selecionar um texto e soltar o mouse fora da caixa não fecha mais a janela |
 | A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
-| Qual versão eu tenho? | Ao lado do logo (`v1.3.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
+| Qual versão eu tenho? | Ao lado do logo (`v1.4.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
 | *"Foto e GIF não têm som"* | Use a aba **🖼️ Stick** (só a figurinha) ou a **🌀 Combinação Caótica** para juntar com um som |
 | A combinação não aceita o som | Com imagem **animada**, o som pode ter até **5s**; com imagem **parada**, até **10s**. Recorte um trecho menor ou use uma foto |
 | O "Tirar o fundo" não carrega | Na primeira vez, ele baixa a IA de recorte (~22 MB) da internet. Confira a conexão e tente de novo |
