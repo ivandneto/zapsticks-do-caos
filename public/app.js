@@ -51,7 +51,23 @@ const CAPS = { whatsapp: true, linkDownload: true, settings: true, publicLink: t
 // Aí o motor do navegador (web/motor.js) assume, e some da tela o que só existe no app do PC.
 if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   const { criarMotor } = await import('./web/motor.js');
-  Object.assign(MOTOR, { kind: 'navegador', local: criarMotor() });
+  const motor = criarMotor();
+  Object.assign(MOTOR, { kind: 'navegador', local: motor });
+  // Imagens, vídeos e downloads (<img src="/media/…">) passam pelo service worker, que pergunta ao motor daqui
+  if ('serviceWorker' in navigator && isSecureContext) {
+    navigator.serviceWorker.addEventListener('message', async (ev) => {
+      const d = ev.data;
+      if (d?.tipo !== 'motor' || !ev.ports[0]) return;
+      const r = await motor.fetch(d.url, { method: d.method, headers: d.headers, body: d.body || undefined });
+      const semCorpo = r.status === 204 || r.status === 304;
+      ev.ports[0].postMessage({ status: r.status, headers: [...r.headers], body: semCorpo ? null : await r.blob() });
+    });
+    navigator.serviceWorker.startMessages();
+    try {
+      await navigator.serviceWorker.register('/sw-web.js', { scope: '/' });
+      if (!navigator.serviceWorker.controller) await new Promise((ok) => { navigator.serviceWorker.addEventListener('controllerchange', ok, { once: true }); setTimeout(ok, 5000); });
+    } catch (err) { console.error('[service worker]', err); }
+  }
   Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
   document.documentElement.classList.add('web');
   const fb = document.querySelector('#fileBtn span'); if (fb) fb.textContent = 'Escolher arquivo'; // sem link no site: o arquivo é o caminho
@@ -1346,7 +1362,8 @@ function card(s, i, fresh) {
       ? `<div class="wave silent">🖼️ figurinha sem som</div>`
       : `<div class="wave" data-act="play"><div class="bars">${bars(s.waveform)}</div><div class="prog">${bars(s.waveform)}</div></div>`}
     <div class="s-actions">
-      ${silent
+      ${!CAPS.whatsapp ? `<button class="send-btn" data-act="get" title="Baixar ou compartilhar" aria-label="Baixar ou compartilhar ${esc(s.title)}">${IC.dl}</button>`
+        : silent
         ? `<button class="send-btn" data-act="send-plain" title="Enviar a figurinha pro WhatsApp" aria-label="Enviar a figurinha pro WhatsApp">${IC.wa}</button>`
         : s.visual
         ? `<button class="send-btn" data-act="send-sound" title="Enviar a figurinha com som pro meu WhatsApp" aria-label="Enviar a figurinha com som pro meu WhatsApp">${IC.wa}</button>`
@@ -1371,6 +1388,7 @@ $('#grid').addEventListener('click', async (e) => {
   else if (act === 'send-plain') sendStickerMsg(id, 'plain', btn);
   else if (act === 'sticker') stickerModal(id);
   else if (act === 'share') shareSticker(id);
+  else if (act === 'get') shareStickerWeb(s);
   else if (act === 'fav') {
     s.favorite = !s.favorite; btn.classList.toggle('fav-on', s.favorite);
     if (s.favorite) btn.animate([{ transform: 'scale(1.4) rotate(15deg)' }, { transform: 'none' }], { duration: 300 });
@@ -1450,6 +1468,7 @@ async function sendSticker(id, btn) {
 // compartilhar
 async function shareSticker(id) {
   const s = stickers.find((x) => x.id === id);
+  if (!CAPS.publicLink) return shareStickerWeb(s);
   const link = `${location.origin}/s/${id}`;
   const local = /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
   let file = null;
@@ -1476,6 +1495,37 @@ async function shareSticker(id) {
       try { await navigator.clipboard.writeText(link); } catch { $('#shLink', b).select(); document.execCommand('copy'); }
       $('#shCopy', b).textContent = 'Copiado ✓';
     };
+  });
+}
+
+/** Versão web: baixar ou compartilhar (figurinha .webp, vídeo .mp4 com som, áudio .ogg), sem WhatsApp direto. */
+async function shareStickerWeb(s) {
+  if (!s) return;
+  const nome = (s.title || 'figurinha').replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'figurinha';
+  const arquivo = async (ext, tipo) => new File([await (await apiRaw(`/media/${s.id}.${ext}`)).blob()], `${nome}.${ext}`, { type: tipo });
+  const podeCompartilhar = !!navigator.canShare && navigator.canShare({ files: [new File([''], 'a.webp', { type: 'image/webp' })] });
+  const linhas = [];
+  if (s.visual) linhas.push(['webp', 'image/webp', '🖼️ Figurinha', s.hasAudio ? 'sem som (o WhatsApp não guarda som no .webp)' : s.animated ? 'animada' : 'parada']);
+  if (s.visual && s.hasAudio) linhas.push(['mp4', 'video/mp4', '🎞️ Vídeo com som', 'para criar a figurinha com som no WhatsApp']);
+  if (s.hasAudio) linhas.push(['ogg', 'audio/ogg', '🎙️ Áudio', 'mensagem de voz']);
+  openModal(`<h3>${esc(s.emoji)} Baixar ou compartilhar</h3>
+    ${s.visual ? `<div class="st-wrap"><img class="st-prev" src="/media/${s.id}.webp?v=${encodeURIComponent(s.createdAt)}" alt=""></div>` : ''}
+    <p style="text-align:center" class="small">${esc(s.title)}</p>
+    <div class="stack">${linhas.map(([ext, , titulo, sub]) => `<div class="get-row"><span><b>${titulo}</b><small>${sub}</small></span>
+      ${podeCompartilhar ? `<button class="btn small wa" data-share="${ext}">${IC.share} Compartilhar</button>` : ''}
+      <a class="btn small" href="/media/${s.id}.${ext}?download=1">${IC.dl} .${ext}</a></div>`).join('')}</div>
+    <details class="get-help"><summary>Como colocar no WhatsApp</summary>
+      <p><b>No celular:</b> use <b>Compartilhar</b> e escolha o WhatsApp e a conversa.</p>
+      <p><b>No WhatsApp Web (PC):</b> baixe o <b>.webp</b> e arraste para a conversa: ele vira figurinha.</p>
+      ${s.hasAudio && s.visual ? '<p><b>Figurinha com som:</b> baixe o <b>.mp4</b>, abra o WhatsApp no celular → 😊 → <b>Figurinhas → Criar</b>, escolha o vídeo e deixe o som ligado (se o seu WhatsApp já tiver o recurso).</p>' : ''}
+      <p>Quer mandar direto, sem baixar? O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> faz isso.</p>
+    </details>`, (b) => {
+    b.addEventListener('click', async (e) => {
+      const x = e.target.closest('[data-share]'); if (!x) return;
+      const [ext, tipo] = linhas.find((l) => l[0] === x.dataset.share);
+      try { await navigator.share({ files: [await arquivo(ext, tipo)], title: s.title }); }
+      catch (err) { if (err.name !== 'AbortError') toast('O navegador não deixou compartilhar esse arquivo. Use o botão de baixar.', 'err'); }
+    });
   });
 }
 
@@ -2915,4 +2965,4 @@ refreshWa();
 waPoll = setInterval(refreshWa, 15000);
 loadCollection();
 render();
-if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('/sw.js').catch(() => {});
+if ('serviceWorker' in navigator && isSecureContext && MOTOR.kind !== 'navegador') navigator.serviceWorker.register('/sw.js').catch(() => {});

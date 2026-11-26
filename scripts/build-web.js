@@ -13,6 +13,11 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(root, 'public'), out, { recursive: true });
 fs.cpSync(path.join(root, 'web'), path.join(out, 'web'), { recursive: true });
+// service worker na raiz (precisa do escopo "/" para atender /media e /api) e as bibliotecas pequenas (MIT)
+fs.renameSync(path.join(out, 'web', 'sw.js'), path.join(out, 'sw-web.js'));
+fs.mkdirSync(path.join(out, 'web', 'vendor'), { recursive: true });
+fs.copyFileSync(path.join(root, 'node_modules', 'mp4-muxer', 'build', 'mp4-muxer.mjs'), path.join(out, 'web', 'vendor', 'mp4-muxer.mjs'));
+fs.copyFileSync(path.join(root, 'node_modules', 'fflate', 'esm', 'browser.js'), path.join(out, 'web', 'vendor', 'fflate.js'));
 
 // A página sabe que é o site por estas marcas (public/app.js liga o motor do navegador ao ver "motor=navegador")
 const index = path.join(out, 'index.html');
