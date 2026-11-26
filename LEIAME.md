@@ -83,6 +83,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
 | **GitHub** (ícone do gatinho) | Abre o [repositório do projeto](https://github.com/ivandneto/zapsticks-do-caos): código, novidades e versões para baixar. |
 | **⚙** | Configurações: porta, endereço para o celular, pasta dos dados, backup. |
+| **☕** | *Me paga um café*: o app é grátis; aqui tem um **Pix** de qualquer valor (QR code ou copia e cola). Também no rodapé da **Ajuda**. |
 | **Abas** | **🎬 Criar** (figurinha com ou sem som, ou áudio), **🌀 Combinação Caótica** (a imagem de uma + o som de outra) e **📚 Biblioteca** (todas as suas figurinhas, com o número delas). |
 | **Criar: esquerda** | O vídeo, com a **moldura amarela** do que vira figurinha e o botão **🔍 Enquadrar**, e a régua para marcar o trecho. Aceita **arrastar** um arquivo e **Ctrl+V** (imagem copiada, arquivo ou link). |
 | **Criar: direita** | **Som**, **Visual** (Quadrado/Inteiro, 🔍 Enquadrar, ✂️ Tirar o fundo, 🔤 Texto e emoji), prévia e emoji, nome, tags, pacotes e o botão **Criar**, com uma linha dizendo **o que vai sair**. Essa coluna acompanha a rolagem, então o botão Criar está sempre à mão. |

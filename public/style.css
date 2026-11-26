@@ -798,3 +798,6 @@ html:not(.web) .cafe-btn span { display: none; }
 .cafe-qr { width: 220px; height: 220px; border-radius: 16px; background: #fff; padding: 6px; margin: 6px 0; }
 .cafe-copy { display: flex; gap: 6px; width: 100%; }
 .cafe-copy input { flex: 1; min-width: 0; font: .78rem ui-monospace, monospace; }
+
+.help-web { text-align: left; margin: 10px 0 0 !important; }
+.help-web a { color: var(--accent); font-weight: 700; }

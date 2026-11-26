@@ -42,6 +42,10 @@ Para quem vai manter ou evoluir o código. O guia de uso está no [LEIAME](../LE
 | `public/manifest.webmanifest`, `sw.js` | PWA (instalar no celular e *share target* do YouTube) |
 | `scripts/setup.js` | `npm run setup`: força o download ou atualização do yt-dlp (e do ffmpeg, se faltar) |
 | `scripts/build-exe.js` | `npm run build:exe`: gera o executável |
+| `scripts/build-web.js` | `npm run build:web`: monta a **versão web** (site estático) em `dist-web/` (ver "Versão web") |
+| `web/motor.js` | 🌐 Motor do navegador: responde às rotas da API dentro da página (versão web) |
+| `web/apoio.json` | ☕ Dados **públicos** do "Me paga um café": chave Pix (aleatória), nome e cidade (obrigatória no padrão, vai `BRASIL`) |
+| `lib/pix.js` | Pix copia e cola estático (BR Code do Banco Central, CRC16-CCITT), sem valor fixo |
 | `assets/icon.ico` | Ícone do `.exe` |
 | `Dockerfile` | Imagem para servidor; os dados ficam em `/data` |
 
@@ -311,6 +315,18 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 - **Atenção:** o stdin é lido com `StreamReader([Console]::OpenStandardInput())`. **Não use `[Console]::In`**: no Windows PowerShell ele é sincronizado, e o `ReadLineAsync()` dele bloqueia a thread da interface até chegar a próxima linha. O ícone continua recebendo o status, mas não responde a cliques.
 - **Atenção (janelas modais):** `MessageBox` e `InputBox` rodam um laço de mensagens próprio, e o `Timer` **continua disparando** dentro dele. Por isso o tick marca a linha como lida (`ReadLineAsync` de novo) **antes** de tratá-la, pausa o timer enquanto a janela está aberta e usa `$script:busy` contra reentrada. Sem isso, um único `about` abria janelas sem parar (bug da 1.1.1 antes da correção).
 - **Atenção:** o script fica numa *template string* do JS. Não use crase (o escape do PowerShell) dentro dele; use `[Environment]::NewLine`.
+
+## Versão web (branch `versao-web`)
+
+O site é a **mesma tela** (`public/`) com outro motor. Em vez do `server.js`, quem responde às rotas `/api/…` é o `web/motor.js`, dentro da própria página.
+
+- **As três portas:** toda conversa da tela com o motor passa por `api()` (JSON), `apiRaw()` (resposta crua) e `uploadWithProgress()` (envio de arquivo). Com `MOTOR.local` definido, as três desviam para o motor do navegador.
+- **Como a página sabe que é o site:** `scripts/build-web.js` copia `public/` + `web/` para `dist-web/` e marca o `index.html` com `<meta name="motor" content="navegador">` e `<meta name="versao" content="<versão>-web">`. Sem a marca (o app), nada muda.
+- **`CAPS`:** o que cada motor oferece (`whatsapp`, `linkDownload`, `settings`, `publicLink`). No site some o WhatsApp, o "Enviar para" e as configurações (`html.web` no CSS), e entram o **⬇ Baixar para Windows** (última versão via API de releases do GitHub; sem resposta, a página de releases) e o quadro "baixe o app" na tela inicial.
+- **☕ Pix:** o build gera `web/pix.json` (`{copiaECola, nome}`) e `web/pix.svg` (QR, pacote `qrcode`) a partir de `web/apoio.json`. No app, o `server.js` responde às **mesmas rotas** (`GET /web/pix.json` e `/web/pix.svg`), lendo o `apoio.json` empacotado no `.exe`.
+- **Tour e ajuda:** passos com elemento oculto são pulados; no site há boas-vindas própria e passos do Baixar e do quadro do app.
+- **Testar no PC:** `npm run build:web` e depois `python -m http.server 4000 --directory dist-web` (arquivos estáticos, sem servidor, como na Cloudflare Pages).
+- **Publicação:** Cloudflare Pages. Comando de build: `npm run build:web` (com uma página "Em breve" de reserva enquanto o `main` não tem o site); pasta publicada: `dist-web`; `NODE_VERSION=22`.
 
 ## Página (`public/app.js`)
 

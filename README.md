@@ -91,7 +91,7 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 | 🎛️ | **Mesa de som** | Teclas `1` a `9` tocam as figurinhas. Ideal para reuniões on-line (não recomendamos). |
 | 🧭 | **Tour guiado** | Para quem não lê README. Tipo você, que pulou direto para esta tabela. |
 | 🖥️ | **Mora na bandeja** | No Windows vira um iconezinho perto do relógio, com bolinha de status: 🟢 conectado, 🟠 pensando, ⚪ dormindo. |
-| 💸 | **Grátis** | Sem assinatura, sem nuvem, sem "plano premium". Roda no seu PC. |
+| 💸 | **Grátis** | Sem assinatura, sem nuvem, sem "plano premium". Roda no seu PC. Curtiu? Tem o ☕ "Me paga um café" (Pix de qualquer valor) no topo do app. |
 
 ## 🚀 Como usar
 
@@ -193,6 +193,13 @@ Porque "Ferramenta de Extração e Segmentação de Mídia Audiovisual para Mens
 - A conexão com o WhatsApp usa uma biblioteca **não oficial**. Use com moderação.
 - A pasta `data/whatsapp-auth` é **a chave do seu WhatsApp**. Nunca envie, nunca suba para o GitHub (o `.gitignore` já protege).
 - Projeto feito por diversão. Sem garantias, sem SLA, sem suporte 24h. Com muito amor, isso sim.
+
+## ☕ Me paga um café?
+
+O Audio Sticks é grátis e vai continuar grátis. Se ele te salvou no grupo da família, um Pix de qualquer valor ajuda a manter o caos funcionando. 🌀
+
+- **No app (e no site, quando sair):** o botão **☕** no topo abre o QR code e o Pix copia e cola.
+- **Por aqui:** chave Pix aleatória `4de25bdc-2ac4-44f3-a4a6-91bcf8785bab` (Ivan de Souza Neto).
 
 ## 🤝 Contribuindo
 

@@ -2576,6 +2576,7 @@ const HELP_TABS = {
       <div class="card"><div class="t"><span>📚</span>Biblioteca</div><p>Todas as figurinhas numa aba só: filtre por <b>com som</b>, <b>sem som</b> ou <b>combo</b>, busque e use os pacotes.</p></div>
       <div class="card"><div class="t"><span>🧩</span>.wastickers</div><p>Baixe um pacote no formato que apps de figurinhas (ex.: Sticker Maker) adicionam ao WhatsApp como <b>pacote de verdade</b> (sem som).</p></div>
       <div class="card"><div class="t"><span>🗂️</span>Exportar / Importar</div><p>Um <b>.zip</b> com figurinhas e pacotes para backup ou para dar a um amigo que também usa o Audio Sticks.</p></div>
+      <div class="card"><div class="t"><span>☕</span>Me paga um café</div><p>O app e o site são <b>grátis</b>. Curtiu? O <b>☕</b> no topo (ou no rodapé desta ajuda) abre um <b>Pix</b> de qualquer valor: QR code ou copia e cola.</p></div>
       <div class="card"><div class="t"><span>🔗</span>Link da figurinha</div><p>Cada figurinha tem uma página para ouvir e baixar. Útil quando o app está exposto pelo túnel.</p></div>
       <div class="card"><div class="t"><span>🖥️</span>Bandeja do Windows</div><p>No executável, o app vive num ícone perto do relógio: abrir, pasta, registro, trocar porta e sair.</p></div>
     </div>` },
@@ -2628,7 +2629,8 @@ async function openHelp(tab = 'inicio') {
       <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <h3>Como o Audio Sticks funciona</h3>
       <p>Transforme qualquer trecho de vídeo — YouTube, Instagram, TikTok ou um arquivo seu — em figurinha de áudio e mande para o WhatsApp em um clique.</p>
-      <div class="hero-actions"><button class="btn primary" id="hTour">🧭 Fazer o tour guiado</button><button class="btn" id="hSet">⚙ Configurações</button></div>
+      ${MOTOR.kind === 'navegador' ? `<p class="mode-hint help-web">🌐 Você está na <b>versão web</b>: cria e baixa (ou compartilha) a figurinha. Envio direto pelo WhatsApp, link do Instagram/TikTok, pacotes e configurações são do <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).</p>` : ''}
+      <div class="hero-actions"><button class="btn primary" id="hTour">🧭 Fazer o tour guiado</button>${CAPS.settings ? '<button class="btn" id="hSet">⚙ Configurações</button>' : '<a class="btn" href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">⬇ Baixar o app</a>'}</div>
     </div>
     <nav class="help-tabs" id="hTabs">${Object.entries(HELP_TABS).map(([k, t]) => `<button data-k="${k}">${t.label}</button>`).join('')}</nav>
     <div class="help-body" id="hBody"></div>`, (b) => {
@@ -2638,7 +2640,7 @@ async function openHelp(tab = 'inicio') {
     };
     $('#hTabs', b).onclick = (e) => { const x = e.target.closest('button'); if (x) show(x.dataset.k); };
     $('#hTour', b).onclick = () => { closeModal(); startTour(); };
-    $('#hSet', b).onclick = () => openSettings();
+    if ($('#hSet', b)) $('#hSet', b).onclick = () => openSettings();
     show(tab);
   }, { wide: true });
 }
@@ -2748,7 +2750,11 @@ function tourSteps() {
   // tab: o passo mostra algo de uma aba; o tour troca para ela sozinho (e volta ao retroceder)
   const C = 'create', L = 'library';
   const steps = [
-    { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas</b>, com ou sem som, e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
+    MOTOR.kind === 'navegador'
+      ? { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Esta é a <b>versão web</b>: você cria a figurinha aqui mesmo no navegador, com ou sem som, e <b>baixa ou compartilha</b>. Em 1 minuto eu te mostro tudo. Use as setas do teclado ou os botões.' }
+      : { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas</b>, com ou sem som, e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
+    { el: '.download-btn', emoji: '⬇️', title: 'Quer mandar direto no WhatsApp?', text: 'Baixe o <b>app para Windows</b> (grátis): ele faz tudo o que o site faz e ainda <b>manda direto</b> para você, um contato ou um grupo, baixa vídeo por <b>link</b> (Instagram, TikTok…) e envia <b>pacotes inteiros</b>. O botão sempre baixa a última versão.' },
+    { el: '.app-promo', emoji: '📣', title: 'App × site', text: 'Aqui estão as vantagens do app e como instalar em <b>3 passos</b>. O Windows pode avisar que o app não é conhecido: é só clicar em <b>Mais informações → Executar assim mesmo</b>.' },
     { el: '#modeTabs', emoji: '🧭', title: 'Três abas', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra. <b>📚 Biblioteca</b>: todas as suas figurinhas e pacotes.' },
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
     { el: '#targetBtn', emoji: '🎯', title: 'Para quem enviar', text: 'Em qualquer aba: escolha <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Abre um painel do lado direito, e vale para todos os botões verdes de envio até você trocar.' },
@@ -2773,6 +2779,7 @@ function tourSteps() {
   if (hasCard) steps.push({ el: '#grid .sticker', tab: L, emoji: '🎛️', title: 'Sua mesa de som', text: 'Toque na imagem para ouvir (ou as teclas <b>1</b> a <b>9</b>, de qualquer aba). <b>Verde</b> envia; <b>amarelo</b> abre as opções da figurinha; depois vêm favoritar, compartilhar, editar e excluir.' });
   steps.push(
     { el: '#helpBtn', emoji: '❓', title: 'Ajuda sempre à mão', text: 'Guia completo com recursos, atalhos e dúvidas frequentes.' },
+    { el: '.cafe-btn', emoji: '☕', title: 'Me paga um café?', text: 'O Audio Sticks é <b>grátis</b>, sem anúncio e sem cadastro. Se ele te salvou no grupo, aqui tem um <b>Pix</b> de qualquer valor (QR code ou copia e cola). Também fica no rodapé da Ajuda.' },
     { el: '#githubBtn', emoji: '🐙', title: 'Projeto no GitHub', text: 'O código, as novidades e as versões para baixar ficam no GitHub. Deixa uma ⭐ lá!' },
     { el: '#settingsBtn', emoji: '⚙️', title: 'Configurações', text: 'Troque a <b>porta</b> se outro programa estiver usando a mesma, veja o endereço para abrir <b>no celular</b> e onde ficam seus dados.' },
     { emoji: '🎉', title: 'Pronto!', text: 'Agora é com você: cole um link e crie a sua primeira figurinha. Dá para refazer este tour no botão <b>Tour</b> lá em cima.' },
