@@ -78,6 +78,23 @@ function openModal(html, onOpen, { wide = false } = {}) {
   onOpen?.($('.modal-body', modal));
 }
 function closeModal() { modal.hidden = true; modalClosed?.(); modalClosed = null; }
+
+// ============ painel lateral (desliza da direita) ============
+const drawer = $('#drawer');
+function openDrawer(html, onOpen) {
+  $('.drawer-body', drawer).innerHTML = html;
+  drawer.hidden = false;
+  requestAnimationFrame(() => drawer.classList.add('open'));
+  onOpen?.($('.drawer-body', drawer));
+}
+function closeDrawer() {
+  if (drawer.hidden) return;
+  drawer.classList.remove('open');
+  setTimeout(() => { if (!drawer.classList.contains('open')) drawer.hidden = true; }, 220);
+}
+$('.drawer-back', drawer).onclick = closeDrawer;
+$('.drawer-x', drawer).onclick = closeDrawer;
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden && modal.hidden) closeDrawer(); });
 let modalClosed = null;
 // Fecha pelo fundo só se o clique COMEÇOU no fundo: selecionar um texto (para copiar) e soltar o mouse
 // fora da caixa conta como "clique no fundo" para o navegador, e fechava a janela.
@@ -629,9 +646,9 @@ for (const which of ['start', 'end']) {
 
 // atalhos de teclado
 addEventListener('keydown', (e) => {
-  if (!modal.hidden || e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!modal.hidden || !drawer.hidden || e.target.closest('input, textarea, select') || e.ctrlKey || e.metaKey || e.altKey) return;
   if (/^[1-9]$/.test(e.key)) { const card = $$('#grid .sticker')[Number(e.key) - 1]; if (card) { playSticker(card.dataset.id); e.preventDefault(); } return; }
-  if (!vid.kind || mode === 'combo') return;
+  if (!vid.kind || mode === 'combo' || mode === 'library') return;
   const k = e.key.toLowerCase();
   if (k === 'i') { $('#setStart').click(); flash('#setStart'); }
   else if (k === 'o') { $('#setEnd').click(); flash('#setEnd'); }
@@ -694,6 +711,7 @@ async function readTransfer(dt) {
 
 /** Leva o que foi colado/solto para o lugar certo: a caixa da combinação, ou o estúdio. */
 function takeInput(inp, slot) {
+  if (mode === 'library') setMode('create');
   if (mode === 'combo') return comboTake(slot || guessSlot(inp), inp);
   if (inp.file) return loadFile(inp.file);
   $('#url').value = inp.url;
@@ -1158,12 +1176,13 @@ async function loadCollection(highlightId) {
   if (filters.pack && !packs.some((x) => x.id === filters.pack)) { filters.pack = ''; return loadCollection(highlightId); }
   for (const id of [...createPackSel]) if (!packs.some((x) => x.id === id)) createPackSel.delete(id);
   $('#stats').dataset.total = data.stats.total;
+  $('#libCount').textContent = data.stats.total || '';
   renderPackBar();
   renderCreatePacks();
   const st = data.stats;
   $('#stats').textContent = st.total ? `${st.total} figurinha${st.total > 1 ? 's' : ''} · ${Math.round(st.seconds)}s de áudio · ${st.sends} enviada${st.sends === 1 ? '' : 's'}` : '';
   $('#empty').hidden = stickers.length > 0;
-  $('#empty p').innerHTML = st.total ? 'Nada encontrado com esse filtro.' : 'Nenhuma figurinha ainda.<br>Crie a primeira aqui do lado.';
+  $('#empty p').innerHTML = st.total ? 'Nada encontrado com esse filtro.' : 'Nenhuma figurinha ainda.<br>Crie a primeira na aba <b>🎬 Criar</b>.';
   $('#grid').innerHTML = stickers.map((s, i) => card(s, i, s.id === highlightId)).join('');
 }
 
@@ -1171,7 +1190,7 @@ const bars = (w) => w.map((v) => `<i style="height:${Math.max(8, v)}%"></i>`).jo
 function card(s, i, fresh) {
   const inPacks = (s.packs || []).map((id) => packs.find((p) => p.id === id)).filter(Boolean);
   const silent = !s.hasAudio; // Stick: só a figurinha
-  const kindTag = silent ? '🖼️ Stick' : s.kind === 'combo' ? '🌀 Combo' : '';
+  const kindTag = silent ? '🔇 Sem som' : s.kind === 'combo' ? '🌀 Combo' : '';
   const meta = [silent ? (s.animated ? 'animada' : 'parada') : `${s.duration.toFixed(1)}s`, s.plays ? `▶ ${s.plays}` : '', inPacks.map((p) => p.emoji).join(''), ...s.tags.map((t) => `#${t}`)].filter(Boolean).join(' · ');
   return `<article class="sticker${fresh ? ' fresh' : ''}" data-id="${s.id}" style="animation-delay:${Math.min(i, 12) * 25}ms">
     <button class="s-emoji${s.visual ? ' has-img' : ''}" data-act="play" aria-label="${silent ? 'Ver' : 'Tocar'} ${esc(s.title)}">${s.visual ? `<img src="/media/${s.id}.webp" alt="" loading="lazy"><span class="s-mini">${esc(s.emoji)}</span>` : esc(s.emoji)}${i < 9 ? `<span class="s-key">${i + 1}</span>` : ''}</button>
@@ -1558,7 +1577,8 @@ function setTarget(t) {
   renderTarget();
 }
 function renderTarget() {
-  $('#targetBtn').innerHTML = `${avatar(target)}<span class="tb-txt"><div class="tb-name">${esc(target.name)}</div><div class="tb-sub">${esc(subOf(target))}</div></span><span class="tb-caret">Trocar ▾</span>`;
+  $('#targetBtn').innerHTML = `${avatar(target)}<span class="tp-txt"><small>Enviar para</small><b>${esc(target.name)}</b></span><span class="tp-caret">▾</span>`;
+  $('#targetBtn').title = `Enviando para ${target.name} (${subOf(target)}). Clique para trocar.`;
 }
 $('#targetBtn').onclick = () => openTargetPicker();
 
@@ -1566,7 +1586,7 @@ const picker = { contacts: null, groups: null, tab: 'contacts' };
 function openTargetPicker() {
   if (waState.status !== 'open') { toast('Conecte seu WhatsApp primeiro 👇'); return openWa(); }
   picker.tab = target.kind === 'group' ? 'groups' : 'contacts';
-  openModal(`<h3>Enviar para…</h3>
+  openDrawer(`<h3>Enviar para…</h3><p class="small dim" style="margin:-2px 0 12px">Vale para todos os botões verdes de envio, até você trocar.</p>
     <button class="picker-item${target.id === 'me' ? ' on' : ''}" data-me>${avatar(ME)}<span class="pi-txt"><div class="pi-name">Você</div><div class="pi-sub">${esc(subOf(ME))}</div></span></button>
     <div class="picker-tabs"><div class="seg" id="pkTabs"><button data-tab="contacts">👤 Contatos</button><button data-tab="groups">👥 Grupos</button><button data-tab="number">#️⃣ Número</button></div></div>
     <div id="pkBody"></div>`, (b) => {
@@ -1577,7 +1597,7 @@ function openTargetPicker() {
 }
 function choose(t) {
   setTarget(t);
-  closeModal();
+  closeDrawer();
   toast(t.kind === 'me' ? 'Enviando para você mesmo' : `Agora enviando para ${t.name}`, 'ok');
 }
 
@@ -1667,14 +1687,18 @@ const CREATE_TEXT = {
 };
 const MODE_TEXT = { audio: CREATE_TEXT, sticker: CREATE_TEXT };
 
-let lastCreate = 'audio'; // o motor da aba Criar, para voltar a ele depois da Combinação
+let lastCreate = 'audio'; // o motor da aba Criar, para voltar a ele depois da Combinação ou da Biblioteca
 function setMode(m) {
   if (m === 'create') m = lastCreate;
-  if (!['audio', 'sticker', 'combo'].includes(m)) m = 'audio';
+  if (!['audio', 'sticker', 'combo', 'library'].includes(m)) m = 'audio';
   mode = m;
-  if (m !== 'combo') lastCreate = m;
+  if (m === 'audio' || m === 'sticker') lastCreate = m;
   try { localStorage.setItem('sticks.mode', m); } catch { /* ok */ }
-  $$('#modeTabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === (m === 'combo' ? 'combo' : 'create')));
+  $$('#modeTabs button').forEach((b) => b.classList.toggle('on', b.dataset.mode === (m === 'combo' || m === 'library' ? m : 'create')));
+  // 📚 Biblioteca: a coleção ocupa a tela; o estúdio some (e para de tocar)
+  $('.studio').hidden = m === 'library';
+  $('#library').hidden = m !== 'library';
+  if (m === 'library') { stopPreview(); html5.pause(); try { player?.pauseVideo(); } catch { /* ok */ } return; }
   $('#studioMain').hidden = m === 'combo';
   $('#comboPanel').hidden = m !== 'combo';
   if (m === 'combo') { stopPreview(); renderCombo(); return; }
@@ -2389,7 +2413,7 @@ const HELP_TABS = {
       <details><summary>Meu número pode ser bloqueado?</summary><p>A conexão não é oficial. Mandar para você mesmo é de baixíssimo risco. Para outras pessoas e grupos o risco cresce se você disparar muita coisa para muita gente — o app já espaça os envios de pacotes.</p></details>
       <details><summary>Onde ficam minhas figurinhas?</summary><p>No executável: <b>%LOCALAPPDATA%\\Audio Sticks\\data</b> (veja em ⚙ Configurações ou no menu da bandeja → Abrir pasta). Rodando pelo código: na pasta <b>data</b> do projeto.</p></details>
       <details><summary>Não aparecem meus contatos.</summary><p>Em <b>Enviar para → Contatos</b>, clique em <b>Buscar meus contatos no WhatsApp</b>. Se ainda faltar alguém, use a aba <b>Número</b>.</p></details>
-      <details><summary>Como tiro o fundo de uma figurinha?</summary><p>Na aba <b>Stick</b>, depois de carregar a foto, GIF ou vídeo, clique em <b>✂️ Tirar o fundo</b> (embaixo da prévia). Para uma figurinha que já existe: botão amarelo → <b>Tirar o fundo (cria uma cópia)</b>. Na primeira vez a IA é baixada (~22 MB, precisa de internet).</p></details>
+      <details><summary>Como tiro o fundo de uma figurinha?</summary><p>Na aba <b>🎬 Criar</b>, depois de carregar a foto, GIF ou vídeo, clique em <b>✂️ Tirar o fundo</b> (em <b>Visual</b>, na coluna da direita). Para uma figurinha que já existe: botão amarelo → <b>Tirar o fundo (cria uma cópia)</b>. Na primeira vez a IA é baixada (~22 MB, precisa de internet).</p></details>
       <details><summary>Como escrevo na figurinha?</summary><p>No passo 3, embaixo da prévia, clique em <b>🔤 Texto e emoji</b>. Use <b>＋ Texto</b>, <b>＋ Emoji</b> ou <b>Meme clássico</b>, arraste no quadro para posicionar e clique em <b>Usar</b>. O texto aparece na prévia e fica fixo por cima da animação inteira. Ele vale até você trocar de vídeo ou foto.</p></details>
       <details><summary>Por que o nome (ou a legenda) não aparece no WhatsApp?</summary><p>Figurinha <b>não tem legenda</b> no WhatsApp, nem quando vem de um GIF. O app grava o <b>nome</b> e o <b>emoji</b> dentro da figurinha: quem recebe vê ao <b>tocar nela</b> no celular (o nome aparece como nome do pacote, e o autor como "Audio Sticks"). Para ler na conversa, escreva o texto <b>na imagem</b> com <b>🔤 Texto e emoji</b>.</p></details>
       <details><summary>Dá para colar uma imagem sem salvar?</summary><p>Dá. Copie a imagem (botão direito → <b>Copiar imagem</b>, ou um print) e aperte <b>Ctrl+V</b> no app. Também dá para <b>arrastar</b> uma imagem direto de outra página. Na <b>Combinação Caótica</b>, passe o mouse na caixa (Imagem ou Som) antes de colar, ou arraste para ela. Para GIF <b>animado</b>, arraste o GIF ou cole o <b>link</b> dele: ao copiar a imagem, o navegador só guarda o primeiro quadro.</p></details>
@@ -2531,7 +2555,7 @@ function tourSteps() {
   const hasCard = !!$('#grid .sticker');
   const steps = [
     { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas de áudio</b> e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
-    { el: '#modeTabs', emoji: '🧭', title: 'Dois jeitos de criar', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra.' },
+    { el: '#modeTabs', emoji: '🧭', title: 'Três abas', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra. <b>📚 Biblioteca</b>: todas as suas figurinhas, os pacotes e os envios.' },
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
     { el: '#urlForm', emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar um vídeo do PC para cá.' },
   ];
@@ -2546,7 +2570,7 @@ function tourSteps() {
     steps.push({ el: '.studio', emoji: '✂️', title: '2 e 3. Recorte e personalize', text: 'Depois de colar o link, aparecem aqui o vídeo, a <b>régua com alças amarelas</b> para marcar o trecho, a <b>prévia</b> da figurinha e o botão <b>Criar</b>.' });
   }
   steps.push(
-    { el: '.target-bar', emoji: '🎯', title: '4. Para quem enviar', text: 'Escolha o destino: <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Vale para todos os botões de envio até você trocar.' },
+    { el: '#targetBtn', emoji: '🎯', title: '4. Para quem enviar', text: 'Aqui em cima, em qualquer aba: escolha <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Abre um painel do lado direito, e vale para todos os botões de envio até você trocar.' },
     { el: '.pack-side', emoji: '📦', title: 'Pacotes', text: 'Crie categorias (Memes, Futebol…) e filtre a coleção. Com um pacote aberto, aparece <b>Enviar pacote</b> para mandar todas de uma vez.' },
   );
   if (hasCard) steps.push({ el: '#grid .sticker', emoji: '🎛️', title: 'Sua mesa de som', text: 'Toque na imagem para ouvir. <b>Verde</b> envia; <b>amarelo</b> abre as opções da figurinha com som; depois vêm favoritar, compartilhar, editar e excluir.' });

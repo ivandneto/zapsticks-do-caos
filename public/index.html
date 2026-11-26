@@ -23,6 +23,7 @@
       <button id="waPill" class="wa-pill" data-status="disconnected" title="Conexão com o WhatsApp">
         <span class="dot"></span><span class="label">WhatsApp</span>
       </button>
+      <button id="targetBtn" class="target-pill" type="button" title="Para quem enviar (vale para todos os botões de envio)"></button>
       <button id="tourBtn" class="top-btn tour-btn" type="button" title="Tour guiado pela plataforma">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg><span>Tour</span>
       </button>
@@ -37,12 +38,13 @@
   </header>
 
   <main class="layout">
+    <nav class="mode-tabs main-tabs" id="modeTabs" aria-label="Seções">
+      <button type="button" data-mode="create" class="on"><span class="mt-ico">🎬</span><span class="mt-txt"><b>Criar</b><small>figurinha com ou sem som, ou áudio</small></span></button>
+      <button type="button" data-mode="combo"><span class="mt-ico">🌀</span><span class="mt-txt"><b>Combinação Caótica</b><small>imagem de uma + som de outra</small></span></button>
+      <button type="button" data-mode="library"><span class="mt-ico">📚</span><span class="mt-txt"><b>Biblioteca <span class="lib-count" id="libCount"></span></b><small>suas figurinhas e pacotes</small></span></button>
+    </nav>
     <!-- ESTÚDIO -->
     <section class="studio panel">
-      <nav class="mode-tabs" id="modeTabs" aria-label="O que criar">
-        <button type="button" data-mode="create" class="on"><span class="mt-ico">🎬</span><span class="mt-txt"><b>Criar</b><small>figurinha com ou sem som, ou áudio</small></span></button>
-        <button type="button" data-mode="combo"><span class="mt-ico">🌀</span><span class="mt-txt"><b>Combinação Caótica</b><small>imagem de uma + som de outra</small></span></button>
-      </nav>
 
       <div id="studioMain">
       <div class="step-title"><span class="num">1</span><h2 id="step1Title">Cole um link ou envie um arquivo</h2></div>
@@ -229,7 +231,7 @@
     </section>
 
     <!-- COLEÇÃO -->
-    <section class="collection panel">
+    <section class="collection panel" id="library" hidden>
       <div class="col-head">
         <div>
           <h2>Minha coleção</h2>
@@ -240,10 +242,6 @@
           <a id="exportBtn" class="btn ghost small" href="/api/export" title="Baixar todas como pacote .zip">Exportar</a>
           <input id="importFile" type="file" accept=".zip,application/zip" hidden>
         </div>
-      </div>
-      <div class="target-bar">
-        <span class="dim small">Enviar para</span>
-        <button id="targetBtn" class="target-btn" type="button" title="Escolher para quem enviar"></button>
       </div>
       <div class="filters">
         <input id="search" type="search" placeholder="Buscar por nome, tag ou emoji…" aria-label="Buscar">
@@ -263,7 +261,7 @@
           <div id="grid" class="grid"></div>
           <div id="empty" class="empty" hidden>
             <div class="big">🎧</div>
-            <p>Nenhuma figurinha ainda.<br>Crie a primeira aqui do lado.</p>
+            <p>Nenhuma figurinha ainda.<br>Crie a primeira na aba <b>🎬 Criar</b>.</p>
           </div>
         </div>
         <aside class="pack-side">
@@ -280,6 +278,13 @@
       <button class="modal-x" aria-label="Fechar">×</button>
       <div class="modal-body"></div>
     </div>
+  </div>
+  <div id="drawer" class="drawer" hidden>
+    <div class="drawer-back"></div>
+    <aside class="drawer-box" role="dialog" aria-modal="true">
+      <button class="drawer-x" type="button" aria-label="Fechar">×</button>
+      <div class="drawer-body"></div>
+    </aside>
   </div>
   <div id="toasts" class="toasts" aria-live="polite"></div>
   <div id="burst" class="burst" aria-hidden="true"></div>
