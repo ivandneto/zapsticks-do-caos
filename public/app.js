@@ -58,6 +58,26 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   aviso.className = 'web-banner';
   aviso.innerHTML = '🚧 <b>Versão web em construção.</b> Por enquanto, para criar e mandar figurinhas, use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).';
   document.querySelector('main')?.prepend(aviso);
+  // ⬇ Baixar o app para Windows: o link da última versão vem do GitHub (sem isso, leva à página de downloads)
+  const RELEASES = 'https://github.com/ivandneto/zapsticks-do-caos/releases/latest';
+  const baixar = document.createElement('a');
+  baixar.className = 'top-btn download-btn';
+  baixar.href = RELEASES;
+  baixar.target = '_blank';
+  baixar.rel = 'noopener';
+  baixar.title = 'App para Windows: tudo do site + baixar de links (Instagram, TikTok…) e mandar direto no WhatsApp';
+  baixar.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 21h14"/></svg><span>Baixar para Windows</span>';
+  document.querySelector('.top-actions')?.prepend(baixar);
+  fetch('https://api.github.com/repos/ivandneto/zapsticks-do-caos/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((rel) => {
+      const zip = rel?.assets?.find((a) => /win32.*\.zip$/i.test(a.name));
+      if (!zip) return;
+      baixar.href = zip.browser_download_url;
+      baixar.removeAttribute('target');
+      baixar.querySelector('span').innerHTML = `Baixar para Windows <small>${rel.tag_name} · ${Math.round(zip.size / 1e6)} MB</small>`;
+    })
+    .catch(() => { /* fica o link da página de downloads */ });
 }
 
 /** Resposta crua do motor (para baixar arquivo, ou quando não importa o corpo). */

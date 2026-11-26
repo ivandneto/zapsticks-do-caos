@@ -747,3 +747,10 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .web .wa-pill, .web .target-pill, .web #settingsBtn { display: none !important; }
 .web-banner { padding: 12px 16px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); color: var(--text); font-size: .92rem; }
 .web-banner a { color: var(--accent); font-weight: 700; }
+/* ⬇ Baixar para Windows (só no site) */
+.download-btn { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; width: auto; text-decoration: none; background: var(--wa); color: var(--wa-ink); border-color: transparent; font-weight: 800; }
+.download-btn:hover { filter: brightness(1.06); }
+.download-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.download-btn small { font-weight: 700; opacity: .75; margin-left: 4px; font-size: .75rem; }
+@media (max-width: 600px) { .download-btn small { display: none; } .download-btn { padding: 0 10px; } }
+@media (max-width: 420px) { .download-btn span { display: none; } }
