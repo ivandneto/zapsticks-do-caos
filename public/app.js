@@ -47,6 +47,19 @@ const MOTOR = { kind: 'servidor', local: null };
 // O que existe em cada motor. No servidor, tudo; no navegador, sem WhatsApp, sem baixar de links e sem porta/pasta.
 const CAPS = { whatsapp: true, linkDownload: true, settings: true, publicLink: true };
 
+// 🌐 Versão web: o site é montado por scripts/build-web.js com <meta name="motor" content="navegador">.
+// Aí o motor do navegador (web/motor.js) assume, e some da tela o que só existe no app do PC.
+if (document.querySelector('meta[name="motor"][content="navegador"]')) {
+  const { criarMotor } = await import('./web/motor.js');
+  Object.assign(MOTOR, { kind: 'navegador', local: criarMotor() });
+  Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
+  document.documentElement.classList.add('web');
+  const aviso = document.createElement('div');
+  aviso.className = 'web-banner';
+  aviso.innerHTML = '🚧 <b>Versão web em construção.</b> Por enquanto, para criar e mandar figurinhas, use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).';
+  document.querySelector('main')?.prepend(aviso);
+}
+
 /** Resposta crua do motor (para baixar arquivo, ou quando não importa o corpo). */
 function apiRaw(path, opts = {}) {
   return MOTOR.local ? MOTOR.local.fetch(path, opts) : fetch(path, opts);

@@ -742,3 +742,8 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .drawer-body #pkBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .drawer-body .picker-list { flex: 1; min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto; grid-auto-rows: max-content; grid-template-columns: minmax(0, 1fr); }
 .drawer-body .picker-item { min-width: 0; }
+
+/* 🌐 versão web: o que só existe no app do PC some; aviso de construção no topo */
+.web .wa-pill, .web .target-pill, .web #settingsBtn { display: none !important; }
+.web-banner { padding: 12px 16px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); color: var(--text); font-size: .92rem; }
+.web-banner a { color: var(--accent); font-weight: 700; }

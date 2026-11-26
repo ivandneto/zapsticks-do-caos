@@ -5,6 +5,7 @@ bin/
 data/
 build/
 dist/
+dist-web/
 .playwright-mcp/
 .env
 *.log
