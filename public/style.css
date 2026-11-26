@@ -735,3 +735,10 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .emo-grid button:hover { background: var(--panel2); transform: scale(1.12); }
 .emo-msg { color: var(--dim); text-align: center; padding: 30px 10px; margin: 0; }
 @media (max-width: 560px) { .emo-pick { width: auto; height: 55vh; } .emo-grid { grid-template-columns: repeat(8, 1fr); } }
+
+/* "Enviar para" no painel: a lista ocupa toda a altura que sobra, sem rolagem lateral */
+.drawer-box { display: flex; flex-direction: column; overflow: hidden; }
+.drawer-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.drawer-body #pkBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.drawer-body .picker-list { flex: 1; min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto; grid-auto-rows: max-content; grid-template-columns: minmax(0, 1fr); }
+.drawer-body .picker-item { min-width: 0; }
