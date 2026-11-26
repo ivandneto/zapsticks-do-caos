@@ -199,11 +199,14 @@ Junta a **imagem** de uma figurinha com o **som** de outra.
 
 1. **Imagem** (lado esquerdo), de três jeitos:
    - **Escolher da coleção**: qualquer figurinha com imagem (Stick, Audio Stick animado ou outra combinação);
-   - **📁 Foto ou GIF do computador**: vira uma figurinha na hora;
+   - **📁 Foto, GIF ou vídeo do computador**: vira uma figurinha na hora;
    - **✂️ Recortar de um vídeo**: abre a aba Stick e, quando você cria, a peça **volta sozinha** para a combinação.
 2. **Som** (lado direito): até **5s** se a imagem for **animada**, e até **10s** se for **parada** (limites do WhatsApp):
    - **Escolher da coleção**: qualquer figurinha com som dentro do limite;
+   - **📁 Áudio ou vídeo do computador**: vira o som na hora;
    - **✂️ Recortar de um vídeo ou áudio**: abre a aba Audio Stick e a peça volta sozinha.
+
+   **Direto na caixa:** cada caixa também aceita **arrastar** (arquivo, ou imagem arrastada de outra página) e **Ctrl+V** com o mouse em cima dela (imagem copiada, sem precisar salvar, arquivo ou link). Se o vídeo ou o som passar do limite, abre a aba certa para você marcar o trecho, e a peça volta encaixada.
 3. Toque na prévia para ouvir. Dê um nome, tags e pacotes e clique em **🌀 Criar combinação caótica**.
 
 **Para não acumular lixo:** as peças **criadas só para a combinação** podem ser apagadas automaticamente (a opção vem marcada). As peças que você **escolheu da coleção nunca são apagadas**.
@@ -379,6 +382,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | `shift` + `←` `→` | Ajuste fino de 0,1 s |
 | `1` … `9` | Toca as primeiras figurinhas da coleção |
 | `Esc` | Fecha janelas e o tour |
+| `Ctrl` + `V` | Cola uma **imagem copiada**, um arquivo ou um link direto no estúdio, sem salvar. Na Combinação, cai na caixa em que o mouse está |
 | No tour: `→` / `Enter`, `←` | Próximo / anterior |
 
 ---
@@ -388,6 +392,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | Problema | Solução |
 |---|---|
 | O **nome** ou a "legenda" do GIF não aparece no WhatsApp | Figurinha não tem legenda no WhatsApp. O app grava o nome e o emoji **dentro** da figurinha: quem recebe vê ao **tocar nela** no celular. Para ler na conversa, escreva **na imagem** com **🔤 Texto e emoji** |
+| Colei um GIF e ele ficou parado | Ao **copiar a imagem**, o navegador guarda só o primeiro quadro. **Arraste** o GIF para o app ou cole o **link** dele |
 | A janela "Editar figurinha" fechava ao copiar o nome | Corrigido na 1.2.0: selecionar um texto e soltar o mouse fora da caixa não fecha mais a janela |
 | A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
 | Qual versão eu tenho? | Ao lado do logo (`v1.2.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |

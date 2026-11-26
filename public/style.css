@@ -587,3 +587,9 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .tte-emojis button { font-size: 1.3rem; padding: 4px 0; border-radius: 8px; border: 1px solid transparent; background: none; }
 .tte-emojis button:hover, .tte-emojis button.on { background: var(--panel); border-color: var(--line); }
 .danger-txt { color: var(--danger); }
+
+/* combinação: soltar/colar direto na caixa */
+.slot-drop { margin: 2px 0 0; font-size: .78rem; color: var(--dim); text-align: center; }
+.slot-drop b { color: var(--text); }
+.slot { transition: border-color .15s, box-shadow .15s, transform .15s; }
+.slot.drop-on { border-color: var(--accent); border-style: solid; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); transform: scale(1.01); }

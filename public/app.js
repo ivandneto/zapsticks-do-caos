@@ -345,12 +345,18 @@ async function loadImageUrl(url) {
   hint.innerHTML = '<span class="spin-inline"></span> Baixando a imagem…';
   setLoading(true);
   try {
-    const r = await api('/api/sources/image-url', { method: 'POST', body: JSON.stringify({ url }) });
+    const file = await imageUrlToFile(url);
     setLoading(false);
-    if (!r.image) return loadRemote(url); // não era imagem: tenta como vídeo
-    const blob = await (await fetch(`/api/sources/image-url/${r.id}`)).blob();
-    return loadFile(new File([blob], r.name, { type: r.type }));
+    if (!file) return loadRemote(url); // não era imagem: tenta como vídeo
+    return loadFile(file);
   } catch (err) { hintErr(err.message); setLoading(false); }
+}
+/** O servidor baixa o link; devolve um File, ou null se o link não for de imagem. */
+async function imageUrlToFile(url) {
+  const r = await api('/api/sources/image-url', { method: 'POST', body: JSON.stringify({ url }) });
+  if (!r.image) return null;
+  const blob = await (await fetch(`/api/sources/image-url/${r.id}`)).blob();
+  return new File([blob], r.name, { type: r.type });
 }
 const looksLikeImageUrl = (u) => /\.(gif|webp|png|jpe?g|bmp)(\?|#|$)/i.test(u) || /(^|\.)((media\d*|i)\.giphy\.com|media\d*\.tenor\.com|c\.tenor\.com)\//i.test(u.replace(/^https?:\/\//, ''));
 
@@ -585,15 +591,78 @@ $('#fileIn').onchange = (e) => { loadFile(e.target.files[0]); e.target.value = '
 {
   const studio = $('.studio');
   let depth = 0;
-  studio.addEventListener('dragenter', (e) => { if (e.dataTransfer?.types.includes('Files')) { depth++; studio.classList.add('drop'); } });
-  studio.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; studio.classList.remove('drop'); } });
-  studio.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  const droppable = (e) => ['Files', 'text/uri-list', 'text/html'].some((t) => e.dataTransfer?.types.includes(t));
+  const clear = () => { depth = 0; studio.classList.remove('drop'); $$('.slot').forEach((x) => x.classList.remove('drop-on')); };
+  studio.addEventListener('dragenter', (e) => { if (droppable(e)) { depth++; if (mode !== 'combo') studio.classList.add('drop'); } });
+  studio.addEventListener('dragleave', () => { if (--depth <= 0) clear(); });
+  studio.addEventListener('dragover', (e) => {
+    if (!droppable(e)) return;
+    e.preventDefault();
+    if (mode === 'combo') { const over = e.target.closest('.slot'); $$('.slot').forEach((x) => x.classList.toggle('drop-on', x === over)); }
+  });
   studio.addEventListener('drop', (e) => {
-    if (!e.dataTransfer?.files.length) return;
-    e.preventDefault(); depth = 0; studio.classList.remove('drop');
-    loadFile(e.dataTransfer.files[0]);
+    if (!droppable(e)) return;
+    e.preventDefault();
+    const slot = e.target.closest('.slot')?.dataset.slot;
+    const got = readTransfer(e.dataTransfer);
+    clear();
+    got.then((inp) => (inp ? takeInput(inp, slot) : toast('Não reconheci o que foi solto. Tente um arquivo, uma imagem ou um link.', 'err')));
   });
 }
+
+// ============ 📋 colar (CTRL+V) e arrastar: arquivo, imagem copiada ou link ============
+/**
+ * O que veio no colar/arrastar: { file } (arquivo do PC ou imagem copiada, sem precisar salvar) ou { url }
+ * (link, ou imagem arrastada de outra página: usa o endereço dela, o que mantém o GIF animado).
+ * Lê tudo do evento ANTES do primeiro await (depois disso o navegador apaga os dados).
+ */
+async function readTransfer(dt) {
+  if (!dt) return null;
+  const html = dt.getData('text/html');
+  const src = html ? new DOMParser().parseFromString(html, 'text/html').querySelector('img')?.getAttribute('src') : null;
+  const list = dt.getData('text/uri-list').split(/\r?\n/).find((l) => l && !l.startsWith('#'));
+  const text = dt.getData('text/plain');
+  const file = [...(dt.files || [])][0] || [...(dt.items || [])].find((i) => i.kind === 'file')?.getAsFile();
+  const named = (b) => new File([b], `imagem colada.${(b.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`, { type: b.type });
+  // GIF arrastado de outra página: o endereço vale mais que o arquivo (o arquivo às vezes vem só com o 1º quadro)
+  if (src && /^https?:/.test(src) && /\.gif(\?|#|$)|giphy|tenor/i.test(src)) return { url: src };
+  if (file) return { file: /^image\.(png|jpe?g|gif|webp)$/i.test(file.name) || !file.name ? named(file) : file };
+  const u = String(src || list || text || '').trim();
+  if (/^data:image\//.test(u)) return { file: named(await (await fetch(u)).blob()) };
+  const link = u.match(/https?:\/\/\S+/)?.[0];
+  return link ? { url: link } : null;
+}
+
+/** Leva o que foi colado/solto para o lugar certo: a caixa da combinação, ou o estúdio. */
+function takeInput(inp, slot) {
+  if (mode === 'combo') return comboTake(slot || guessSlot(inp), inp);
+  if (inp.file) return loadFile(inp.file);
+  $('#url').value = inp.url;
+  return loadAny(inp.url);
+}
+function guessSlot(inp) {
+  const t = inp.file?.type || '';
+  if (t.startsWith('audio/')) return 'audio';
+  if (t.startsWith('image/') || (inp.url && looksLikeImageUrl(inp.url))) return 'visual';
+  return !combo.visual ? 'visual' : !combo.audio ? 'audio' : 'visual';
+}
+
+// caixa da combinação embaixo do mouse (para o CTRL+V cair nela)
+let hoverSlot = null;
+$('#comboPanel').addEventListener('pointerover', (e) => { hoverSlot = e.target.closest('.slot')?.dataset.slot || null; });
+$('#comboPanel').addEventListener('pointerleave', () => { hoverSlot = null; });
+addEventListener('paste', (e) => {
+  // dentro de campos de texto, colar continua normal (o campo do link tem tratamento próprio)
+  if (!modal.hidden || document.querySelector('.bge-back') || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  const dt = e.clipboardData;
+  if (!dt || (!dt.files.length && !dt.getData('text/plain') && !dt.getData('text/html'))) return;
+  e.preventDefault();
+  readTransfer(dt).then((inp) => {
+    if (!inp) return toast('Copie uma imagem, um arquivo ou um link e cole de novo.', 'err');
+    if (mode !== 'combo') scrollTo({ top: 0, behavior: 'smooth' });
+    takeInput(inp, hoverSlot);
+  });
+});
 $('#title').addEventListener('input', () => delete $('#title').dataset.auto);
 {
   const p = new URLSearchParams(location.search);
@@ -1536,9 +1605,10 @@ function slotHtml(slot) {
     return `${head}<p class="small dim" style="margin:0">${isV ? 'A cara da figurinha: da coleção ou nova (foto, GIF ou trecho de vídeo).' : `O som que ela vai fazer (até ${soundLimit()}s): da coleção ou recortado agora.`}</p>
       <div class="stack">
         <button class="btn" type="button" data-c="pick">🗂️ Escolher da coleção</button>
-        ${isV ? '<button class="btn" type="button" data-c="file">📁 Foto ou GIF do computador</button>' : ''}
+        <button class="btn" type="button" data-c="file">${isV ? '📁 Foto, GIF ou vídeo do computador' : '📁 Áudio ou vídeo do computador'}</button>
         <button class="btn" type="button" data-c="new">${isV ? '✂️ Recortar de um vídeo (aba Stick)' : '✂️ Recortar de um vídeo ou áudio (aba Audio Stick)'}</button>
-      </div>`;
+      </div>
+      <p class="slot-drop">📋 Ou <b>arraste</b> para cá, ou passe o mouse aqui e aperte <b>CTRL+V</b> (imagem copiada, arquivo ou link)</p>`;
   }
   return `${head}<div class="slot-card">
       <button class="slot-thumb" type="button" data-c="${isV ? 'view' : 'listen'}" title="${isV ? 'Imagem escolhida' : 'Ouvir o som'}">${s.visual ? `<img src="/media/${s.id}.webp" alt="">` : esc(s.emoji)}</button>
@@ -1632,24 +1702,49 @@ async function pickForCombo(slot) {
   });
 }
 
-// Foto/GIF direto na combinação: envia, vira um Stick (peça nova) e já encaixa
-$('#comboFile').onchange = async (e) => {
+// Arquivo, imagem colada ou link direto numa caixa da combinação: vira uma peça nova e já encaixa.
+// Vídeo/áudio mais longo que o limite abre a aba certa para marcar o trecho (e volta encaixado).
+let comboFileSlot = 'visual';
+$('#comboFile').onchange = (e) => {
   const f = e.target.files[0]; e.target.value = '';
-  if (!f) return;
-  const slotEl = $('#slotVisual');
-  slotEl.innerHTML = '<div class="slot-head"><span class="n">1</span>🖼️ Imagem</div><p class="small"><span class="spin-inline"></span> Enviando e preparando a figurinha…</p>';
+  if (f) comboTake(comboFileSlot, { file: f });
+};
+async function comboTake(slot, inp) {
+  const isV = slot === 'visual';
+  const el = $(isV ? '#slotVisual' : '#slotAudio');
+  const busy = (msg) => { el.innerHTML = `<div class="slot-head"><span class="n">${isV ? 1 : 2}</span>${isV ? '🖼️ Imagem' : '🔊 Som'}</div><p class="small"><span class="spin-inline"></span> ${msg}</p>`; };
+  const cutInTab = (open) => {
+    comboReturn = slot;
+    setMode(isV ? 'sticker' : 'audio');
+    open();
+    scrollTo({ top: 0, behavior: 'smooth' });
+    toast(`Marque o trecho (até ${isV ? STICK_ANIM_MAX : soundLimit()}s) e clique em Criar: ele volta para a combinação 🌀`);
+  };
   try {
-    const source = await uploadSourceFile(f);
-    if (!source.hasVideo) throw new Error('Esse arquivo não tem imagem. Para som, use o lado direito.');
-    const body = { mode: 'sticker', sourceId: source.id, fit: 'crop', title: source.title, emoji: '🌀',
-      start: 0, end: source.media === 'image' ? 0 : Math.min(STICK_ANIM_MAX, source.duration || STICK_ANIM_MAX) };
-    const { jobId: j2 } = await api('/api/stickers', { method: 'POST', body: JSON.stringify(body) });
-    const { sticker } = await pollJob(j2);
-    combo.visual = sticker; combo.temp.add(sticker.id);
+    let file = inp.file;
+    if (!file) {
+      if (isV && looksLikeImageUrl(inp.url)) { busy('Baixando a imagem…'); file = await imageUrlToFile(inp.url); }
+      if (!file) return cutInTab(() => { $('#url').value = inp.url; loadAny(inp.url); }); // link de vídeo
+    }
+    busy('Enviando…');
+    const source = await uploadSourceFile(file, busy);
+    if (isV && !source.hasVideo) throw new Error('Esse arquivo não tem imagem. Solte-o na caixa do Som.');
+    if (!isV && !source.hasAudio) throw new Error('Esse arquivo não tem som. Solte-o na caixa da Imagem.');
+    const limit = isV ? STICK_ANIM_MAX : soundLimit();
+    const fixed = isV && (source.media === 'image' || source.media === 'gif'); // foto e GIF não precisam de trecho
+    if (!fixed && source.duration > limit + 0.05) return cutInTab(() => openSource(source));
+    busy('Criando a peça…');
+    const body = isV
+      ? { mode: 'sticker', sourceId: source.id, fit: 'crop', title: source.title, emoji: '🌀', start: 0, end: source.media === 'image' ? 0 : Math.min(STICK_ANIM_MAX, source.duration || STICK_ANIM_MAX) }
+      : { sourceId: source.id, start: 0, end: Math.min(limit, source.duration), title: source.title, videoTitle: source.title, emoji: '🔊', makeVisual: false };
+    const { jobId } = await api('/api/stickers', { method: 'POST', body: JSON.stringify(body) });
+    const { sticker } = await pollJob(jobId);
+    combo[slot] = sticker; combo.temp.add(sticker.id);
     await loadCollection();
+    toast(isV ? 'Imagem encaixada 🖼️' : 'Som encaixado 🔊', 'ok');
   } catch (err) { toast(err.message, 'err'); }
   renderCombo();
-};
+}
 
 const comboAudio = new Audio();
 function playCombo() {
@@ -1672,7 +1767,11 @@ $('#comboPanel').addEventListener('click', (e) => {
   const c = b.dataset.c;
   if (c === 'pick') pickForCombo(slot);
   else if (c === 'clear') { combo[slot] = null; renderCombo(); }
-  else if (c === 'file') $('#comboFile').click();
+  else if (c === 'file') {
+    comboFileSlot = slot;
+    $('#comboFile').accept = slot === 'visual' ? 'image/*,.gif,.webp,video/*' : 'audio/*,video/*';
+    $('#comboFile').click();
+  }
   else if (c === 'bg') { const v = combo.visual; comboReturn = 'visual'; bgFromSticker(v); }
   else if (c === 'listen') { comboAudio.pause(); comboAudio.src = `/media/${combo.audio.id}.ogg`; comboAudio.play().catch(() => {}); }
   else if (c === 'new') {
@@ -1764,6 +1863,7 @@ const HELP_TABS = {
       <tr><td><kbd>shift</kbd> + <kbd>←</kbd> <kbd>→</kbd></td><td>Ajuste fino de 0,1 segundo</td></tr>
       <tr><td><kbd>1</kbd> … <kbd>9</kbd></td><td>Toca as primeiras figurinhas da coleção (mesa de som)</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Fecha janelas e o tour</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Cola uma <b>imagem copiada</b> (botão direito → Copiar imagem, ou um print), um arquivo ou um link, sem precisar salvar. Na Combinação, cai na caixa em que o mouse está</td></tr>
     </table>
     <h4>Dicas de recorte</h4>
     <ul>
@@ -1782,6 +1882,7 @@ const HELP_TABS = {
       <details><summary>Como tiro o fundo de uma figurinha?</summary><p>Na aba <b>Stick</b>, depois de carregar a foto, GIF ou vídeo, clique em <b>✂️ Tirar o fundo</b> (embaixo da prévia). Para uma figurinha que já existe: botão amarelo → <b>Tirar o fundo (cria uma cópia)</b>. Na primeira vez a IA é baixada (~22 MB, precisa de internet).</p></details>
       <details><summary>Como escrevo na figurinha?</summary><p>No passo 3, embaixo da prévia, clique em <b>🔤 Texto e emoji</b>. Use <b>＋ Texto</b>, <b>＋ Emoji</b> ou <b>Meme clássico</b>, arraste no quadro para posicionar e clique em <b>Usar</b>. O texto aparece na prévia e fica fixo por cima da animação inteira. Ele vale até você trocar de vídeo ou foto.</p></details>
       <details><summary>Por que o nome (ou a legenda) não aparece no WhatsApp?</summary><p>Figurinha <b>não tem legenda</b> no WhatsApp, nem quando vem de um GIF. O app grava o <b>nome</b> e o <b>emoji</b> dentro da figurinha: quem recebe vê ao <b>tocar nela</b> no celular (o nome aparece como nome do pacote, e o autor como "Audio Sticks"). Para ler na conversa, escreva o texto <b>na imagem</b> com <b>🔤 Texto e emoji</b>.</p></details>
+      <details><summary>Dá para colar uma imagem sem salvar?</summary><p>Dá. Copie a imagem (botão direito → <b>Copiar imagem</b>, ou um print) e aperte <b>Ctrl+V</b> no app. Também dá para <b>arrastar</b> uma imagem direto de outra página. Na <b>Combinação Caótica</b>, passe o mouse na caixa (Imagem ou Som) antes de colar, ou arraste para ela. Para GIF <b>animado</b>, arraste o GIF ou cole o <b>link</b> dele: ao copiar a imagem, o navegador só guarda o primeiro quadro.</p></details>
       <details><summary>Qual o tempo máximo?</summary><p>Figurinha <b>animada</b>: até <b>10s</b>. Figurinha com som: até <b>5s</b> de som se for animada e até <b>10s</b> se for parada (regras do WhatsApp). Áudio (mensagem de voz): até 60s.</p></details>
       <details><summary>O app vai acumulando arquivos?</summary><p>Não muito: vídeos baixados ou enviados ficam num cache que se limpa sozinho (no máximo 25 e nada com mais de 7 dias), e dá para limpar tudo em <b>⚙ Configurações → Limpar cache</b>. Na Combinação Caótica, as peças criadas só para ela podem ser apagadas automaticamente.</p></details>
       <details><summary>Quais sites funcionam?</summary><p>Além do YouTube: Instagram, TikTok, X/Twitter, Facebook, Kwai, Reddit, Twitch, SoundCloud, Dailymotion e centenas de outros (tudo que o <b>yt-dlp</b> suporta). Conteúdo privado, de “melhores amigos” ou que exige login não dá — nesse caso, salve o vídeo no celular/PC e use <b>📁 Arquivo</b>.</p></details>

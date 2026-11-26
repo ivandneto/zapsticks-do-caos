@@ -62,7 +62,7 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 | 🔗 | **Cola o link e pronto** | YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e centenas de outros: o app baixa sozinho. |
 | 📁 | **Arquivo do PC** | Arrasta o vídeo, áudio, **foto ou GIF** (inclusive o `.webp` animado do Giphy) para a tela. Até aquele `.mov` de 2014. Ou cola o link direto do Giphy/Tenor. |
 | 🖼️ | **Stick** | Só a figurinha, sem som: de foto, GIF ou trecho de vídeo. Recortada em quadrado ou inteira com fundo transparente. |
-| 🌀 | **Combinação Caótica** | A cara de uma figurinha com a voz de outra. O gato com a risada do Faustão? Pode. Da coleção ou criado na hora, e as peças temporárias se apagam sozinhas. |
+| 🌀 | **Combinação Caótica** | A cara de uma figurinha com a voz de outra. O gato com a risada do Faustão? Pode. Da coleção, criado na hora ou **colado com Ctrl+V** direto na caixa, e as peças temporárias se apagam sozinhas. |
 | ✂️ | **Corte cirúrgico** | Régua com zoom, alças arrastáveis, ajuste de 0,1s. Precisão de neurocirurgião, propósito de meme. |
 | 🎞️ | **Figurinha com som** | Até 5s: animada com som. De 5 a 10s: parada com som (são as regras do WhatsApp, não nossas). *(experimental: o WhatsApp lançou isso ontem, literalmente)* |
 | ✂️ | **Tirar o fundo** | Igual ao WhatsApp: IA recorta a pessoa sozinha (até em **vídeo e GIF**, quadro a quadro), ou você toca no que quer manter. Pincel, sensibilidade e borda branca. Roda no seu navegador, nada vai para a nuvem. |
