@@ -491,12 +491,13 @@ function render() {
   const showFrame = cropApplies() && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
   $('#frameBtn').hidden = !showFrame;
   $('#frameBtn').classList.toggle('on', !frameIsDefault());
-  $('#frameBtn').textContent = frameIsDefault() ? '🔍 Enquadrar' : `🔍 Enquadrado (${frame.z.toFixed(1)}x)`;
+  $('#frameBtn').textContent = frameIsDefault() ? '🔍 Enquadrar' : `🔍 Enquadrado (${frame.z.toFixed(2).replace(/0$/, '')}x)`;
   // o mesmo botão em cima do vídeo, onde a gente procura primeiro
   const fbp = $('#frameBtnPlayer');
   fbp.hidden = !showFrame;
   fbp.classList.toggle('on', !frameIsDefault());
   fbp.textContent = $('#frameBtn').textContent;
+  drawFrameOverlay();
   $('#bgBtn').hidden = !(mode === 'sticker' && vid.kind && vid.hasVideo);
   $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
@@ -1780,34 +1781,75 @@ $('#txtBtn').onclick = async () => {
 // A tela mostra o quadro inteiro atrás de uma "janela" quadrada; o que aparece na janela é o que vai para a figurinha.
 // A conta é a mesma do ffmpeg (lib/audio.js → squareFilter): lado = menor lado / zoom; posição = sobra × x (ou y).
 $('#frameBtn').onclick = () => openFrameEditor();
+
+/**
+ * Moldura do enquadramento desenhada em cima do player (vídeo do PC/link baixado, foto e GIF): mostra, enquanto toca,
+ * exatamente o quadrado que vai virar figurinha, com o resto escurecido. Não pega cliques (os controles continuam).
+ */
+function drawFrameOverlay() {
+  const ov = $('#frameOv');
+  const el = vid.kind === 'source' && !isPicture() ? html5 : isPicture() ? $('#imgView') : null;
+  const Vw = el ? el.videoWidth || el.naturalWidth : 0, Vh = el ? el.videoHeight || el.naturalHeight : 0;
+  if (!el || el.hidden || $('#frameBtnPlayer').hidden || !Vw || !Vh) { ov.hidden = true; return; }
+  const P = $('.player-wrap'), Pw = P.clientWidth, Ph = P.clientHeight;
+  const s = Math.min(Pw / Vw, Ph / Vh), ox = (Pw - Vw * s) / 2, oy = (Ph - Vh * s) / 2;
+  const side = Math.min(Vw, Vh) / frame.z; // mesma conta do ffmpeg (squareFilter), em pixels do vídeo
+  Object.assign($('.fo-box', ov).style, {
+    left: `${ox + (Vw - side) * frame.x * s}px`, top: `${oy + (Vh - side) * frame.y * s}px`, width: `${side * s}px`, height: `${side * s}px`,
+  });
+  ov.hidden = false;
+}
+html5.addEventListener('loadedmetadata', drawFrameOverlay);
+$('#imgView').addEventListener('load', drawFrameOverlay);
+addEventListener('resize', drawFrameOverlay);
 $('#frameBtnPlayer').onclick = () => openFrameEditor();
 function openFrameEditor() {
   if (!cropApplies()) return;
   stopPreview();
-  const t = isPicture() ? 0 : sel.start + 0.05;
-  const src = `/api/frame?${isYT() ? `v=${vid.id}` : `src=${vid.sourceId}`}&t=${t.toFixed(2)}&fit=full`;
+  // vídeo do PC/Instagram etc.: o trecho toca em loop dentro da moldura; foto e GIF: a própria imagem (o GIF anima);
+  // YouTube (não tem o arquivo aqui): um quadro do início do trecho
+  const live = !isYT() && !isPicture();
+  const src = isYT() ? `/api/frame?v=${vid.id}&t=${(sel.start + 0.05).toFixed(2)}&fit=full` : `/api/sources/${vid.sourceId}/media`;
   const f = { ...frame };
   openModal(`<h3>🔍 Enquadrar</h3>
-    <p class="small">Arraste a imagem para escolher o que aparece na figurinha. Aproxime com o zoom (ou a rodinha do mouse).</p>
-    <div class="fr-stage loading" id="frStage"><img id="frImg" alt="Quadro do vídeo" draggable="false"><div class="fr-grid" aria-hidden="true"></div></div>
-    <label class="fr-zoom"><span>Zoom</span><input type="range" id="frZoom" min="1" max="4" step="0.01" aria-label="Zoom"><b id="frZoomTxt" class="mono"></b></label>
-    <div class="fr-actions"><button class="btn small ghost" id="frReset" type="button">↺ Centralizar</button><button class="btn primary" id="frOk" type="button">Pronto</button></div>`, (b) => {
-    const stage = $('#frStage', b), img = $('#frImg', b), zoomIn = $('#frZoom', b);
-    let W = 0, H = 0;
+    <p class="small">Arraste a imagem para escolher o que aparece na figurinha. Use o zoom (ou a rodinha do mouse) para aproximar ou afastar.</p>
+    <div class="fr-stage loading" id="frStage">${live ? '<video id="frImg" muted playsinline preload="auto"></video>' : '<img id="frImg" alt="Quadro do vídeo" draggable="false">'}<div class="fr-grid" aria-hidden="true"></div></div>
+    ${live ? `<p class="fr-hint small">▶ O trecho marcado (${fmt(sel.start)} a ${fmt(sel.end)}) toca em loop: confira se nada sai do quadro.</p>` : isYT() ? '<p class="fr-hint small">YouTube: aqui aparece só o começo do trecho. Confira o movimento na moldura em cima do vídeo.</p>' : ''}
+    <label class="fr-zoom"><span>Zoom</span><input type="range" id="frZoom" min="0.25" max="4" step="0.01" aria-label="Zoom"><b id="frZoomTxt" class="mono"></b></label>
+    <p class="fr-hint small" id="frHint"></p>
+    <div class="fr-actions"><span class="fr-left"><button class="btn small ghost" id="frReset" type="button">↺ Centralizar</button><button class="btn small ghost" id="frFit" type="button" title="Afasta até o quadro inteiro caber; a sobra fica transparente">⬚ Caber inteiro</button></span><button class="btn primary" id="frOk" type="button">Pronto</button></div>`, (b) => {
+    const stage = $('#frStage', b), img = $('#frImg', b), zoomIn = $('#frZoom', b), hint = $('#frHint', b);
+    let W = 0, H = 0, zMin = 0.25;
     const layout = () => {
       if (!W) return;
       const S = stage.clientWidth;
       const k = (S / Math.min(W, H)) * f.z;
       const w = W * k, h = H * k;
-      Object.assign(img.style, { width: `${w}px`, height: `${h}px`, left: `${-(w - S) * f.x}px`, top: `${-(h - S) * f.y}px` });
+      // mesma conta do ffmpeg: posição = (quadrado − imagem) × x — vale quando a imagem sobra ou falta
+      Object.assign(img.style, { width: `${w}px`, height: `${h}px`, left: `${(S - w) * f.x}px`, top: `${(S - h) * f.y}px` });
       zoomIn.value = f.z;
-      $('#frZoomTxt', b).textContent = `${f.z.toFixed(1)}x`;
+      $('#frZoomTxt', b).textContent = `${f.z.toFixed(2).replace(/0$/, '')}x`;
+      const stuckX = Math.abs(w - S) < 1, stuckY = Math.abs(h - S) < 1;
+      hint.textContent = stuckX && stuckY ? '' : stuckY ? '↕ Para mover para cima ou para baixo, aumente ou diminua o zoom.'
+        : stuckX ? '↔ Para mover para os lados, aumente ou diminua o zoom.' : f.z < 1 ? 'A parte quadriculada fica transparente na figurinha.' : '';
     };
-    img.onload = () => { W = img.naturalWidth; H = img.naturalHeight; stage.classList.remove('loading'); layout(); };
+    const ready = () => {
+      W = img.naturalWidth || img.videoWidth; H = img.naturalHeight || img.videoHeight;
+      if (!W || !H) return;
+      zMin = Math.max(0.25, Math.floor((Math.min(W, H) / Math.max(W, H)) * 100) / 100); // afastar só até o quadro inteiro caber
+      zoomIn.min = zMin; f.z = clamp(f.z, zMin, 4);
+      stage.classList.remove('loading'); layout();
+    };
     img.onerror = () => { stage.classList.remove('loading'); stage.classList.add('fail'); };
+    if (live) {
+      img.addEventListener('loadedmetadata', () => { img.currentTime = sel.start; ready(); img.play().catch(() => {}); });
+      img.addEventListener('timeupdate', () => { if (img.currentTime >= sel.end - 0.03 || img.currentTime < sel.start - 0.5) { img.currentTime = sel.start; img.play().catch(() => {}); } });
+      img.addEventListener('ended', () => { img.currentTime = sel.start; img.play().catch(() => {}); });
+      modalClosed = () => { img.pause(); img.removeAttribute('src'); img.load(); };
+    } else img.onload = ready;
     img.src = src;
-    zoomIn.oninput = () => { f.z = clamp(Number(zoomIn.value), 1, 4); layout(); };
-    stage.addEventListener('wheel', (e) => { e.preventDefault(); f.z = clamp(f.z * Math.exp(-e.deltaY * 0.0015), 1, 4); layout(); }, { passive: false });
+    zoomIn.oninput = () => { f.z = clamp(Number(zoomIn.value), zMin, 4); layout(); };
+    stage.addEventListener('wheel', (e) => { e.preventDefault(); f.z = clamp(f.z * Math.exp(-e.deltaY * 0.0015), zMin, 4); layout(); }, { passive: false });
     stage.addEventListener('pointerdown', (e) => {
       if (!W) return;
       e.preventDefault();
@@ -1816,9 +1858,9 @@ function openFrameEditor() {
       let px = e.clientX, py = e.clientY;
       const move = (ev) => {
         const S = stage.clientWidth, k = (S / Math.min(W, H)) * f.z;
-        const sx = W * k - S, sy = H * k - S; // quanto a imagem sobra para cada lado
-        if (sx > 0.5) f.x = clamp(f.x - (ev.clientX - px) / sx, 0, 1);
-        if (sy > 0.5) f.y = clamp(f.y - (ev.clientY - py) / sy, 0, 1);
+        const sx = S - W * k, sy = S - H * k; // folga em cada sentido (negativa quando a imagem é maior que o quadro)
+        if (Math.abs(sx) > 0.5) f.x = clamp(f.x + (ev.clientX - px) / sx, 0, 1);
+        if (Math.abs(sy) > 0.5) f.y = clamp(f.y + (ev.clientY - py) / sy, 0, 1);
         px = ev.clientX; py = ev.clientY;
         layout();
       };
@@ -1828,6 +1870,7 @@ function openFrameEditor() {
       stage.addEventListener('pointercancel', up, { once: true });
     });
     $('#frReset', b).onclick = () => { Object.assign(f, FRAME0); layout(); };
+    $('#frFit', b).onclick = () => { Object.assign(f, { z: zMin, x: 0.5, y: 0.5 }); layout(); };
     $('#frOk', b).onclick = () => {
       frame = { z: Math.round(f.z * 1000) / 1000, x: Math.round(f.x * 1000) / 1000, y: Math.round(f.y * 1000) / 1000 };
       if (frame.z === 1 && Math.abs(frame.x - 0.5) < 0.005 && Math.abs(frame.y - 0.5) < 0.005) frame = { ...FRAME0 };

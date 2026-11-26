@@ -177,7 +177,14 @@ A aba usada fica lembrada para a próxima vez.
 
 #### 🔍 Enquadrar (zoom e posição)
 
-Embaixo da prévia, o botão **🔍 Enquadrar** mostra o quadro inteiro atrás de uma moldura quadrada. **Arraste** a imagem para escolher o que aparece e **dê zoom** (até 4x) pela barra ou pela rodinha do mouse. **↺ Centralizar** volta ao padrão. Funciona no **Stick** (recorte quadrado) e no **Audio Stick** com imagem, em foto, GIF e vídeo. O botão passa a mostrar o zoom escolhido (ex.: *Enquadrado (2.0x)*), que vale até você trocar de mídia.
+O botão **🔍 Enquadrar** fica no canto do vídeo (e embaixo da prévia). Ele abre o vídeo atrás de uma moldura quadrada:
+
+- **Arraste** para escolher o que aparece e use o **zoom** pela barra ou pela rodinha do mouse: até **4x** para aproximar, ou **abaixo de 1x** para afastar. Afastado, sobra espaço no quadrado, e essa sobra fica **transparente** (aparece quadriculada).
+- Em **vídeo**, o trecho marcado **toca em loop** dentro da moldura, para você ver se algo sai do quadro.
+- **⬚ Caber inteiro** afasta até o vídeo inteiro caber; **↺ Centralizar** volta ao padrão.
+- Vídeo horizontal no zoom 1x já usa a altura toda, então não dá para subir ou descer: aproxime ou afaste o zoom.
+
+**Moldura em cima do vídeo:** enquanto você assiste ou marca o trecho, o player mostra o quadrado que vai virar figurinha, com o resto escurecido. No YouTube a moldura não aparece em cima do player (ele não informa o tamanho do vídeo), mas a tela de enquadrar funciona. Funciona no **Stick** (recorte quadrado) e no **Audio Stick** com imagem, em foto, GIF e vídeo. O botão passa a mostrar o zoom escolhido (ex.: *Enquadrado (2.0x)*), que vale até você trocar de mídia.
 
 #### ✂️ Tirar o fundo (estilo WhatsApp)
 
