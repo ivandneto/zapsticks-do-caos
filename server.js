@@ -93,7 +93,10 @@ async function buildVisual(s, { overlay = null } = {}) {
   return db.updateSticker(s.id, { visual: true, animated });
 }
 
-const friendlyError = (err) => /Sign in|bot/i.test(err.message) ? 'O YouTube pediu verificação para este vídeo. Tente outro ou atualize o yt-dlp (npm run setup).'
+/** O YouTube às vezes bloqueia downloads da sua internet por um tempo ("confirme que não é um robô"). */
+const isYtBlocked = (err) => /Sign in to confirm|not a bot|confirm you.re not/i.test(err?.message || '');
+const friendlyError = (err) => isYtBlocked(err) ? 'O YouTube bloqueou downloads da sua internet por um tempo (muitos seguidos). O app pode gravar o trecho enquanto ele toca, ou tente mais tarde.'
+  : /Sign in|bot/i.test(err.message) ? 'O YouTube pediu verificação para este vídeo. Tente outro ou tente mais tarde.'
   : /Private|unavailable|removed/i.test(err.message) ? 'Vídeo indisponível ou privado.'
   : `Não deu certo: ${err.message}`;
 
@@ -165,6 +168,8 @@ app.post('/api/stickers', (req, res) => {
       job.step = 'visual';
       try { job.sticker = await buildVisual(job.sticker, { overlay }); } catch (err) {
         console.error('[figurinha]', err.message);
+        // YouTube bloqueou o vídeo (o som veio do cache): desfaz e deixa a página gravar o trecho inteiro
+        if (isYtBlocked(err)) { removeSticker(job.sticker.id); job.sticker = null; throw err; }
         job.warning = 'O áudio foi criado, mas a figurinha animada falhou. Tente de novo pelo botão da figurinha.';
       }
     }
@@ -172,7 +177,7 @@ app.post('/api/stickers', (req, res) => {
   })().catch((err) => {
     console.error('[criar]', err.message);
     job.step = 'error';
-    job.error = friendlyError(err);
+    job.error = friendlyError(err); if (isYtBlocked(err)) job.code = 'yt-blocked';
   }).finally(() => dropOverlay(overlay));
 });
 
@@ -222,7 +227,7 @@ function createStick(req, res) {
   })().catch((err) => {
     console.error('[stick]', err.message);
     job.step = 'error';
-    job.error = friendlyError(err);
+    job.error = friendlyError(err); if (isYtBlocked(err)) job.code = 'yt-blocked';
   }).finally(() => dropOverlay(overlay));
 }
 
@@ -466,7 +471,7 @@ app.post('/api/stickers/:id/visual', (req, res) => {
   buildVisual(s).then((st) => { job.sticker = st; job.step = 'done'; }).catch((err) => {
     console.error('[figurinha]', err.message);
     job.step = 'error';
-    job.error = friendlyError(err);
+    job.error = friendlyError(err); if (isYtBlocked(err)) job.code = 'yt-blocked';
   });
 });
 
@@ -774,6 +779,26 @@ function openBrowser(url) {
     : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
   try { spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true }).unref(); } catch { /* sem navegador */ }
 }
+/**
+ * Abre o app. No Windows, numa janela própria do Edge (modo aplicativo, perfil separado), que já vem com a
+ * gravação da própria aba liberada: assim o "🎙️ gravar enquanto toca" funciona sem pedir permissão.
+ * Sem Edge (ou com "appWindow": false no config.json, ou NO_APP_WINDOW=1), usa o navegador padrão.
+ */
+function findEdge() {
+  if (process.platform !== 'win32') return null;
+  const dirs = [process.env['ProgramFiles(x86)'], process.env.ProgramFiles, process.env.LOCALAPPDATA].filter(Boolean);
+  return dirs.map((d) => path.join(d, 'Microsoft', 'Edge', 'Application', 'msedge.exe')).find((p) => fs.existsSync(p)) || null;
+}
+function openApp(url) {
+  const edge = !process.env.NO_APP_WINDOW && readConfig().appWindow !== false ? findEdge() : null;
+  if (!edge) return openBrowser(url);
+  const profile = path.join(process.env.LOCALAPPDATA || os.tmpdir(), 'Audio Sticks', 'janela');
+  const sep = url.includes('?') ? '&' : '?';
+  try {
+    spawn(edge, [`--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--disable-features=msEdgeSidebarV2',
+      '--auto-accept-this-tab-capture', `--app=${url}${sep}janela=1`], { detached: true, stdio: 'ignore', windowsHide: false }).unref();
+  } catch { openBrowser(url); }
+}
 const openPath = (p) => { try { spawn(process.platform === 'win32' ? 'explorer' : 'xdg-open', [p], { detached: true, stdio: 'ignore' }).unref(); } catch { /* ok */ } };
 
 // No executável não há janela de terminal: o registro vai para data/sticks.log
@@ -905,13 +930,13 @@ async function main() {
   // Clicou no .exe com o app já rodando? Só abre o navegador.
   if (await isOurs(currentPort)) {
     console.log(`O Audio Sticks já está aberto em ${localUrl()}.`);
-    if (IS_EXE || process.argv.includes('--open')) openBrowser(localUrl());
+    if (IS_EXE || process.argv.includes('--open')) openApp(localUrl());
     return setTimeout(() => process.exit(0), 500);
   }
   console.log(`🔊 Audio Sticks ${pkg.version} iniciando · dados em ${DATA_DIR}${PORTABLE ? ' (modo portátil)' : ''}`);
 
   tray = IS_EXE && !process.env.NO_TRAY ? startTray({
-    open: () => openBrowser(localUrl()),
+    open: () => openApp(localUrl()),
     folder: () => openPath(DATA_DIR),
     log: () => openPath(LOG_FILE),
     port: () => tray.askPort(currentPort),
@@ -922,7 +947,7 @@ async function main() {
       try {
         await switchPort(port);
         tray.balloon('Porta trocada', `O Audio Sticks agora está em ${localUrl()}`);
-        openBrowser(localUrl());
+        openApp(localUrl());
       } catch (err) { tray.balloon('Não deu para trocar a porta', err.message); }
     },
     github: () => openBrowser(REPO_URL),
@@ -948,7 +973,7 @@ async function main() {
       if (process.env.PORT || attempt >= 20) return fatal(err.message);
       if (await isOurs(currentPort)) {
         console.log(`O Audio Sticks já está aberto em ${localUrl()}.`);
-        if (IS_EXE || process.argv.includes('--open')) openBrowser(localUrl());
+        if (IS_EXE || process.argv.includes('--open')) openApp(localUrl());
         tray?.stop();
         return setTimeout(() => process.exit(0), 500);
       }
@@ -973,7 +998,7 @@ async function main() {
     setInterval(pushTrayState, 2000); // acompanha a conexão do WhatsApp
     if (currentPort === wanted) tray.balloon('Audio Sticks está rodando', 'Clique no ícone aqui na bandeja para abrir. Para desligar: botão direito → Sair.');
   }
-  if ((IS_EXE && !process.env.NO_BROWSER) || process.argv.includes('--open')) openBrowser(localUrl());
+  if ((IS_EXE && !process.env.NO_BROWSER) || process.argv.includes('--open')) openApp(localUrl());
   if (wa.hasSession()) wa.connect().catch((e) => console.error('[whatsapp]', e.message));
 }
 

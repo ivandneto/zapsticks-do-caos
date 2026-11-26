@@ -289,6 +289,8 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 | `APP_PASSWORD` | Liga a senha (Basic Auth) |
 | `YTDLP_PATH`, `FFMPEG_PATH` | Usa binários específicos |
 | `NO_BROWSER` | Executável não abre o navegador ao iniciar |
+| `SIMULATE_YT_BLOCK` | Só para testes: finge que o YouTube bloqueou os downloads (testa o "gravar enquanto toca") |
+| `NO_APP_WINDOW` | Abre no navegador padrão em vez da janela própria do Edge (o mesmo que `"appWindow": false` no `config.json`) |
 | `NO_TRAY` | Executável sem ícone de bandeja (testes) |
 | `BUILD_OUT` | `build:exe` gera noutra pasta (testes) |
 
@@ -347,11 +349,21 @@ O nome mudou de **Sticks Audio** para **Audio Sticks**. Compatibilidades mantida
 - a importação aceita `manifest.app` igual a `audio-sticks` ou `sticks-audio`;
 - as chaves `sticks.*` do localStorage e as variáveis internas `STICKS_*` da bandeja continuaram iguais.
 
+## 🎙️ Gravar enquanto toca (redundância do YouTube)
+
+- **Detecção:** `isYtBlocked(err)` (`Sign in to confirm` / `not a bot`) em `server.js`. Os trabalhos de criação gravam `job.code = 'yt-blocked'` junto com a mensagem. No Audio Stick, se o **som** veio do cache e só a **imagem** foi bloqueada, a figurinha recém-criada é apagada e o erro sobe, para a página gravar o trecho inteiro.
+- **Janela própria** (`openApp`): no Windows, o .exe abre `msedge.exe --user-data-dir=%LOCALAPPDATA%\Audio Sticks\janela --auto-accept-this-tab-capture --app=<url>?janela=1`. A flag faz o `getDisplayMedia({preferCurrentTab: true})` ser aceito **sem diálogo e sem gesto do usuário** (testado no Edge 158). O perfil separado garante um processo novo, para a flag valer. Sem Edge, `"appWindow": false` ou `NO_APP_WINDOW`, cai em `openBrowser`. O GitHub continua no navegador padrão.
+- **Página** (`recordYtSegment` / `recordAndRetry` em `app.js`): `IN_APP_WINDOW` vem do `?janela=1` e fica em `sessionStorage` (o endereço perde os parâmetros). Fora da janela, um `confirmBox` dá o gesto do usuário que o navegador exige. A gravação usa um **segundo player** (`makeRecordingPlayer`) por cima do principal, com `controls: 0`, sem legenda (`unloadModule('captions')`) e uma capa invisível que bloqueia o mouse: `getDisplayMedia` → `cropTo(CropTarget.fromElement(.rec-holder))` → `MediaRecorder` (`webm` vp9/vp8 + opus).
+- **Aquecimento:** mesmo sem controles, o YouTube mostra título, logo e o ícone de pausa nos primeiros ~4 s depois do play, e de novo a cada `seekTo`. Por isso o player toca a partir de `início − 4,6 s` **sem gravar** e chega ao início **tocando direto**. Perto do começo do vídeo, o aquecimento usa câmera lenta (`setPlaybackRate` 0,25–0,75) para durar o bastante. Só então o `MediaRecorder` começa. Um laço de 40 ms anota em que ponto da gravação o vídeo passou pelo início (`offset`, + 0,065 s de atraso de captura medido) e para em `fim + 0,25 s`. Testado: o som cai a ~0,02 s do trecho certo (correlação com o áudio original).
+- **Limite:** um trecho que começa no primeiro ~1,5 s do vídeo não tem como aquecer, e o título do YouTube aparece no início da gravação.
+- **Depois:** o `.webm` vai por `uploadSourceFile` (`addUpload` regrava com `-c copy` quando o `MediaRecorder` não grava a duração), vira a origem, a seleção passa a ser `offset … offset + duração`, o nome, o emoji e o texto são mantidos (`keepTextOv`), e a página clica em **Criar** de novo. `ytBlockedUntil` (30 min) faz os próximos **Criar** do YouTube irem direto para a gravação.
+- **Limites:** tempo real, a qualidade do player, só no computador (Edge/Chrome). Minimizar a janela pode congelar a imagem.
+
 ## Limitações conhecidas
 
 - A figurinha com som é experimental (formato montado à mão).
 - O recorte de fundo depende de baixar a IA (~22 MB) na primeira vez; no vídeo/GIF, só pessoas; bordas finas (cabelo) podem serrilhar.
 - A conexão com o WhatsApp não é oficial, e há risco de bloqueio em envios em massa para terceiros.
 - `.wastickers` não carrega som (limitação do formato).
-- Baixar do YouTube e de outros sites depende do yt-dlp estar atualizado. Posts privados ou que exigem login não são baixados.
+- Baixar do YouTube e de outros sites depende do yt-dlp estar atualizado. Posts privados ou que exigem login não são baixados. Quando o YouTube bloqueia a sua internet, a redundância "gravar enquanto toca" cobre o YouTube (não os outros sites).
 - Arquivos enviados só ficam no cache enquanto estiverem entre as 25 origens mais recentes. Depois disso, não dá para regerar a animação de uma figurinha feita a partir deles.

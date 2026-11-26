@@ -1,4 +1,10 @@
 // ============ utilidades ============
+// Aberto na janela própria do app (Edge aberto pelo .exe com ?janela=1): a gravação da aba já vem liberada.
+// Guardado na sessão, porque o endereço perde os parâmetros depois de aberto.
+const IN_APP_WINDOW = (() => {
+  try { if (new URLSearchParams(location.search).has('janela')) sessionStorage.setItem('sticks.janela', '1'); return sessionStorage.getItem('sticks.janela') === '1'; }
+  catch { return new URLSearchParams(location.search).has('janela'); }
+})();
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -723,6 +729,7 @@ $('#gainSeg').addEventListener('click', (e) => { const b = e.target.closest('but
 // ============ criar ============
 $('#createBtn').onclick = async () => {
   if (creating || !vid.kind) return;
+  if (isYT() && Date.now() < ytBlockedUntil && canRecord()) return recordAndRetry();
   stopPreview();
   creating = true; render();
   const prog = $('#progress'); prog.hidden = false;
@@ -753,7 +760,7 @@ $('#createBtn').onclick = async () => {
       show(job.step);
       if (job.step === 'done' || job.step === 'error') break;
     }
-    if (job.error) throw new Error(job.error);
+    if (job.error) throw Object.assign(new Error(job.error), { code: job.code });
     if (job.warning) toast(job.warning, 'err');
     show('done');
     const r = $('#createBtn').getBoundingClientRect();
@@ -766,12 +773,169 @@ $('#createBtn').onclick = async () => {
     $('#tags').value = '';
     setTimeout(() => { prog.hidden = true; }, 1500);
   } catch (err) {
-    toast(err.message, 'err');
     prog.hidden = true;
+    // 🎙️ redundância: o YouTube bloqueou o download → grava o trecho tocando no player e cria de novo
+    if (err.code === 'yt-blocked' && isYT() && canRecord()) {
+      ytBlockedUntil = Date.now() + 30 * 60 * 1000;
+      setTimeout(recordAndRetry, 0);
+    } else toast(err.message, 'err');
   } finally {
     creating = false; render();
   }
 };
+
+// ============ 🎙️ gravar enquanto toca (quando o YouTube bloqueia o download) ============
+// Na janela própria do app (Edge aberto pelo .exe com ?janela=1), a gravação da própria aba já vem liberada:
+// tudo acontece sozinho. Num navegador comum, ele pede para compartilhar a aba (regra do navegador).
+let ytBlockedUntil = 0;
+const canRecord = () => !!navigator.mediaDevices?.getDisplayMedia && 'MediaRecorder' in window && playerReady && !embedBlocked;
+
+/**
+ * Player só para a gravação, por cima do principal: sem controles, sem legenda, sem título e com uma "capa"
+ * invisível que impede o mouse de fazer os botões aparecerem. Removido no fim.
+ */
+async function makeRecordingPlayer(box, start) {
+  const holder = document.createElement('div');
+  holder.className = 'rec-holder';
+  holder.innerHTML = '<div id="recPlayer"></div><div class="rec-shield"><span>🎙️ Gravando…</span></div>';
+  box.append(holder);
+  try {
+    const rp = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('O player de gravação não carregou. Tente de novo.')), 20000);
+      const p = new YT.Player('recPlayer', {
+        videoId: vid.id, width: '100%', height: '100%',
+        playerVars: { controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, iv_load_policy: 3, cc_load_policy: 0, playsinline: 1, start: Math.floor(start) },
+        events: {
+          onReady: () => { clearTimeout(timer); resolve(p); },
+          onError: () => { clearTimeout(timer); reject(new Error('O YouTube não deixou tocar esse vídeo para gravar.')); },
+          // legenda automática: desliga sempre que o player tentar ligar
+          onStateChange: () => { try { p.unloadModule('captions'); p.unloadModule('cc'); } catch { /* ok */ } },
+        },
+      });
+    });
+    return { rp, holder };
+  } catch (err) { holder.remove(); throw err; }
+}
+
+/** Toca o trecho marcado no YouTube e grava imagem + som da própria aba (só a área do player). */
+async function recordYtSegment(onMsg = () => {}) {
+  const start = sel.start, end = sel.end, len = end - start;
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: 30 }, audio: { suppressLocalAudioPlayback: false },
+    preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude', systemAudio: 'exclude',
+  });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  let rp = null, holder = null;
+  try {
+    const [vt] = stream.getVideoTracks();
+    if (!stream.getAudioTracks().length) throw new Error('A gravação veio sem som. Escolha “Esta aba” e deixe “Compartilhar o áudio da aba” ligado.');
+    const box = $('#ytBox');
+    box.scrollIntoView({ block: 'center' });
+    stopPreview();
+    try { player.pauseVideo(); } catch { /* ok */ }
+    // AQUECIMENTO: o YouTube mostra título, logo e botões nos primeiros ~4 s depois de dar play, mesmo sem
+    // controles. Toca antes do trecho, sem gravar, até isso sumir; depois volta um pouco e só então grava.
+    const WARM = 4.6;
+    const pre = 0.4;
+    onMsg('🎙️ Preparando a gravação…');
+    ({ rp, holder } = await makeRecordingPlayer(box, Math.max(0, start - WARM)));
+    // recorta só o player (Edge/Chrome); sem isso, grava a aba e o servidor usa assim mesmo
+    if ('CropTarget' in window && vt.cropTo) { try { await vt.cropTo(await CropTarget.fromElement(holder)); } catch { /* grava a aba inteira */ } }
+    const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5e6, audioBitsPerSecond: 192000 });
+    const parts = [];
+    rec.ondataavailable = (e) => { if (e.data.size) parts.push(e.data); };
+    try { rp.unMute(); rp.setVolume(100); } catch { /* ok */ }
+    // Voltar (seek) faz a interface reaparecer. Então o aquecimento chega no início do trecho tocando direto:
+    // no meio do vídeo, em velocidade normal; perto do começo, em câmera lenta (0,25x a 0,75x).
+    const from = Math.max(0, start - WARM);
+    const target = Math.max(from, start - pre);
+    const need = WARM - 0.4; // segundos de relógio até a interface sumir
+    const rates = (rp.getAvailablePlaybackRates?.() || [0.25, 0.5, 0.75, 1]).filter((r) => r <= 1).sort((a, b) => a - b);
+    const rate = [...rates].reverse().find((r) => (target - from) / r >= need) ?? rates[0] ?? 1;
+    rp.seekTo(from, true);
+    if (rate !== 1) { try { rp.setPlaybackRate(rate); } catch { /* ok */ } }
+    rp.playVideo();
+    const warmLimit = performance.now() + 30000;
+    let playingSince = null;
+    while (performance.now() < warmLimit) {
+      const cur = rp.getCurrentTime() || 0;
+      if (rp.getPlayerState?.() === 1) {
+        playingSince ??= performance.now();
+        const enough = performance.now() - playingSince >= need * 1000;
+        if (cur >= target - 0.05 * rate && (enough || rate === rates[0])) break;
+      }
+      await wait(20);
+    }
+    if (playingSince === null) throw new Error('O vídeo não começou a tocar. Confira se ele toca aqui na tela e tente de novo.');
+    if (rate !== 1) { try { rp.setPlaybackRate(1); } catch { /* ok */ } }
+    // trecho colado no começo do vídeo (nem a câmera lenta deu tempo): volta, e a interface pode aparecer no início
+    if ((rp.getCurrentTime() || 0) > start) { rp.seekTo(Math.max(0, start - pre), true); await wait(350); }
+    onMsg('🎙️ Gravando o trecho…');
+    rec.start(250);
+    const t0 = performance.now();
+    let offset = null;
+    const deadline = t0 + (len + pre + 20) * 1000;
+    await new Promise((resolve, reject) => {
+      const step = () => {
+        const cur = rp.getCurrentTime() || 0;
+        const el = (performance.now() - t0) / 1000;
+        // momento (na gravação) em que o vídeo passou pelo início do trecho
+        // (+0,065 s: atraso medido da captura em relação ao relógio do player)
+        if (offset === null && rp.getPlayerState?.() === 1 && cur >= start) offset = Math.max(0, el - (cur - start) + 0.065);
+        if (offset !== null) onMsg(`Gravando o trecho… ${Math.max(0, end - cur).toFixed(1)}s`);
+        if (cur >= end + 0.25) return resolve();
+        if (performance.now() > deadline) return reject(new Error('O vídeo não tocou até o fim do trecho. Confira se ele toca aqui na tela e tente de novo.'));
+        setTimeout(step, 40);
+      };
+      step();
+    });
+    rp.pauseVideo();
+    await new Promise((r) => { rec.onstop = r; rec.stop(); });
+    return { blob: new Blob(parts, { type: 'video/webm' }), offset: offset ?? 0 };
+  } finally {
+    stream.getTracks().forEach((t) => t.stop());
+    try { rp?.destroy(); } catch { /* ok */ }
+    holder?.remove();
+  }
+}
+
+/** Grava o trecho, transforma a gravação na mídia carregada e clica em Criar de novo (mesmo nome, emoji e texto). */
+async function recordAndRetry() {
+  if (creating || !isYT()) return;
+  if (!IN_APP_WINDOW && !(await confirmBox('🎙️ Gravar enquanto toca?',
+    'O YouTube bloqueou os downloads por um tempo. O app pode tocar o trecho e gravar a imagem e o som direto do player. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe o áudio ligado.',
+    'Gravar o trecho'))) return;
+  const keep = { title: $('#title').value, auto: $('#title').dataset.auto, len: sel.end - sel.start, name: vid.title || 'YouTube' };
+  const prog = $('#progress');
+  const li = $('li[data-step="visual"]', prog);
+  prog.hidden = false;
+  for (const x of $$('li', prog)) { x.hidden = x !== li; x.className = x === li ? 'active' : ''; }
+  const msg = (t) => { li.textContent = t; };
+  msg('🎙️ O YouTube bloqueou o download: gravando o trecho enquanto toca…');
+  creating = true; render();
+  let ok = false;
+  try {
+    const { blob, offset } = await recordYtSegment(msg);
+    msg('Preparando a gravação…');
+    const source = await uploadSourceFile(new File([blob], `${keep.name.slice(0, 60)} (gravado).webm`, { type: 'video/webm' }));
+    keepTextOv = true;
+    openSource(source);
+    html5.pause();
+    sel.start = Math.round(offset * 100) / 100;
+    sel.end = Math.min(source.duration, Math.round((offset + keep.len) * 100) / 100);
+    $('#title').value = keep.title;
+    if (keep.auto) $('#title').dataset.auto = '1'; else delete $('#title').dataset.auto;
+    recenter(); render();
+    ok = true;
+  } catch (err) {
+    toast(err.name === 'NotAllowedError' ? 'A gravação não foi permitida. Tente de novo e escolha “Esta aba”.' : err.message, 'err');
+  } finally {
+    prog.hidden = true;
+    creating = false; render();
+  }
+  if (ok) { toast('Gravado! Criando a figurinha 🎙️', 'ok'); $('#createBtn').click(); }
+}
 
 function showCreated(s) {
   if (!s.hasAudio) {
@@ -1883,6 +2047,7 @@ const HELP_TABS = {
       <details><summary>Como escrevo na figurinha?</summary><p>No passo 3, embaixo da prévia, clique em <b>🔤 Texto e emoji</b>. Use <b>＋ Texto</b>, <b>＋ Emoji</b> ou <b>Meme clássico</b>, arraste no quadro para posicionar e clique em <b>Usar</b>. O texto aparece na prévia e fica fixo por cima da animação inteira. Ele vale até você trocar de vídeo ou foto.</p></details>
       <details><summary>Por que o nome (ou a legenda) não aparece no WhatsApp?</summary><p>Figurinha <b>não tem legenda</b> no WhatsApp, nem quando vem de um GIF. O app grava o <b>nome</b> e o <b>emoji</b> dentro da figurinha: quem recebe vê ao <b>tocar nela</b> no celular (o nome aparece como nome do pacote, e o autor como "Audio Sticks"). Para ler na conversa, escreva o texto <b>na imagem</b> com <b>🔤 Texto e emoji</b>.</p></details>
       <details><summary>Dá para colar uma imagem sem salvar?</summary><p>Dá. Copie a imagem (botão direito → <b>Copiar imagem</b>, ou um print) e aperte <b>Ctrl+V</b> no app. Também dá para <b>arrastar</b> uma imagem direto de outra página. Na <b>Combinação Caótica</b>, passe o mouse na caixa (Imagem ou Som) antes de colar, ou arraste para ela. Para GIF <b>animado</b>, arraste o GIF ou cole o <b>link</b> dele: ao copiar a imagem, o navegador só guarda o primeiro quadro.</p></details>
+      <details><summary>Apareceu "O YouTube bloqueou downloads". E agora?</summary><p>É temporário: o YouTube bloqueia a sua internet por algumas horas depois de muitos downloads seguidos. O app não para: ele <b>toca o trecho e grava enquanto toca</b>, e cria a figurinha assim mesmo, com o mesmo nome, emoji e texto. Na janela do app (a que o .exe abre) isso é automático. Num navegador comum, ele pergunta antes: escolha <b>"Esta aba"</b> e deixe o <b>áudio</b> ligado.</p></details>
       <details><summary>Qual o tempo máximo?</summary><p>Figurinha <b>animada</b>: até <b>10s</b>. Figurinha com som: até <b>5s</b> de som se for animada e até <b>10s</b> se for parada (regras do WhatsApp). Áudio (mensagem de voz): até 60s.</p></details>
       <details><summary>O app vai acumulando arquivos?</summary><p>Não muito: vídeos baixados ou enviados ficam num cache que se limpa sozinho (no máximo 25 e nada com mais de 7 dias), e dá para limpar tudo em <b>⚙ Configurações → Limpar cache</b>. Na Combinação Caótica, as peças criadas só para ela podem ser apagadas automaticamente.</p></details>
       <details><summary>Quais sites funcionam?</summary><p>Além do YouTube: Instagram, TikTok, X/Twitter, Facebook, Kwai, Reddit, Twitch, SoundCloud, Dailymotion e centenas de outros (tudo que o <b>yt-dlp</b> suporta). Conteúdo privado, de “melhores amigos” ou que exige login não dá — nesse caso, salve o vídeo no celular/PC e use <b>📁 Arquivo</b>.</p></details>

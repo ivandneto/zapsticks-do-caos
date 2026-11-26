@@ -31,13 +31,14 @@ Transforme qualquer trecho de vídeo (**YouTube, Instagram, TikTok, X, Facebook�
 
 1. Descompacte o `Audio-Sticks-<versão>-win32-x64.zip` em qualquer pasta.
 2. Dê dois cliques em **`Audio Sticks.exe`**.
-3. O navegador abre sozinho, e o app fica como um **ícone na bandeja**, perto do relógio (pode estar escondido na setinha **^**).
+3. O app abre sozinho numa **janela própria** (do Edge, sem abas, como um aplicativo), e fica como um **ícone na bandeja**, perto do relógio (pode estar escondido na setinha **^**).
 
 Sobre o executável:
 - Não precisa instalar Node, ffmpeg nem nada.
 - **Na primeira vez**, ele baixa as ferramentas de áudio (cerca de 200 MB). Precisa de internet e leva alguns minutos, e um balão avisa quando está preparando.
 - Se o Windows mostrar *"O Windows protegeu o computador"*, clique em **Mais informações → Executar assim mesmo**. O aviso aparece porque o programa não tem assinatura digital, que é paga.
-- Abrir o `.exe` de novo com o app já rodando só abre o navegador. Não duplica.
+- Abrir o `.exe` de novo com o app já rodando só abre a janela. Não duplica.
+- **Por que uma janela própria?** Ela já vem com a gravação da própria tela liberada, que é o que faz o [🎙️ gravar enquanto toca](#-quando-o-youtube-bloqueia-gravar-enquanto-toca) funcionar sem pedir permissão. Ela usa um perfil separado do seu Edge (sem seus favoritos e logins). Sem o Edge, o app abre no navegador padrão. Para usar sempre o navegador padrão, ponha `"appWindow": false` no `config.json` da pasta de dados.
 - Para atualizar de versão, apague a pasta antiga e descompacte a nova. **Suas figurinhas não ficam na pasta do programa** (veja a [seção 8](#8-guardar-compartilhar-e-levar-para-outro-pc)), então nada se perde.
 
 ### Opção B: pelo código (para desenvolver)
@@ -74,7 +75,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 | Parte | O que faz |
 |---|---|
-| **Versão** (ao lado do logo, ex.: `v1.2.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
+| **Versão** (ao lado do logo, ex.: `v1.3.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
@@ -134,6 +135,22 @@ A aba usada fica lembrada para a próxima vez.
 | **Link direto de imagem ou GIF** | Links do **Giphy** (`media.giphy.com/…`), do **Tenor** ou terminados em `.gif`, `.webp`, `.png`, `.jpg`: o app baixa a imagem e trata como arquivo. |
 
 - Posts **privados**, de "melhores amigos" ou que **exigem login** não podem ser baixados. Salve o vídeo no PC e use **Arquivo**.
+
+#### 🎙️ Quando o YouTube bloqueia: gravar enquanto toca
+
+Às vezes o YouTube **bloqueia downloads da sua internet** por algumas horas (*"Sign in to confirm you're not a bot"*), geralmente depois de muitos downloads seguidos. Não é defeito do app nem do vídeo, e passa sozinho. Para o app **não parar**, ele tem uma redundância automática:
+
+1. Você clica em **Criar** normalmente.
+2. Se o YouTube bloquear, o app **toca o trecho no player e grava a imagem e o som** direto da tela (só a área do vídeo).
+3. A gravação vira a mídia carregada (*"… (gravado)"*), e a figurinha é criada sozinha, com o **mesmo nome, emoji, pacotes e texto**.
+4. Por 30 minutos, o app já vai **direto para a gravação**, sem tentar baixar de novo.
+
+- Na **janela própria do app** (a que o `.exe` abre), tudo acontece **sem pedir nada**.
+- Num **navegador comum**, ele pergunta antes, e o navegador pede para compartilhar a tela: escolha **"Esta aba"** e deixe **"Compartilhar o áudio da aba"** ligado.
+- O trecho toca em **tempo real** (um trecho de 5s leva uns 5s para gravar), e você ouve enquanto grava. Não minimize a janela durante a gravação.
+- Antes de gravar, o player toca uns segundos **sem gravar** (às vezes em câmera lenta). É para o título e os botões do YouTube sumirem da imagem. O trecho gravado fica limpo e com o som no ponto certo.
+- Trecho que começa no **primeiro segundo e meio** do vídeo pode sair com o título do YouTube no comecinho (não há vídeo antes para "aquecer").
+- A qualidade é a do player. Funciona no **Edge e no Chrome do computador**. No celular, não.
 - Limite: mídias de até **1 hora** (transmissões ao vivo não são aceitas).
 - **Arquivo só de áudio** (mp3, por exemplo) vira figurinha de áudio, porque não há imagem para animar.
 - Os vídeos baixados ou enviados ficam num cache para você recortar vários trechos sem baixar de novo. Ele **se limpa sozinho**: no máximo 25 origens e **nada com mais de 7 dias**. Também dá para limpar em ⚙ Configurações.
@@ -334,7 +351,7 @@ Passar o mouse mostra a porta e o estado do WhatsApp.
 
 | Item do menu | Resultado |
 |---|---|
-| **Abrir Audio Sticks** | Abre o app no navegador |
+| **Abrir Audio Sticks** | Abre o app (na janela própria; sem o Edge, no navegador padrão) |
 | **Sobre o Audio Sticks** | Janela com a **versão**, o endereço, o status do WhatsApp, o tamanho da coleção e do cache, a pasta dos dados e o link do projeto |
 | ● **Rodando · http://localhost:3000** | Status do app e o endereço atual (clique para abrir) |
 | **WhatsApp: conectado (+55…)** | Status da conexão (clique para abrir e conectar, se precisar) |
@@ -397,13 +414,15 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | Colei um GIF e ele ficou parado | Ao **copiar a imagem**, o navegador guarda só o primeiro quadro. **Arraste** o GIF para o app ou cole o **link** dele |
 | A janela "Editar figurinha" fechava ao copiar o nome | Corrigido na 1.2.0: selecionar um texto e soltar o mouse fora da caixa não fecha mais a janela |
 | A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
-| Qual versão eu tenho? | Ao lado do logo (`v1.2.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
+| Qual versão eu tenho? | Ao lado do logo (`v1.3.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
 | *"Foto e GIF não têm som"* | Use a aba **🖼️ Stick** (só a figurinha) ou a **🌀 Combinação Caótica** para juntar com um som |
 | A combinação não aceita o som | Com imagem **animada**, o som pode ter até **5s**; com imagem **parada**, até **10s**. Recorte um trecho menor ou use uma foto |
 | O "Tirar o fundo" não carrega | Na primeira vez, ele baixa a IA de recorte (~22 MB) da internet. Confira a conexão e tente de novo |
 | O recorte deixou fundo ou cortou a pessoa | Mexa na **sensibilidade**; na foto, use o pincel **Apagar** / **Recuperar** ou **Tocar no que manter** |
 | A página não abre ou mostra outro site | Outro programa está na mesma porta. Use **⚙ → Trocar porta** ou, no executável, a bandeja → **Trocar porta…** |
-| *"O YouTube pediu verificação"* / não baixa | Feche e abra o app (o yt-dlp se atualiza sozinho). Pelo código: `npm run setup` |
+| *"O YouTube bloqueou downloads da sua internet"* | É temporário (algumas horas). O app **grava o trecho enquanto toca** e cria a figurinha assim mesmo ([como funciona](#-quando-o-youtube-bloqueia-gravar-enquanto-toca)). Num navegador comum, permita compartilhar **"Esta aba"** com áudio |
+| A gravação veio **sem som** | Na janela de compartilhar, escolha **"Esta aba"** e ligue **"Compartilhar o áudio da aba"**. Na janela própria do app, isso já vem certo |
+| YouTube de outro tipo de erro / não baixa | Feche e abra o app (o yt-dlp se atualiza sozinho). Pelo código: `npm run setup` |
 | Link do Instagram/TikTok dá erro | O post pode ser privado ou exigir login. Feche e abra o app (o baixador se atualiza) e tente de novo, ou salve o vídeo e use **📁 Arquivo** |
 | *"Formato não suportado"* ao enviar arquivo | Use vídeo (mp4, mov, webm, mkv…) ou áudio (mp3, m4a, wav, ogg…) |
 | O app travou ou ficou estranho | Bandeja (botão direito) → **Reiniciar**, ou ⚙ → Aplicativo → Reiniciar |
