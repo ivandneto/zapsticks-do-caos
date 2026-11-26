@@ -761,12 +761,27 @@ $('#title').addEventListener('input', () => delete $('#title').dataset.auto);
 // ============ emoji ============
 const EMOJIS = ['🔊', '😂', '🤣', '😱', '🔥', '💀', '👏', '🤡', '🥳', '😡', '😭', '🐐', '🎵', '📢', '🙄', '😎', '🤯', '👀', '🫠', '❤️', '⚽', '🍺', '🐸', '💸', '🚨'];
 let emoji = '🔊';
-$('#emojiGrid').innerHTML = EMOJIS.map((e) => `<button type="button" data-e="${e}" class="${e === emoji ? 'on' : ''}">${e}</button>`).join('');
+const EMOJI_MORE = '<button type="button" class="emo-more" data-more title="Todos os emojis, por categoria">＋</button>';
+/** Abre o seletor com todos os emojis (public/emojipicker.js), carregado só quando precisa. */
+async function pickAnyEmoji(anchor, onPick) {
+  const { openEmojiPicker } = await import('./emojipicker.js');
+  openEmojiPicker(anchor, onPick);
+}
+/** Grade rápida do Criar: o escolhido no seletor completo entra no começo, para ficar à vista. */
+function drawEmojiGrid() {
+  const list = EMOJIS.includes(emoji) ? EMOJIS : [emoji, ...EMOJIS.slice(0, -1)];
+  $('#emojiGrid').innerHTML = list.map((e) => `<button type="button" data-e="${e}" class="${e === emoji ? 'on' : ''}">${e}</button>`).join('') + EMOJI_MORE;
+}
+function selectEmoji(e) {
+  emoji = e;
+  drawEmojiGrid();
+  const now = $('#emojiNow'); now.textContent = emoji; now.classList.remove('pop'); void now.offsetWidth; now.classList.add('pop');
+}
+drawEmojiGrid();
 $('#emojiGrid').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  emoji = b.dataset.e;
-  $$('#emojiGrid button').forEach((x) => x.classList.toggle('on', x === b));
-  const now = $('#emojiNow'); now.textContent = emoji; now.classList.remove('pop'); void now.offsetWidth; now.classList.add('pop');
+  if (b.hasAttribute('data-more')) return pickAnyEmoji(b, selectEmoji);
+  selectEmoji(b.dataset.e);
 });
 $('#stickerPrev').onclick = () => (previewing ? stopPreview() : startPreview());
 
@@ -1348,7 +1363,7 @@ function editSticker(s) {
   openModal(`<h3>Editar figurinha</h3>
     <div style="display:grid;gap:12px">
       <label class="field"><span>Emoji</span><input id="eEmoji" value="${esc(s.emoji)}" maxlength="8" style="font-size:1.6rem;width:90px;text-align:center"></label>
-      <div class="emoji-grid" style="width:auto;grid-template-columns:repeat(9,1fr)">${EMOJIS.map((e) => `<button type="button" data-e="${e}">${e}</button>`).join('')}</div>
+      <div class="emoji-grid" style="width:auto;grid-template-columns:repeat(9,1fr)">${EMOJIS.map((e) => `<button type="button" data-e="${e}">${e}</button>`).join('')}${EMOJI_MORE}</div>
       <label class="field"><span>Nome</span><input id="eTitle" value="${esc(s.title)}" maxlength="80"></label>
       <label class="field"><span>Tags</span><input id="eTags" value="${esc(s.tags.join(', '))}" maxlength="120"></label>
       <div class="field"><span>Pacotes</span><div class="pack-pick" id="ePacks"></div></div>
@@ -1356,7 +1371,11 @@ function editSticker(s) {
         : s.sourceKind === 'upload' ? `<span class="dim small">📁 Arquivo · ${esc(s.videoTitle || '')} (${fmt(s.start)}–${fmt(s.end)})</span>` : ''}
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="eSave">Salvar</button></div>
     </div>`, (b) => {
-    $('.emoji-grid', b).onclick = (e) => { const x = e.target.closest('button'); if (x) $('#eEmoji', b).value = x.dataset.e; };
+    $('.emoji-grid', b).onclick = (e) => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.hasAttribute('data-more')) return pickAnyEmoji(x, (em) => { $('#eEmoji', b).value = em; });
+      $('#eEmoji', b).value = x.dataset.e;
+    };
     const sel = new Set(s.packs || []);
     packPicker($('#ePacks', b), sel, { allowNew: false });
     $('#eSave', b).onclick = async () => {
@@ -1444,12 +1463,22 @@ function newPackModal(onDone, pack = null) {
   openModal(`<h3>${pack ? 'Editar pacote' : 'Novo pacote'}</h3>
     <div style="display:grid;gap:12px">
       <label class="field"><span>Nome</span><input id="pkName" maxlength="40" placeholder="ex.: Memes, Futebol, Família" value="${esc(pack?.name || '')}"></label>
-      <div class="field"><span>Emoji</span><div class="emoji-grid" id="pkEmo" style="width:auto;grid-template-columns:repeat(8,1fr)">${PACK_EMOJIS.map((e) => `<button type="button" data-e="${e}" class="${e === emo ? 'on' : ''}">${e}</button>`).join('')}</div></div>
+      <div class="field"><span>Emoji</span><div class="emoji-grid" id="pkEmo" style="width:auto;grid-template-columns:repeat(8,1fr)">${(PACK_EMOJIS.includes(emo) ? PACK_EMOJIS : [emo, ...PACK_EMOJIS.slice(0, -1)]).map((e) => `<button type="button" data-e="${e}" class="${e === emo ? 'on' : ''}">${e}</button>`).join('')}${EMOJI_MORE}</div></div>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="pkSave">${pack ? 'Salvar' : 'Criar pacote'}</button></div>
     </div>`, (b) => {
     const name = $('#pkName', b);
     setTimeout(() => name.focus(), 50);
-    $('#pkEmo', b).onclick = (e) => { const x = e.target.closest('button'); if (!x) return; emo = x.dataset.e; $$('#pkEmo button', b).forEach((y) => y.classList.toggle('on', y === x)); };
+    $('#pkEmo', b).onclick = (e) => {
+      const x = e.target.closest('button'); if (!x) return;
+      const mark = (em) => {
+        emo = em;
+        let hit = $$('#pkEmo [data-e]', b).find((y) => y.dataset.e === em);
+        if (!hit) { hit = $('#pkEmo [data-e]', b); hit.dataset.e = em; hit.textContent = em; } // o escolhido entra no 1º lugar
+        $$('#pkEmo [data-e]', b).forEach((y) => y.classList.toggle('on', y === hit));
+      };
+      if (x.hasAttribute('data-more')) return pickAnyEmoji(x, mark);
+      mark(x.dataset.e);
+    };
     const save = async () => {
       if (!name.value.trim()) { name.focus(); return toast('Dê um nome ao pacote.', 'err'); }
       try {
@@ -2604,40 +2633,48 @@ function waitForComeback() {
 function tourSteps() {
   const editorOn = !$('#editor').hidden;
   const hasCard = !!$('#grid .sticker');
+  // tab: o passo mostra algo de uma aba; o tour troca para ela sozinho (e volta ao retroceder)
+  const C = 'create', L = 'library';
   const steps = [
-    { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas de áudio</b> e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
-    { el: '#modeTabs', emoji: '🧭', title: 'Três abas', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra. <b>📚 Biblioteca</b>: todas as suas figurinhas, os pacotes e os envios.' },
+    { emoji: '👋', title: 'Bem-vindo ao Audio Sticks!', text: 'Em 1 minuto eu te mostro como transformar <b>trechos de vídeos</b> (YouTube, Instagram, TikTok ou arquivos seus) em <b>figurinhas</b>, com ou sem som, e mandar para o WhatsApp. Use as setas do teclado ou os botões.' },
+    { el: '#modeTabs', emoji: '🧭', title: 'Três abas', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra. <b>📚 Biblioteca</b>: todas as suas figurinhas e pacotes.' },
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
-    { el: '#urlForm', emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar um vídeo do PC para cá.' },
+    { el: '#targetBtn', emoji: '🎯', title: 'Para quem enviar', text: 'Em qualquer aba: escolha <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Abre um painel do lado direito, e vale para todos os botões verdes de envio até você trocar.' },
+    { el: '#urlForm', tab: C, emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar ou colar (Ctrl+V) um vídeo, foto ou GIF.' },
   ];
   if (editorOn) {
     steps.push(
-      { el: '#zoom', emoji: '✂️', title: '2. Marque o trecho', text: 'Arraste as <b>alças amarelas</b> para o início e o fim. Arrastar o meio move o trecho inteiro. Atalhos: <b>I</b> e <b>O</b>.' },
-      { el: '#previewBtn', emoji: '▶️', title: 'Ouça antes de criar', text: 'Toca <b>só o trecho marcado</b> (ou aperte <b>espaço</b>). Ligue <b>repetir</b> para ajustar no ouvido.' },
-      { el: '.details', emoji: '🎨', title: '3. Dê a cara da figurinha', text: 'A prévia mostra como a figurinha vai ficar. Escolha <b>emoji</b>, <b>nome</b>, <b>tags</b> e em quais <b>pacotes</b> ela entra. Em <b>🔤 Texto e emoji</b>, escreva na figurinha com a fonte, a cor e a borda que quiser.' },
-      { el: '#createBtn', emoji: '✨', title: 'Criar!', text: 'Até <b>5s</b> vira <b>figurinha animada com som</b>; até <b>10s</b>, figurinha parada com som; até 60s, <b>áudio</b>. Leva poucos segundos.' },
+      { el: '#zoom', tab: C, emoji: '✂️', title: '2. Marque o trecho', text: 'Arraste as <b>alças amarelas</b> para o início e o fim. Arrastar o meio move o trecho inteiro. Atalhos: <b>I</b> e <b>O</b>. As <b>marcas tracejadas</b> mostram os limites (ex.: até onde anima com som).' },
+      { el: '#previewBtn', tab: C, emoji: '▶️', title: 'Ouça antes de criar', text: 'Toca <b>só o trecho marcado</b> (ou aperte <b>espaço</b>). Ligue <b>repetir</b> para ajustar no ouvido.' },
+      { el: '#soundField', tab: C, emoji: '🔊', title: '3. Escolha o som', text: '<b>Do vídeo</b>, <b>Sem som</b>, <b>Enviar áudio</b> ou <b>Gravar voz</b>. A tag mostra o tempo de cada um: ao escolher, o trecho vai para ele (5s ou 10s), e depois você ajusta à vontade.' },
+      { el: '#fitField', tab: C, emoji: '🖼️', title: 'Visual', text: '<b>Quadrado</b> ou <b>Inteiro</b> (fundo transparente). Em <b>🔍 Enquadrar</b>, dê zoom e escolha a parte que aparece: a <b>moldura amarela</b> em cima do vídeo mostra o que vira figurinha. Tem também <b>✂️ Tirar o fundo</b> e <b>🔤 Texto e emoji</b>.' },
+      { el: '.details', tab: C, emoji: '🎨', title: 'Dê a cara da figurinha', text: 'A prévia mostra como ela vai ficar. Escolha <b>emoji</b>, <b>nome</b>, <b>tags</b> e em quais <b>pacotes</b> ela entra.' },
+      { el: '#createBtn', tab: C, emoji: '✨', title: 'Criar!', text: 'A linha logo acima diz <b>o que vai sair</b> (figurinha animada com som, parada, sem som ou só áudio). Leva poucos segundos, e depois é só mandar pelo botão verde.' },
     );
   } else {
-    steps.push({ el: '.studio', emoji: '✂️', title: '2 e 3. Recorte e personalize', text: 'Depois de colar o link, aparecem aqui o vídeo, a <b>régua com alças amarelas</b> para marcar o trecho, a <b>prévia</b> da figurinha e o botão <b>Criar</b>.' });
+    steps.push({ el: '.studio', tab: C, emoji: '✂️', title: '2 e 3. Recorte e personalize', text: 'Depois de carregar o vídeo, aparecem aqui: à esquerda, o vídeo e a <b>régua com alças amarelas</b>; à direita, o <b>Som</b>, o <b>Visual</b> (com Enquadrar), a prévia e o botão <b>Criar</b>.' });
   }
   steps.push(
-    { el: '#targetBtn', emoji: '🎯', title: '4. Para quem enviar', text: 'Aqui em cima, em qualquer aba: escolha <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Abre um painel do lado direito, e vale para todos os botões de envio até você trocar.' },
-    { el: '.pack-side', emoji: '📦', title: 'Pacotes', text: 'Crie categorias (Memes, Futebol…) e filtre a coleção. Com um pacote aberto, aparece <b>Enviar pacote</b> para mandar todas de uma vez.' },
+    { el: '#typeSeg', tab: L, emoji: '📚', title: 'Biblioteca', text: 'Todas as suas figurinhas. Filtre por <b>Com som</b>, <b>Sem som</b> ou <b>Combo</b>, busque por nome, tag ou emoji, e veja as <b>favoritas</b>.' },
+    { el: '.pack-side', tab: L, emoji: '📦', title: 'Pacotes', text: 'Crie categorias (Memes, Futebol…) e filtre a coleção. Com um pacote aberto, aparece <b>Enviar pacote</b> para mandar todas de uma vez.' },
   );
-  if (hasCard) steps.push({ el: '#grid .sticker', emoji: '🎛️', title: 'Sua mesa de som', text: 'Toque na imagem para ouvir. <b>Verde</b> envia; <b>amarelo</b> abre as opções da figurinha com som; depois vêm favoritar, compartilhar, editar e excluir.' });
+  if (hasCard) steps.push({ el: '#grid .sticker', tab: L, emoji: '🎛️', title: 'Sua mesa de som', text: 'Toque na imagem para ouvir (ou as teclas <b>1</b> a <b>9</b>, de qualquer aba). <b>Verde</b> envia; <b>amarelo</b> abre as opções da figurinha; depois vêm favoritar, compartilhar, editar e excluir.' });
   steps.push(
     { el: '#helpBtn', emoji: '❓', title: 'Ajuda sempre à mão', text: 'Guia completo com recursos, atalhos e dúvidas frequentes.' },
     { el: '#githubBtn', emoji: '🐙', title: 'Projeto no GitHub', text: 'O código, as novidades e as versões para baixar ficam no GitHub. Deixa uma ⭐ lá!' },
     { el: '#settingsBtn', emoji: '⚙️', title: 'Configurações', text: 'Troque a <b>porta</b> se outro programa estiver usando a mesma, veja o endereço para abrir <b>no celular</b> e onde ficam seus dados.' },
     { emoji: '🎉', title: 'Pronto!', text: 'Agora é com você: cole um link e crie a sua primeira figurinha. Dá para refazer este tour no botão <b>Tour</b> lá em cima.' },
   );
-  return steps.filter((s) => !s.el || ($(s.el) && $(s.el).getClientRects().length));
+  // passos de outra aba contam mesmo escondidos agora (o tour abre a aba na hora)
+  return steps.filter((s) => !s.el || ($(s.el) && (s.tab || $(s.el).getClientRects().length)));
 }
 
 let tour = null;
 function startTour() {
   endTour();
   closeModal();
+  closeDrawer();
+  if (mode === 'library' || mode === 'combo') setMode('create'); // começa pelo Criar
   const steps = tourSteps();
   const block = document.createElement('div'); block.className = 'tour-block';
   const spot = document.createElement('div'); spot.className = 'tour-spot';
@@ -2663,6 +2700,9 @@ function go(d) {
 function showStep() {
   const { steps, i, tip } = tour;
   const st = steps[i];
+  // o passo é de outra aba? abre ela antes de destacar
+  if (st.tab === 'library' && mode !== 'library') setMode('library');
+  else if (st.tab === 'create' && (mode === 'library' || mode === 'combo')) setMode('create');
   const last = i === steps.length - 1;
   tip.innerHTML = `<div class="tt-emoji">${st.emoji}</div><h4>${st.title}</h4><p>${st.text}</p>
     <div class="tour-nav">

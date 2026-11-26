@@ -182,7 +182,7 @@ export function openTextEditor({ bg, pad = false, layers: initial = [], onDone }
       <div class="bge-group">${range('rot', 'Inclinação (°)', -45, 45)}<div class="bge-row"><button class="btn small" data-b="center">↔ Centralizar</button><button class="btn small danger-txt" data-b="del">🗑 Apagar</button></div></div>`
       : `
       <div class="bge-group">
-        <div class="tte-emojis">${EMOJIS.map((e) => `<button type="button" data-e="${e}" class="${e === l.text ? 'on' : ''}">${e}</button>`).join('')}</div>
+        <div class="tte-emojis">${EMOJIS.map((e) => `<button type="button" data-e="${e}" class="${e === l.text ? 'on' : ''}">${e}</button>`).join('')}<button type="button" class="emo-more" data-more title="Todos os emojis, por categoria">＋</button></div>
         <label class="bge-label">Ou cole qualquer emoji <input data-k="text" maxlength="16" value="${esc(l.text)}"></label>
         ${range('size', 'Tamanho', 32, 320)}
         ${range('rot', 'Inclinação (°)', -45, 45)}
@@ -202,6 +202,8 @@ export function openTextEditor({ bg, pad = false, layers: initial = [], onDone }
     const l = sel(); if (!l) return;
     const swb = e.target.closest('[data-sw]');
     if (swb) { l[swb.dataset.sw] = swb.dataset.c; renderProps(); draw(); return; }
+    const more = e.target.closest('[data-more]');
+    if (more) { import('./emojipicker.js').then(({ openEmojiPicker }) => openEmojiPicker(more, (em) => { l.text = em; renderProps(); draw(); })); return; }
     const eb = e.target.closest('[data-e]');
     if (eb) { l.text = eb.dataset.e; renderProps(); draw(); return; }
     const b = e.target.closest('[data-b]')?.dataset.b;
