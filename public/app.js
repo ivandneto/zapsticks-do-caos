@@ -38,8 +38,21 @@ function parseTime(str) {
   return parts.reduce((acc, n) => acc * 60 + n, 0);
 }
 
+// ============ motor: quem faz o trabalho pesado ============
+// 'servidor' = o app do PC (server.js), que responde em /api e /media. 'navegador' = a versão web, em que um motor
+// carregado na própria página faz tudo (cortar, gerar a figurinha, guardar a coleção) e responde às MESMAS rotas.
+// Regra: toda conversa com o motor passa por api() (JSON), apiRaw() (resposta crua: arquivo, sem JSON) ou
+// uploadWithProgress() (envio de arquivo). Assim a tela é uma só para os dois.
+const MOTOR = { kind: 'servidor', local: null };
+// O que existe em cada motor. No servidor, tudo; no navegador, sem WhatsApp, sem baixar de links e sem porta/pasta.
+const CAPS = { whatsapp: true, linkDownload: true, settings: true, publicLink: true };
+
+/** Resposta crua do motor (para baixar arquivo, ou quando não importa o corpo). */
+function apiRaw(path, opts = {}) {
+  return MOTOR.local ? MOTOR.local.fetch(path, opts) : fetch(path, opts);
+}
 async function api(path, opts = {}) {
-  const res = await fetch(path, { ...opts, headers: opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : undefined });
+  const res = await apiRaw(path, { ...opts, headers: opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : undefined });
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) { const err = new Error(data.error || `Erro ${res.status}`); err.status = res.status; throw err; }
@@ -391,12 +404,13 @@ async function loadImageUrl(url) {
 async function imageUrlToFile(url) {
   const r = await api('/api/sources/image-url', { method: 'POST', body: JSON.stringify({ url }) });
   if (!r.image) return null;
-  const blob = await (await fetch(`/api/sources/image-url/${r.id}`)).blob();
+  const blob = await (await apiRaw(`/api/sources/image-url/${r.id}`)).blob();
   return new File([blob], r.name, { type: r.type });
 }
 const looksLikeImageUrl = (u) => /\.(gif|webp|png|jpe?g|bmp)(\?|#|$)/i.test(u) || /(^|\.)((media\d*|i)\.giphy\.com|media\d*\.tenor\.com|c\.tenor\.com)\//i.test(u.replace(/^https?:\/\//, ''));
 
 function uploadWithProgress(url, body, onProgress) {
+  if (MOTOR.local) return MOTOR.local.upload(url, body, onProgress);
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open('POST', url);
@@ -1292,7 +1306,7 @@ function playSticker(id) {
     imgs.forEach((img) => { img.addEventListener('load', start, { once: true }); img.src = fresh; });
     setTimeout(start, 500); // se a imagem demorar, não segura o som
   }
-  fetch(`/api/stickers/${id}/play`, { method: 'POST' }).catch(() => {});
+  apiRaw(`/api/stickers/${id}/play`, { method: 'POST' }).catch(() => {});
 }
 function clearPlaying() { $$('.sticker.playing').forEach((x) => { x.classList.remove('playing'); $('.prog', x).style.clipPath = ''; }); playingId = null; }
 audio.addEventListener('ended', clearPlaying);
@@ -1335,7 +1349,7 @@ async function shareSticker(id) {
   let file = null;
   if (navigator.canShare) {
     try {
-      const blob = await (await fetch(`/media/${id}.ogg`)).blob();
+      const blob = await (await apiRaw(`/media/${id}.ogg`)).blob();
       const f = new File([blob], `${(s.title || 'figurinha').replace(/[^\p{L}\p{N} _-]/gu, '')}.ogg`, { type: 'audio/ogg' });
       if (navigator.canShare({ files: [f] })) file = f;
     } catch { /* sem suporte */ }
@@ -1861,7 +1875,7 @@ async function uploadTextOverlay() {
   if (!textOv.blob) return undefined;
   const fd = new FormData();
   fd.append('overlay', textOv.blob, 'texto.png');
-  const r = await fetch('/api/overlays', { method: 'POST', body: fd });
+  const r = await apiRaw('/api/overlays', { method: 'POST', body: fd });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || 'Não consegui enviar o texto da figurinha.');
   return data.id;
@@ -2621,7 +2635,7 @@ function waitForComeback() {
   const started = Date.now();
   const tryPing = async () => {
     try {
-      const r = await fetch('/api/ping', { cache: 'no-store' });
+      const r = await apiRaw('/api/ping', { cache: 'no-store' });
       if (r.ok && Date.now() - started > 1500) return location.reload();
     } catch { /* ainda reiniciando */ }
     if (Date.now() - started < 60000) setTimeout(tryPing, 1000);
