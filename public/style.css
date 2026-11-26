@@ -703,3 +703,13 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .drawer.open .drawer-box { transform: none; }
 .drawer-x { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--panel2); font-size: 20px; line-height: 1; }
 .drawer-body h3 { font: 800 1.3rem var(--display); margin: 0 0 6px; padding-right: 36px; }
+
+/* limites no campo Som e na régua */
+.sound-seg button { display: inline-flex; align-items: center; gap: 6px; }
+.s-tag { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: .7rem; font-weight: 800; background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--dim); }
+.sound-seg button.on .s-tag { background: var(--accent); color: var(--accent-ink); }
+.z-limits { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.z-limit { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed color-mix(in srgb, var(--text) 45%, transparent); }
+.z-limit b { position: absolute; bottom: 3px; left: 4px; white-space: nowrap; font-size: .66rem; font-weight: 700; color: var(--dim); background: var(--panel); padding: 0 4px; border-radius: 6px; }
+.z-limit.over { border-left-color: color-mix(in srgb, var(--danger) 70%, transparent); }
+.z-limit.over b { color: var(--danger); }

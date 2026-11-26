@@ -139,6 +139,8 @@ const html5 = $('#html5');
 // kind: 'youtube' (toca direto do YouTube) | 'source' (link de outro site ou arquivo, servido pelo app)
 const vid = { kind: null, id: null, url: '', title: '', duration: 0, sourceId: null, hasVideo: true, hasAudio: true, media: 'video', site: '' };
 const sel = { start: 0, end: 5 };
+// o trecho foi ajustado à mão? Se não, trocar o Som leva o trecho ao tamanho ideal daquela opção
+let selTouched = false;
 let previewing = false;
 let creating = false;
 let frameKey = null, frameT = null; // prévia da figurinha
@@ -234,7 +236,7 @@ async function loadVideo(raw) {
   // Tempo vindo no link (?t=90) vira o início sugerido
   let t0 = 0;
   try { const t = new URL(raw).searchParams.get('t'); if (t) t0 = parseTime(t.replace(/s$/, '').replace(/m/, ':')) || 0; } catch { /* ok */ }
-  sel.start = t0; sel.end = t0 + 5;
+  sel.start = t0; sel.end = t0 + 5; selTouched = false;
 
   await ytApi;
   if (!player) {
@@ -428,7 +430,8 @@ function openSource(src) {
   } else {
     showPlayer('source');
     html5.src = `/api/sources/${src.id}/media`;
-    sel.start = 0; sel.end = Math.min(mode === 'sticker' ? 3 : 5, src.duration);
+    sel.start = 0; selTouched = false;
+    sel.end = Math.min(soundKind() === 'none' ? STICK_ANIM_MAX : ANIM_SOUND_MAX, src.duration);
   }
   if (!$('#title').value || $('#title').dataset.auto) { $('#title').value = vid.title.slice(0, 50); $('#title').dataset.auto = '1'; }
   const tag = media === 'image' ? ' (foto)' : media === 'gif' ? ' (GIF)' : !src.hasVideo ? ' (só áudio)' : !vid.hasAudio ? ' (sem som)' : '';
@@ -439,6 +442,7 @@ function openSource(src) {
 
 // ============ seleção ============
 function setSel(which, t, { keepLen = false } = {}) {
+  selTouched = true;
   const dur = vid.duration || Infinity;
   t = Math.round(clamp(t, 0, dur) * 10) / 10;
   if (which === 'start') {
@@ -488,6 +492,7 @@ function render() {
   $('.z-handle.end').style.left = X(sel.end);
   const len = sel.end - sel.start;
   MAX_LEN = mode === 'sticker' ? STICK_ANIM_MAX : AUDIO_MAX;
+  drawLimitMarks();
   const lenEl = $('.z-len');
   lenEl.textContent = `${len.toFixed(1)}s`;
   lenEl.classList.toggle('warn', len > MAX_LEN);
@@ -593,6 +598,7 @@ zoom.addEventListener('pointerdown', (e) => {
   let mode = handle ? handle.dataset.handle : onSel ? 'move' : 'seek';
   const t0 = toT(e.clientX), s0 = sel.start, e0 = sel.end;
   if (mode === 'seek') { seek(t0); return; }
+  if (mode !== 'move') selTouched = true;
   zoom.setPointerCapture(e.pointerId);
   handle?.classList.add('drag');
   let moved = false;
@@ -1977,15 +1983,53 @@ function syncSoundUI() {
       : x.dataset.s !== 'video' && audioOnly ? 'Arquivo só de áudio: vira áudio com o som dele' : '';
   });
   // peça para a combinação: o som é definido por ela (imagem = sem som; som = do vídeo)
+  const lim = stickSoundLimit();
+  $('#soundSeg [data-s="file"] .s-tag').textContent = `${lim}s`;
+  $('#soundSeg [data-s="mic"] .s-tag').textContent = `${lim}s`;
+  $('#soundSeg [data-s="none"] .s-tag').textContent = vid.media === 'image' ? 'foto' : '10s';
   $('#soundField').hidden = !!comboReturn;
   $('#soundOpts').hidden = kind === 'none';
   $('#fitField').hidden = audioOnly;
 }
 function setSound(k) {
-  if (k === 'video') { clearSwapAudio(false); setMode('audio'); }
-  else if (k === 'none') { clearSwapAudio(false); setMode('sticker'); }
+  if (k === 'video') { clearSwapAudio(false); setMode('audio'); fitSelToSound(); }
+  else if (k === 'none') { clearSwapAudio(false); setMode('sticker'); fitSelToSound(); }
   else if (k === 'file') $('#soundFile').click();
-  else openVoiceRecorder({ max: stickSoundLimit(), onDone: (file, dur) => { setSwapAudio(file, 'mic', dur); setMode('sticker'); } });
+  else openVoiceRecorder({ max: stickSoundLimit(), onDone: (file, dur) => { setSwapAudio(file, 'mic', dur); setMode('sticker'); fitSelToSound(); } });
+}
+/** O tempo da tag de cada opção do Som: é para onde o trecho vai quando ela é escolhida. */
+const soundTagTime = (k = soundKind()) => (k === 'none' ? STICK_ANIM_MAX : k === 'video' ? ANIM_SOUND_MAX : ANIM_SOUND_MAX);
+/**
+ * Escolheu uma opção do Som: o trecho vai para o tempo da tag (a partir do início marcado).
+ * Depois disso é livre: dá para encurtar ou esticar dentro do limite.
+ */
+function fitSelToSound() {
+  if (!vid.kind || isPicture() || !vid.hasVideo || !vid.duration) return;
+  const want = Math.min(soundTagTime(), vid.duration);
+  if (Math.abs(want - (sel.end - sel.start)) < 0.05) return;
+  let start = sel.start;
+  if (start + want > vid.duration) start = Math.max(0, vid.duration - want);
+  sel.start = Math.round(start * 10) / 10;
+  sel.end = Math.round((sel.start + want) * 10) / 10;
+  recenter(); render();
+}
+/** Marcas na régua: até onde anima com som, até onde fica parada com som, o máximo sem som… */
+function drawLimitMarks() {
+  let box = $('.z-limits');
+  if (!box) { box = document.createElement('div'); box.className = 'z-limits'; $('.z-inner').prepend(box); }
+  if (!vid.kind || isPicture() || mode === 'combo' || mode === 'library') { box.innerHTML = ''; return; }
+  const k = soundKind();
+  const marks = !vid.hasVideo ? [{ t: AUDIO_MAX, l: '60s máx.' }]
+    : k === 'video' ? [{ t: ANIM_SOUND_MAX, l: '5s anima' }, { t: STICKER_MAX, l: '10s parada' }, { t: AUDIO_MAX, l: '60s só áudio' }]
+    : k === 'none' ? [{ t: STICK_ANIM_MAX, l: '10s máx.' }]
+    : [{ t: ANIM_SOUND_MAX, l: '5s com som' }];
+  const span = win.b - win.a;
+  box.innerHTML = marks.map(({ t, l }) => {
+    const at = sel.start + t;
+    if (at <= win.a || at >= win.b || at > (vid.duration || Infinity) + 0.05) return '';
+    const over = sel.end - sel.start > t + 0.05;
+    return `<i class="z-limit${over ? ' over' : ''}" style="left:${((at - win.a) / span) * 100}%"><b>${l}</b></i>`;
+  }).join('');
 }
 function drawSwapAudio() {
   syncSoundUI();
@@ -2006,7 +2050,7 @@ $('#soundSeg').addEventListener('click', (e) => {
 });
 $('#soundFile').onchange = (e) => {
   const f = e.target.files[0]; e.target.value = '';
-  if (f) { setSwapAudio(f, 'file'); setMode('sticker'); }
+  if (f) { setSwapAudio(f, 'file'); setMode('sticker'); fitSelToSound(); }
 };
 $('#soundChip').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-a]'); if (!b || !swapAudio) return;
