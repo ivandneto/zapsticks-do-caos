@@ -18,7 +18,7 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 
 <br>
 
-[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.4.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.5.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
 
 <sub>Sem instalar nada: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
 
@@ -38,20 +38,29 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 ## 📸 A cara do bicho
 
 <p align="center">
-  <img src="docs/screenshots/principal.png" alt="Tela principal: estúdio de recorte à esquerda, coleção de figurinhas e pacotes à direita" width="100%">
+  <img src="docs/screenshots/principal.png" alt="Aba Criar: o vídeo com a moldura da figurinha e a régua do trecho à esquerda; Som, Visual, prévia e o botão Criar à direita" width="100%">
 </p>
+<p align="center"><sub><b>🎬 Criar</b>: vídeo e trecho de um lado, som, visual e o botão Criar do outro. A moldura amarela mostra o que vira figurinha.</sub></p>
 
 <table>
   <tr>
-    <td width="50%" align="center"><img src="docs/screenshots/estudio.png" alt="Estúdio: régua com alças, prévia da figurinha e botão criar"><br><sub><b>Estúdio</b>: marca o trecho, vê a prévia e cria</sub></td>
-    <td width="50%" align="center"><img src="docs/screenshots/figurinha-com-som.png" alt="Janela da figurinha com som"><br><sub><b>Figurinha com som</b>: com som, sem som, só áudio ou .mp4</sub><br><br><img src="docs/screenshots/celular.png" alt="Versão de celular" width="60%"><br><sub><b>No celular</b>: funciona no mesmo Wi-Fi</sub></td>
+    <td width="50%" align="center"><img src="docs/screenshots/enquadrar.png" alt="Enquadrar: zoom e posição, com o trecho tocando em loop dentro da moldura"><br><sub><b>🔍 Enquadrar</b>: zoom para aproximar ou afastar, arrasta para posicionar; o trecho toca em loop</sub></td>
+    <td width="50%" align="center"><img src="docs/screenshots/emojis.png" alt="Seletor com todos os emojis por categoria"><br><sub><b>😀 Todos os emojis</b>: por categoria, com busca em português, igual ao WhatsApp</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/biblioteca.png" alt="Biblioteca: figurinhas em grade, filtro por tipo e pacotes"><br><sub><b>📚 Biblioteca</b>: filtra por com som, sem som ou combo; pacotes do lado</sub></td>
+    <td align="center"><img src="docs/screenshots/enviar-para.png" alt="Painel lateral Enviar para, com contatos"><br><sub><b>🎯 Enviar para</b>: no topo, em qualquer aba; abre um painel do lado</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/screenshots/texto-emoji.png" alt="Editor de texto e emoji com meme clássico sobre a figurinha"><br><sub><b>🔤 Texto e emoji</b>: fonte de meme, cor, borda e emoji arrastável</sub></td>
-    <td align="center"><img src="docs/screenshots/combinacao.png" alt="Combinação Caótica: imagem de uma figurinha mais o som de outra"><br><sub><b>🌀 Combinação Caótica</b>: o gato com a voz do Zé Roberto. Arrasta ou cola (Ctrl+V) direto na caixa</sub></td>
+    <td align="center"><img src="docs/screenshots/combinacao.png" alt="Combinação Caótica: imagem de uma figurinha mais o som de outra"><br><sub><b>🌀 Combinação Caótica</b>: a cara de uma com a voz de outra. Arrasta, cola (Ctrl+V) ou grava a voz direto na caixa</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/tour.png" alt="Tour guiado destacando o seletor de destino"><br><sub><b>Tour guiado</b>: para quem não lê README 👀</sub></td>
+    <td align="center"><img src="docs/screenshots/figurinha-com-som.png" alt="Janela da figurinha com som"><br><sub><b>Figurinha com som</b>: com som, sem som, só áudio ou .mp4</sub></td>
+    <td align="center"><img src="docs/screenshots/celular.png" alt="Versão de celular" width="60%"><br><sub><b>No celular</b>: funciona no mesmo Wi-Fi</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/tour.png" alt="Tour guiado destacando o campo Som"><br><sub><b>Tour guiado</b>: para quem não lê README 👀</sub></td>
     <td align="center"><img src="docs/screenshots/ajuda.png" alt="Guia de ajuda"><br><sub><b>Ajuda</b>: passo a passo, recursos, atalhos e dúvidas</sub></td>
   </tr>
   <tr>
@@ -65,19 +74,20 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 |---|---|---|
 | 🔗 | **Cola o link e pronto** | YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e centenas de outros: o app baixa sozinho. |
 | 📁 | **Arquivo do PC** | Arrasta o vídeo, áudio, **foto ou GIF** (inclusive o `.webp` animado do Giphy) para a tela. Até aquele `.mov` de 2014. Ou cola o link direto do Giphy/Tenor. |
-| 🖼️ | **Stick** | Só a figurinha, sem som: de foto, GIF ou trecho de vídeo. Recortada em quadrado ou inteira com fundo transparente. |
 | 🌀 | **Combinação Caótica** | A cara de uma figurinha com a voz de outra. O gato com a risada do Faustão? Pode. Da coleção, criado na hora ou **colado com Ctrl+V** direto na caixa, e as peças temporárias se apagam sozinhas. |
-| 🎬 | **Uma tela só** | Vídeo e trecho de um lado, som, visual e o botão Criar do outro, sem ficar subindo e descendo. Escolha o som (do vídeo, nenhum, um áudio seu ou a sua voz) e o app diz o que vai sair. |
+| 🎬 | **Uma tela só** | Vídeo e trecho de um lado, som, visual e o botão Criar do outro, sem ficar subindo e descendo. Escolha o **som** (do vídeo, nenhum, um áudio seu ou a sua voz): a tag de cada opção mostra o tempo, o trecho já vai para ele, e o app diz o que vai sair. Figurinha **com ou sem som**, de vídeo, foto ou GIF, quadrada ou inteira com fundo transparente. |
 | 🔍 | **Enquadrar** | Zoom (para aproximar ou afastar) e arrastar para escolher qual parte entra no quadrado, com a moldura desenhada em cima do vídeo enquanto ele toca. Chega de cabeça cortada. |
 | 🎙️ | **Sua voz ou seu áudio** | Em vez do som do vídeo, um áudio seu ou a sua voz gravada na hora. Na Combinação, o som também pode ser gravado ali mesmo. |
 | ✂️ | **Corte cirúrgico** | Régua com zoom, alças arrastáveis, ajuste de 0,1s. Precisão de neurocirurgião, propósito de meme. |
-| 🎞️ | **Figurinha com som** | Até 5s: animada com som. De 5 a 10s: parada com som (são as regras do WhatsApp, não nossas). *(experimental: o WhatsApp lançou isso ontem, literalmente)* |
+| 🎞️ | **Figurinha com som** | Até 5s: animada com som. De 5 a 10s: parada com som (são as regras do WhatsApp, não nossas). Animação fluida mesmo dentro do limite de 500 KB do WhatsApp. *(experimental: o WhatsApp lançou isso ontem, literalmente)* |
 | ✂️ | **Tirar o fundo** | Igual ao WhatsApp: IA recorta a pessoa sozinha (até em **vídeo e GIF**, quadro a quadro), ou você toca no que quer manter. Pincel, sensibilidade e borda branca. Roda no seu navegador, nada vai para a nuvem. |
 | 🔤 | **Texto e emoji** | Escreve na figurinha com fonte de meme (Impact, Bangers, Comic Sans 🤡…), cor, borda, tamanho e inclinação, e cola emoji por cima. Tem botão "Meme clássico". Em foto, GIF e vídeo. |
+| 😀 | **Todos os emojis** | Seletor completo, por categoria e com busca em português, igual ao do WhatsApp. No emoji da figurinha, no texto, nos pacotes. |
 | 🛟 | **Nunca para** | O YouTube bloqueou os downloads ("prove que não é um robô")? O app dá play no trecho e **grava enquanto toca**, sozinho, e cria a figurinha assim mesmo. Robô, nós? |
 | 🎙️ | **Áudio com ondinha** | Chega como se você mesmo tivesse gravado. Ninguém precisa saber. |
+| 📚 | **Biblioteca** | Aba própria com todas as figurinhas. Filtra por **com som**, **sem som** ou **combo**, busca por nome, tag ou emoji, e favoritas. |
 | 📦 | **Pacotes** | Organize por categoria: 😂 Memes, ⚽ Futebol, 🙄 Indiretas pro grupo. Manda o pacote inteiro de uma vez. |
-| 🎯 | **Enviar para** | Você, um contato, um grupo ou um número digitado. Mira e dispara. |
+| 🎯 | **Enviar para** | Você, um contato, um grupo ou um número digitado. Fica no topo, em qualquer aba, e abre um painel do lado. Mira e dispara. |
 | 🎛️ | **Mesa de som** | Teclas `1` a `9` tocam as figurinhas. Ideal para reuniões on-line (não recomendamos). |
 | 🧭 | **Tour guiado** | Para quem não lê README. Tipo você, que pulou direto para esta tabela. |
 | 🖥️ | **Mora na bandeja** | No Windows vira um iconezinho perto do relógio, com bolinha de status: 🟢 conectado, 🟠 pensando, ⚪ dormindo. |
@@ -128,6 +138,7 @@ flowchart LR
 - **Página:** HTML, CSS e JS puros. Sem framework e sem build.
 - **WhatsApp:** [Baileys](https://github.com/WhiskeySockets/Baileys), conexão como um WhatsApp Web.
 - **Mídia:** [yt-dlp](https://github.com/yt-dlp/yt-dlp) + [ffmpeg](https://ffmpeg.org/), os verdadeiros heróis desta história.
+- **Emojis:** lista e nomes em português do [Emojibase](https://emojibase.dev) (MIT).
 - **Executável:** Node SEA (Single Executable Application) + esbuild, com ícone de bandeja feito em PowerShell. Sim, PowerShell. Funciona. Não pergunte.
 
 📖 Manual completo: **[LEIAME.md](LEIAME.md)** · 🔧 Documentação técnica: **[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)**

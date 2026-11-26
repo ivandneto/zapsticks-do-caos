@@ -799,7 +799,7 @@ function schedulePreview() {
   box.classList.toggle('pad', fit === 'pad');
   $('#prevCaption').textContent = !vid.kind ? '' : !vid.hasVideo ? 'Origem só de áudio: vira áudio'
     : stick ? (vid.media === 'image' ? 'Prévia · figurinha parada' : vid.media === 'gif' ? 'Prévia · GIF animado' : `Prévia · anima ${Math.min(STICK_ANIM_MAX, len).toFixed(1)}s, sem som`)
-    : isPicture() ? 'Foto/GIF: use a aba Stick' : !visual ? 'Acima de 10s: vira só áudio' : len <= ANIM_SOUND_MAX ? `Prévia · anima ${len.toFixed(1)}s com som` : 'Prévia · parada com som (5 a 10s)';
+    : isPicture() ? 'Foto/GIF: em Som, escolha outra opção' : !visual ? 'Acima de 10s: vira só áudio' : len <= ANIM_SOUND_MAX ? `Prévia · anima ${len.toFixed(1)}s com som` : 'Prévia · parada com som (5 a 10s)';
   if (!visual) return;
   const fq = cropApplies() ? frameQuery() : '';
   const key = `${vid.id || vid.sourceId}@${sel.start.toFixed(1)}@${fit}${fq}`;
@@ -1141,7 +1141,7 @@ function stickerModal(id) {
       <a class="btn" href="/media/${s.id}.mp4?download=1">${IC.dl} Baixar vídeo .mp4 (para criar no WhatsApp)</a>
       <a class="btn" href="/media/${s.id}.webp?download=1">${IC.dl} Baixar figurinha .webp</a>
       <button class="btn" id="stComboV">🌀 Usar esta imagem com outro som</button>
-      <button class="btn" id="stBgV">✂️ Tirar o fundo da imagem (cria um Stick)</button>
+      <button class="btn" id="stBgV">✂️ Tirar o fundo da imagem (cria uma cópia)</button>
       ${!tooLong ? '<button class="btn" id="stComboA">🌀 Usar este som com outra imagem</button>' : ''}
     </div>
     <details class="howto"><summary>Como montar a figurinha com som no próprio WhatsApp</summary>
@@ -2461,7 +2461,9 @@ const HELP_TABS = {
       <div class="card"><div class="t"><span>🌀</span>Combinação Caótica</div><p>Junte a <b>imagem</b> de uma figurinha com o <b>som</b> de outra (até 10s). Cada peça vem da coleção ou é criada na hora. As peças criadas só para isso podem ser apagadas depois.</p></div>
       <div class="card"><div class="t"><span>🎙️</span>Áudio (mensagem de voz)</div><p>Trechos de até <b>60s</b> viram áudio com a ondinha desenhada, como se você tivesse gravado.</p></div>
       <div class="card"><div class="t"><span>📦</span>Pacotes</div><p>Organize por categoria (Memes, Futebol…). Uma figurinha pode estar em vários. Envie o pacote inteiro de uma vez.</p></div>
-      <div class="card"><div class="t"><span>🎯</span>Enviar para</div><p>Você, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b> digitado. O destino vale para todos os botões até você trocar.</p></div>
+      <div class="card"><div class="t"><span>🎯</span>Enviar para</div><p>No topo, em qualquer aba: você, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b> digitado, num painel do lado. O destino vale para todos os botões até você trocar.</p></div>
+      <div class="card"><div class="t"><span>😀</span>Todos os emojis</div><p>O <b>＋</b> ao lado dos emojis abre todos, por categoria e com busca em português, igual ao WhatsApp.</p></div>
+      <div class="card"><div class="t"><span>📚</span>Biblioteca</div><p>Todas as figurinhas numa aba só: filtre por <b>com som</b>, <b>sem som</b> ou <b>combo</b>, busque e use os pacotes.</p></div>
       <div class="card"><div class="t"><span>🧩</span>.wastickers</div><p>Baixe um pacote no formato que apps de figurinhas (ex.: Sticker Maker) adicionam ao WhatsApp como <b>pacote de verdade</b> (sem som).</p></div>
       <div class="card"><div class="t"><span>🗂️</span>Exportar / Importar</div><p>Um <b>.zip</b> com figurinhas e pacotes para backup ou para dar a um amigo que também usa o Audio Sticks.</p></div>
       <div class="card"><div class="t"><span>🔗</span>Link da figurinha</div><p>Cada figurinha tem uma página para ouvir e baixar. Útil quando o app está exposto pelo túnel.</p></div>
@@ -2475,7 +2477,7 @@ const HELP_TABS = {
       <tr><td><kbd>espaço</kbd></td><td>Ouve só o trecho marcado (de novo para parar)</td></tr>
       <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Volta / avança 1 segundo no vídeo</td></tr>
       <tr><td><kbd>shift</kbd> + <kbd>←</kbd> <kbd>→</kbd></td><td>Ajuste fino de 0,1 segundo</td></tr>
-      <tr><td><kbd>1</kbd> … <kbd>9</kbd></td><td>Toca as primeiras figurinhas da coleção (mesa de som)</td></tr>
+      <tr><td><kbd>1</kbd> … <kbd>9</kbd></td><td>Toca as primeiras figurinhas da Biblioteca (mesa de som), de qualquer aba</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>Fecha janelas e o tour</td></tr>
       <tr><td><kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Cola uma <b>imagem copiada</b> (botão direito → Copiar imagem, ou um print), um arquivo ou um link, sem precisar salvar. Na Combinação, cai na caixa em que o mouse está</td></tr>
     </table>

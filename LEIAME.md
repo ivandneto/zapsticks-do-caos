@@ -10,7 +10,7 @@ Transforme qualquer trecho de vídeo (**YouTube, Instagram, TikTok, X, Facebook�
 
 1. [Instalar e abrir](#1-instalar-e-abrir)
 2. [A tela, parte por parte](#2-a-tela-parte-por-parte)
-3. [Criar uma figurinha](#3-criar-uma-figurinha) (🎙️ Audio Stick · 🖼️ Stick · 🌀 Combinação Caótica)
+3. [Criar uma figurinha](#3-criar-uma-figurinha) (🎬 Criar · 🌀 Combinação Caótica)
 4. [Conectar o WhatsApp](#4-conectar-o-whatsapp)
 5. [Enviar: para quem e como](#5-enviar-para-quem-e-como)
 6. [Figurinha com som](#6-figurinha-com-som)
@@ -58,35 +58,35 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ▮▮ Audio Sticks       [● +55 11 9…] [🧭 Tour] [?] [GitHub] [⚙]            │  ← topo
-├───────────────────────────────────────┬──────────────────────────────────┤
-│ 1 Cole um link ou envie um arquivo    │ Minha coleção   [Importar][Exportar]
-│ [ link…  ][Carregar][📁 Arquivo]      │ Enviar para: [Eu  Você      Trocar ▾]
-│ ┌───────────── vídeo ──────────────┐  │ [Buscar…] [Todas|★] [Recentes ▾]  │
-│ └──────────────────────────────────┘  │ ┌─────────────┐ ┌──────────────┐  │
-│ 2 Marque o trecho                     │ │ figurinha   │ │ PACOTES      │  │
-│ [====⟦████ 4.5s ████⟧=========]       │ │ ▶ onda      │ │ 🗂 Todas   12 │  │
-│ [Início aqui]   (▶)   [Fim aqui]      │ │ 🟢 🟨 ★ ⇪ ✎ 🗑│ │ 😂 Memes    5 │  │
-│ 3 Dê a cara da figurinha              │ └─────────────┘ │ ＋ Novo pacote│  │
-│ [prévia] Nome / Tags / Pacotes        │                 └──────────────┘  │
-│ [        Criar figurinha · 4.5s      ]│                                   │
-└───────────────────────────────────────┴──────────────────────────────────┘
+│ ▮▮ Audio Sticks  v1.5.0    [● +55 11 9…] [Eu Enviar para: Você ▾] [🧭] [?] [⚙]│ ← topo
+├──────────────────────────────────────────────────────────────────────────┤
+│ [ 🎬 Criar ]     [ 🌀 Combinação Caótica ]     [ 📚 Biblioteca  15 ]       │ ← abas
+├──────────────────────────────────────────────────────────────────────────┤
+│ 1 Cole um link ou envie um arquivo   [ link…            ][Carregar][📁]   │
+│ ┌────────── vídeo ───────────┐      3 Som e visual                        │
+│ │      ┌─FIGURINHA─┐  [🔍]   │      Som: [🔊 Do vídeo 5s][🔇 Sem som 10s]  │
+│ │      └───────────┘         │           [🎵 Enviar áudio 5s][🎙️ Voz 5s]  │
+│ └────────────────────────────┘      Visual: [◼ Quadrado|⬚ Inteiro] 🔍 ✂️ 🔤│
+│ 2 Marque o trecho                   [prévia] 😂🔥💀…＋                     │
+│ [===⟦████ 4.0s ████⟧ ┊5s anima ==]   Nome · Tags · Pacotes                │
+│ [Início aqui]   (▶)   [Fim aqui]    🎞️ Vira figurinha animada com som · 4s │
+│                                     [ ✨ Criar figurinha               ]   │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 | Parte | O que faz |
 |---|---|
-| **Versão** (ao lado do logo, ex.: `v1.4.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
+| **Versão** (ao lado do logo, ex.: `v1.5.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
-| **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
+| **Enviar para** (topo) | Para quem vão todos os envios: você, um contato, um grupo ou um número. Vale em **qualquer aba**; clique para abrir o painel do lado direito ([seção 5](#5-enviar-para-quem-e-como)). |
+| **🧭 Tour** | Apresentação guiada que destaca cada parte da tela (e abre a Biblioteca sozinho quando chega nela). Abre sozinho na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
 | **GitHub** (ícone do gatinho) | Abre o [repositório do projeto](https://github.com/ivandneto/zapsticks-do-caos): código, novidades e versões para baixar. |
 | **⚙** | Configurações: porta, endereço para o celular, pasta dos dados, backup. |
-| **Estúdio** (esquerda) | Onde você cola o link, marca o trecho e cria a figurinha. Aceita **arrastar** um arquivo e **Ctrl+V** (imagem copiada, arquivo ou link). |
-| **Abas do estúdio** | **🎙️ Audio Stick** (som + figurinha), **🖼️ Stick** (só a figurinha) e **🌀 Combinação Caótica** (a imagem de uma + o som de outra). |
-| **🔤 Texto e emoji** e **✂️ Tirar o fundo** (embaixo da prévia, no passo 3) | Escrever na figurinha (fonte, cor, borda, emoji) e recortar o fundo com IA. |
-| **Coleção** (direita) | Suas figurinhas. Funciona como uma mesa de som: toque para ouvir. |
-| **Enviar para** | Para quem vão todos os envios (você, um contato, um grupo ou um número). |
-| **Pacotes** (coluna da direita) | Suas categorias. Clique para filtrar. |
+| **Abas** | **🎬 Criar** (figurinha com ou sem som, ou áudio), **🌀 Combinação Caótica** (a imagem de uma + o som de outra) e **📚 Biblioteca** (todas as suas figurinhas, com o número delas). |
+| **Criar: esquerda** | O vídeo, com a **moldura amarela** do que vira figurinha e o botão **🔍 Enquadrar**, e a régua para marcar o trecho. Aceita **arrastar** um arquivo e **Ctrl+V** (imagem copiada, arquivo ou link). |
+| **Criar: direita** | **Som**, **Visual** (Quadrado/Inteiro, 🔍 Enquadrar, ✂️ Tirar o fundo, 🔤 Texto e emoji), prévia e emoji, nome, tags, pacotes e o botão **Criar**, com uma linha dizendo **o que vai sair**. Essa coluna acompanha a rolagem, então o botão Criar está sempre à mão. |
+| **📚 Biblioteca** | Suas figurinhas. Funciona como uma mesa de som: toque para ouvir. Filtros **Com som · Sem som · Combo**, busca, favoritas e os **pacotes** do lado. |
 
 **Botões de cada figurinha**, da esquerda para a direita:
 
@@ -204,7 +204,7 @@ O botão **🔍 Enquadrar** fica no canto do vídeo (e embaixo da prévia). Ele 
 
 #### ✂️ Tirar o fundo (estilo WhatsApp)
 
-Na aba Stick, embaixo da prévia, o botão **✂️ Tirar o fundo** abre um editor com inteligência artificial que roda **no seu navegador**. As imagens não saem do seu computador.
+Em **Visual**, o botão **✂️ Tirar o fundo** abre um editor com inteligência artificial que roda **no seu navegador**. As imagens não saem do seu computador.
 
 | Ferramenta | Para quê | Onde funciona |
 |---|---|---|
@@ -222,12 +222,12 @@ Na aba Stick, embaixo da prévia, o botão **✂️ Tirar o fundo** abre um edit
 
 #### 🔤 Texto e emoji
 
-No passo 3, embaixo da prévia, o botão **🔤 Texto e emoji** abre um editor para escrever na figurinha. Funciona no **Stick** e no **Audio Stick** (com imagem), em **foto, GIF e vídeo**: o texto fica fixo por cima da animação inteira.
+Em **Visual**, o botão **🔤 Texto e emoji** abre um editor para escrever na figurinha, com ou sem som, em **foto, GIF e vídeo**: o texto fica fixo por cima da animação inteira.
 
 | Recurso | Como |
 |---|---|
 | **＋ Texto** | Quantos quiser, com quebra de linha. Texto comprido demais encolhe sozinho para caber |
-| **＋ Emoji** | Escolha na grade ou cole qualquer emoji |
+| **＋ Emoji** | Escolha na grade, no **＋** (todos os emojis, ver abaixo) ou cole qualquer emoji |
 | 😂 **Meme clássico** | Texto branco com borda preta, em cima e embaixo |
 | **Fonte** | Impact (a de meme), Anton, Bangers, Luckiest Guy, Permanent Marker, Pacifico, Lobster, Bricolage, Arial Black e Comic Sans |
 | **Cor** e **borda** | Cores prontas ou qualquer outra. A borda tem cor e espessura (0 = sem borda) |
@@ -238,7 +238,16 @@ No passo 3, embaixo da prévia, o botão **🔤 Texto e emoji** abre um editor p
 - O texto vale até você **trocar de vídeo ou foto** (no ✂️ Tirar o fundo de uma foto, ele continua). Para tirar, abra o editor e clique em **Limpar tudo**.
 - As fontes vêm do Google Fonts na primeira vez (precisa de internet). Sem internet, entra uma fonte parecida.
 
-> Soltar uma foto ou um GIF na aba Audio Stick troca sozinho para a aba Stick, já que eles não têm som.
+#### 😀 Todos os emojis
+
+Ao lado dos emojis rápidos (o da figurinha, o do editor de texto, o de **Editar figurinha** e o dos **pacotes**) há um botão **＋**. Ele abre o seletor completo, igual ao do WhatsApp:
+
+- **Categorias** no topo: 🕘 Recentes, 😀 Sorrisos e pessoas, 🐻 Animais e natureza, 🍔 Comida e bebida, ⚽ Atividades, 🚗 Viagens e lugares, 💡 Objetos, ❤️ Símbolos e 🏳️ Bandeiras.
+- **Busca em português**: "risada", "gato", "fogo", "futebol"…
+- Os que você usa ficam em **Recentes**.
+- No Windows, as **bandeiras de país** não aparecem: o Windows não tem desenho para elas (🇧🇷 vira "BR").
+
+> Soltar uma foto ou um GIF troca o **Som** sozinho para **Sem som**, já que eles não têm som do vídeo.
 
 > **.webp animado** (o formato do Giphy e das figurinhas salvas do WhatsApp) é tratado como **animação**. Quem lê a animação é o navegador (Edge ou Chrome atualizados), e o app monta uma cópia sem perda que funciona em qualquer versão do ffmpeg.
 
@@ -247,21 +256,21 @@ No passo 3, embaixo da prévia, o botão **🔤 Texto e emoji** abre um editor p
 Junta a **imagem** de uma figurinha com o **som** de outra.
 
 1. **Imagem** (lado esquerdo), de três jeitos:
-   - **Escolher da coleção**: qualquer figurinha com imagem (Stick, Audio Stick animado ou outra combinação);
+   - **Escolher da coleção**: qualquer figurinha com imagem (com ou sem som, ou outra combinação);
    - **📁 Foto, GIF ou vídeo do computador**: vira uma figurinha na hora;
-   - **✂️ Recortar de um vídeo**: abre a aba Stick e, quando você cria, a peça **volta sozinha** para a combinação.
+   - **✂️ Recortar de um vídeo**: abre a aba **🎬 Criar** (com **Sem som**) e, quando você cria, a peça **volta sozinha** para a combinação.
 2. **Som** (lado direito): até **5s** se a imagem for **animada**, e até **10s** se for **parada** (limites do WhatsApp):
    - **Escolher da coleção**: qualquer figurinha com som dentro do limite;
    - **📁 Áudio ou vídeo do computador**: vira o som na hora;
    - **🎙️ Gravar minha voz**: grava pelo microfone (até o limite) e encaixa;
-   - **✂️ Recortar de um vídeo ou áudio**: abre a aba Audio Stick e a peça volta sozinha.
+   - **✂️ Recortar de um vídeo ou áudio**: abre a aba **🎬 Criar** (com **Do vídeo**) e a peça volta sozinha.
 
    **Direto na caixa:** cada caixa também aceita **arrastar** (arquivo, ou imagem arrastada de outra página) e **Ctrl+V** com o mouse em cima dela (imagem copiada, sem precisar salvar, arquivo ou link). Se o vídeo ou o som passar do limite, abre a aba certa para você marcar o trecho, e a peça volta encaixada.
 3. Toque na prévia para ouvir. Dê um nome, tags e pacotes e clique em **🌀 Criar combinação caótica**.
 
 **Para não acumular lixo:** as peças **criadas só para a combinação** podem ser apagadas automaticamente (a opção vem marcada). As peças que você **escolheu da coleção nunca são apagadas**.
 
-**Atalhos:** no botão amarelo de qualquer figurinha há *"Usar esta imagem com outro som"*, *"Usar este som com outra imagem"* e, no Stick, *"Dar voz a ela"*. Eles abrem a combinação já com a peça encaixada.
+**Atalhos:** no botão amarelo de qualquer figurinha há *"Usar esta imagem com outro som"*, *"Usar este som com outra imagem"* e, na figurinha sem som, *"Dar voz a ela"*. Eles abrem a combinação já com a peça encaixada.
 
 ---
 
@@ -280,7 +289,7 @@ A conexão fica salva. Não precisa ler o QR de novo, a menos que você desconec
 
 ## 5. Enviar: para quem e como
 
-No topo da coleção, **Enviar para** mostra o destino atual. Clique em **Trocar ▾** para escolher:
+No topo da tela, ao lado do status do WhatsApp, **Enviar para** mostra o destino atual, em qualquer aba. Clique nele: abre um **painel do lado direito** para escolher (ele fecha ao escolher, ao clicar fora ou com `Esc`):
 
 | Aba | Como funciona |
 |---|---|
@@ -307,6 +316,8 @@ O destino **vale para todos os botões** (figurinha, áudio e pacote) até você
 
 > **Nome da figurinha:** o WhatsApp **não tem legenda** em figurinha. O app grava o **nome** e o **emoji** dentro dela (como nome do pacote, com autor "Audio Sticks"), e quem recebe vê isso ao **tocar na figurinha** no celular. Para o texto aparecer na conversa, escreva **na imagem** com **🔤 Texto e emoji**.
 
+> **Fluidez:** o WhatsApp aceita figurinha animada de até ~**500 KB**. Para caber, o app mantém os quadros por segundo e baixa primeiro a qualidade (no tamanho de figurinha quase não se nota). Vídeo muito cheio de detalhe e longo (perto de 10s) ainda pode ficar menos fluido: nesse caso, um trecho de **até 5 ou 6 s** fica bem melhor.
+
 Figurinhas antigas, de até 10s, que ainda não têm imagem: clique no botão amarelo e depois em **Gerar figurinha animada** (até 5s fica animada; de 5 a 10s, parada).
 
 ---
@@ -314,8 +325,8 @@ Figurinhas antigas, de até 10s, que ainda não têm imagem: clique no botão am
 ## 7. Pacotes (categorias)
 
 - **＋ Novo pacote**: nome e emoji (ex.: 😂 Memes, ⚽ Futebol).
-- **Colocar figurinhas no pacote**: no passo 3 da criação (campo *Pacotes*, que fica marcado para as próximas) ou depois, pelo **✎** do card. Uma figurinha pode estar em **vários pacotes**.
-- **Clique num pacote** para filtrar a coleção. Aparece a barra do pacote:
+- **Colocar figurinhas no pacote**: na aba **Criar** (campo *Pacotes*, que fica marcado para as próximas) ou depois, pelo **✎** do card. Uma figurinha pode estar em **vários pacotes**.
+- **Clique num pacote** (na **📚 Biblioteca**) para filtrar a coleção. Aparece a barra do pacote:
   - **Enviar pacote**: manda um título "📦 Memes · 8 figurinhas" e depois cada figurinha, com progresso;
   - **⋯ Mais**:
     - enviar sem som ou só os áudios;
@@ -430,8 +441,8 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | `espaço` | Ouve o trecho marcado (de novo para parar) |
 | `←` `→` | Volta / avança 1 s no vídeo |
 | `shift` + `←` `→` | Ajuste fino de 0,1 s |
-| `1` … `9` | Toca as primeiras figurinhas da coleção |
-| `Esc` | Fecha janelas e o tour |
+| `1` … `9` | Toca as primeiras figurinhas da Biblioteca (de qualquer aba) |
+| `Esc` | Fecha janelas, o painel "Enviar para", o seletor de emojis e o tour |
 | `Ctrl` + `V` | Cola uma **imagem copiada**, um arquivo ou um link direto no estúdio, sem salvar. Na Combinação, cai na caixa em que o mouse está |
 | No tour: `→` / `Enter`, `←` | Próximo / anterior |
 
@@ -445,8 +456,10 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | Colei um GIF e ele ficou parado | Ao **copiar a imagem**, o navegador guarda só o primeiro quadro. **Arraste** o GIF para o app ou cole o **link** dele |
 | A janela "Editar figurinha" fechava ao copiar o nome | Corrigido na 1.2.0: selecionar um texto e soltar o mouse fora da caixa não fecha mais a janela |
 | A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
-| Qual versão eu tenho? | Ao lado do logo (`v1.4.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
-| *"Foto e GIF não têm som"* | Use a aba **🖼️ Stick** (só a figurinha) ou a **🌀 Combinação Caótica** para juntar com um som |
+| Qual versão eu tenho? | Ao lado do logo (`v1.5.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
+| *"Foto e GIF não têm som"* | Em **Som**, escolha **Sem som**, **Enviar áudio** ou **Gravar voz**, ou use a **🌀 Combinação Caótica** para juntar com um som |
+| A figurinha animada ficou **travada** no WhatsApp | Corrigido na 1.5.0: o app segura os quadros por segundo para caber nos 500 KB. Crie de novo; vídeo muito detalhado fica mais fluido em trechos de até 5–6 s |
+| A bandeira 🇧🇷 aparece como "BR" | O Windows não desenha bandeiras de país. Por isso elas nem aparecem no seletor de emojis no Windows |
 | A combinação não aceita o som | Com imagem **animada**, o som pode ter até **5s**; com imagem **parada**, até **10s**. Recorte um trecho menor ou use uma foto |
 | O "Tirar o fundo" não carrega | Na primeira vez, ele baixa a IA de recorte (~22 MB) da internet. Confira a conexão e tente de novo |
 | O recorte deixou fundo ou cortou a pessoa | Mexa na **sensibilidade**; na foto, use o pincel **Apagar** / **Recuperar** ou **Tocar no que manter** |
@@ -460,7 +473,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | *"Esse vídeo não pode tocar fora do YouTube"* | O dono bloqueou o vídeo incorporado. Ainda dá para criar: digite os tempos de início e fim |
 | No WhatsApp Web (PC), a figurinha com som parece fora de sincronia | É coisa do WhatsApp Web: a animação fica em loop por conta própria e o som entra em qualquer ponto dela. No celular toca certinho. A figurinha em si está sincronizada |
 | Figurinha com som chega "não suportada" | Formato experimental, veja a [seção 6](#6-figurinha-com-som) |
-| Não aparecem meus contatos | Enviar para → Contatos → **Buscar meus contatos no WhatsApp**, ou use a aba **Número** |
+| Não aparecem meus contatos | **Enviar para** (no topo) → Contatos → **Buscar meus contatos no WhatsApp**, ou use a aba **Número** |
 | WhatsApp desconectou sozinho | Você encerrou a sessão no celular (Aparelhos conectados). Conecte de novo pelo status |
 | Windows bloqueia o `.exe` | **Mais informações → Executar assim mesmo** |
 | Quero ver o que aconteceu | Bandeja → **Ver registro (log)**, ou o terminal no `npm start` |

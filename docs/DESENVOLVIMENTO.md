@@ -34,7 +34,8 @@ Para quem vai manter ou evoluir o código. O guia de uso está no [LEIAME](../LE
 | `lib/db.js` | Tabelas `stickers`, `packs` e `pack_items`, mais as funções de consulta |
 | `lib/whatsapp.js` | Conexão Baileys, agenda local, grupos, verificação de número e envios (voz, figurinha, figurinha com som, texto) |
 | `lib/tray.js` | Script PowerShell (codificado em Base64) que desenha o ícone e o menu; conversa com o Node por stdin e stdout |
-| `public/index.html`, `app.js`, `style.css` | A página: estúdio, coleção, pacotes, destino, ajuda, configurações e tour |
+| `public/index.html`, `app.js`, `style.css` | A página: abas Criar · Combinação · Biblioteca, painel "Enviar para", ajuda, configurações e tour |
+| `public/emojipicker.js`, `emoji-pt.json` | 😀 Seletor com todos os emojis (categorias, busca em português, recentes). Dados gerados do [Emojibase](https://emojibase.dev) 15.3.2 (MIT), até o Emoji 15 |
 | `public/bgeditor.js` | ✂️ Editor de tirar o fundo (IA no navegador) |
 | `public/texteditor.js` | 🔤 Editor de texto e emoji (camada PNG 512×512) |
 | `public/public.css` | Estilo da página pública de uma figurinha |
@@ -183,7 +184,7 @@ pack_items(pack_id, sticker_id, added_at, PK(pack_id, sticker_id))   -- N:N
 3. `cutToOgg`: corta com `-ss/-t`, aplica fades, `loudnorm` e ganho opcional, e gera libopus a 64 kb/s.
 4. `analyze`: PCM a 8 kHz, gera 64 barras de RMS normalizadas de 0 a 100 (também é a forma de onda da mensagem de voz).
 5. **Visual** (até 10 s): `getVideoSection` (≤ 480p, `--force-keyframes-at-cuts`) seguido de:
-   - `makeAnimatedWebp`: recorte quadrado central e máscara de cantos arredondados (gerada uma única vez); tenta várias combinações de fps e qualidade até ficar ≤ 490 KB, que é o limite do WhatsApp;
+   - `makeAnimatedWebp`: recorte quadrado (central, ou no enquadramento escolhido: `squareFilter`/`cleanFrame`, zoom 0,25–4 e posição 0–1; abaixo de 1x a sobra fica transparente) e máscara de cantos arredondados (gerada uma única vez). Para ficar ≤ 490 KB (limite do WhatsApp) segue a escada `ANIM_LADDER`: **segura os fps e baixa primeiro a qualidade** (15→12→10 fps; só cai para 8/6/5 no fim). Trechos longos estimam o tamanho com um pedaço de 2,5 s e começam no degrau certo;
    - `makeSquareMp4`: H.264 + AAC.
 
    Falhar no visual não perde o áudio: o job devolve `warning`.
@@ -315,8 +316,9 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 
 Módulo único, organizado por seções comentadas: utilidades, modal, player do YouTube (IFrame API), seleção e régua com zoom, prévia, criação, coleção, figurinha com som, pacotes, destino, WhatsApp, ajuda, configurações e tour.
 
-- **Estado só no navegador** (`localStorage`): destino atual (`sticks.target`), destinos recentes (`sticks.recents`) e tour concluído (`sticks.tourDone`). Tudo dentro de `try/catch`.
-- **Tour:** `tourSteps()` monta os passos conforme o que está visível (editor aberto, se há figurinhas); passos cujo elemento não existe são pulados. O destaque é um `div` com `box-shadow` gigante. Navega por teclado (capturado antes dos atalhos do app) e abre sozinho na primeira visita, exceto quando a página foi aberta com `?url=`.
+- **Abas:** `setMode('create' | 'combo' | 'library')`. Dentro de Criar há dois motores, escolhidos pelo campo **Som**: `'audio'` (som do vídeo) e `'sticker'` (sem som, ou um som próprio juntado depois via `/api/combos`, em `attachSound`).
+- **Estado só no navegador** (`localStorage`): aba (`sticks.mode`), destino atual (`sticks.target`), destinos recentes (`sticks.recents`), emojis recentes (`sticks.emojiRecents`) e tour concluído (`sticks.tourDone`). Tudo dentro de `try/catch`.
+- **Tour:** `tourSteps()` monta os passos conforme o que está visível (editor aberto, se há figurinhas); passos cujo elemento não existe são pulados. Passos com `tab` trocam de aba sozinhos (ex.: a Biblioteca). O destaque é um `div` com `box-shadow` gigante. Navega por teclado (capturado antes dos atalhos do app) e abre sozinho na primeira visita, exceto quando a página foi aberta com `?url=`.
 - **Ajuda:** o conteúdo está em `HELP_TABS`. Para acrescentar uma aba, basta um item novo `{label, html()}`.
 
 ## Executável (`npm run build:exe`)
