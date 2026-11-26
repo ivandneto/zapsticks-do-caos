@@ -1172,12 +1172,18 @@ async function sendStickerMsg(id, mode, btn) {
 let stickers = [];
 let packs = [];
 const createPackSel = new Set(); // pacotes marcados no passo 3 (valem para as próximas figurinhas)
-const filters = { q: '', fav: false, sort: 'recent', pack: '' };
+const filters = { q: '', fav: false, sort: 'recent', pack: '', type: '' };
+// tipo de figurinha: com som (áudio e figurinha com som), sem som, ou combinação
+const stickerType = (s) => (s.kind === 'combo' ? 'combo' : s.hasAudio ? 'sound' : 'silent');
 
 async function loadCollection(highlightId) {
   const p = new URLSearchParams({ q: filters.q, sort: filters.sort, favorites: filters.fav ? '1' : '', pack: filters.pack });
   const data = await api(`/api/stickers?${p}`);
-  stickers = data.stickers;
+  // contagem de cada tipo (dentro da busca, favoritas e pacote atuais) e o filtro por tipo
+  const byType = { '': data.stickers.length, sound: 0, silent: 0, combo: 0 };
+  for (const s of data.stickers) byType[stickerType(s)]++;
+  $$('#typeSeg button').forEach((b) => { $('.n', b).textContent = byType[b.dataset.t] || ''; b.classList.toggle('on', b.dataset.t === filters.type); });
+  stickers = filters.type ? data.stickers.filter((s) => stickerType(s) === filters.type) : data.stickers;
   packs = data.packs;
   if (filters.pack && !packs.some((x) => x.id === filters.pack)) { filters.pack = ''; return loadCollection(highlightId); }
   for (const id of [...createPackSel]) if (!packs.some((x) => x.id === id)) createPackSel.delete(id);
@@ -1500,6 +1506,7 @@ async function sendPack(p, btn, mode = 'sound') {
 let searchT;
 $('#search').addEventListener('input', (e) => { clearTimeout(searchT); searchT = setTimeout(() => { filters.q = e.target.value.trim(); loadCollection(); }, 180); });
 $('#sort').addEventListener('change', (e) => { filters.sort = e.target.value; loadCollection(); });
+$('#typeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; filters.type = b.dataset.t; loadCollection(); });
 $('#filterSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; filters.fav = b.dataset.f === 'fav'; $$('#filterSeg button').forEach((x) => x.classList.toggle('on', x === b)); loadCollection(); });
 
 // importar pacote

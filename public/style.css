@@ -713,3 +713,8 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px c
 .z-limit b { position: absolute; bottom: 3px; left: 4px; white-space: nowrap; font-size: .66rem; font-weight: 700; color: var(--dim); background: var(--panel); padding: 0 4px; border-radius: 6px; }
 .z-limit.over { border-left-color: color-mix(in srgb, var(--danger) 70%, transparent); }
 .z-limit.over b { color: var(--danger); }
+
+/* filtro por tipo na Biblioteca */
+.type-filter { display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%; margin: 14px 0 0; }
+.type-filter .n { display: inline-block; min-width: 1.4em; margin-left: 2px; padding: 0 6px; border-radius: 99px; font-size: .72rem; background: color-mix(in srgb, var(--text) 10%, transparent); }
+.type-filter .n:empty { display: none; }
