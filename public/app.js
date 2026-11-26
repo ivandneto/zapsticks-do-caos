@@ -54,6 +54,7 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   Object.assign(MOTOR, { kind: 'navegador', local: criarMotor() });
   Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
   document.documentElement.classList.add('web');
+  const fb = document.querySelector('#fileBtn span'); if (fb) fb.textContent = 'Escolher arquivo'; // sem link no site: o arquivo é o caminho
   const aviso = document.createElement('div');
   aviso.className = 'web-banner';
   aviso.innerHTML = '🚧 <b>Versão web em construção.</b> Por enquanto, para criar e mandar figurinhas, use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).';
@@ -321,9 +322,18 @@ const SITE_ICON = { YouTube: '▶️', Instagram: '📸', TikTok: '🎵', X: '�
 const siteIcon = (site) => SITE_ICON[site] || '🔗';
 
 /** Decide pela origem: YouTube toca direto; links de outros sites são baixados antes. */
+/** No site o navegador não baixa de links (YouTube, Instagram, TikTok…): explica e aponta o app. */
+function linkNoSite() {
+  const h = $('#urlHint');
+  h.classList.add('err');
+  h.innerHTML = `🔗 No site não dá para baixar de links (YouTube, Instagram, TikTok…). <b>Baixe o vídeo e envie o arquivo</b>, ou use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.`;
+  toast('Link não funciona no site: envie o arquivo do vídeo, ou use o app para Windows.', 'err');
+}
+
 function loadAny(raw) {
   const s = String(raw || '').trim();
   if (!s) return;
+  if (!CAPS.linkDownload) return linkNoSite();
   if (parseVideoId(s)) return loadVideo(s);
   const link = s.match(/https?:\/\/\S+/)?.[0];
   if (!link) return hintErr('Cole um link (YouTube, Instagram, TikTok, X…) ou use o botão “Arquivo”.');
@@ -1837,6 +1847,12 @@ const CREATE_TEXT = {
   hint: 'O YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e outros sites são baixados antes. Também dá para <b>arrastar</b> um vídeo, áudio, foto ou GIF para cá.',
   welcome: ['<b>Cole</b> um link ou escolha um vídeo, foto ou GIF', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Mande</b> pro WhatsApp: figurinha com ou sem som, ou áudio'],
 };
+// no site: só arquivo (o campo de link some; ver html.web no CSS)
+if (!CAPS.linkDownload) Object.assign(CREATE_TEXT, {
+  step1: 'Escolha um vídeo, foto, GIF ou áudio',
+  hint: 'Clique em <b>📁 Escolher arquivo</b>, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V) uma imagem ou arquivo. Link (YouTube, Instagram, TikTok…) não funciona no site: para isso, use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
+  welcome: ['<b>Escolha</b> um vídeo, foto ou GIF do seu aparelho', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Baixe</b> ou <b>compartilhe</b> a figurinha, com ou sem som'],
+});
 const MODE_TEXT = { audio: CREATE_TEXT, sticker: CREATE_TEXT };
 
 let lastCreate = 'audio'; // o motor da aba Criar, para voltar a ele depois da Combinação ou da Biblioteca
@@ -2446,6 +2462,7 @@ async function comboTake(slot, inp) {
   };
   try {
     let file = inp.file;
+    if (!file && !CAPS.linkDownload) { linkNoSite(); return renderCombo(); }
     if (!file) {
       if (isV && looksLikeImageUrl(inp.url)) { busy('Baixando a imagem…'); file = await imageUrlToFile(inp.url); }
       if (!file) return cutInTab(() => { $('#url').value = inp.url; loadAny(inp.url); }); // link de vídeo
@@ -2758,7 +2775,8 @@ function tourSteps() {
     { el: '#modeTabs', emoji: '🧭', title: 'Três abas', text: '<b>🎬 Criar</b>: de um vídeo, foto ou GIF, com o som do vídeo, sem som, com um áudio seu ou com a sua voz. <b>🌀 Combinação Caótica</b>: a imagem de uma figurinha com o som de outra. <b>📚 Biblioteca</b>: todas as suas figurinhas e pacotes.' },
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
     { el: '#targetBtn', emoji: '🎯', title: 'Para quem enviar', text: 'Em qualquer aba: escolha <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Abre um painel do lado direito, e vale para todos os botões verdes de envio até você trocar.' },
-    { el: '#urlForm', tab: C, emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar ou colar (Ctrl+V) um vídeo, foto ou GIF.' },
+    CAPS.linkDownload ? { el: '#urlForm', tab: C, emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar ou colar (Ctrl+V) um vídeo, foto ou GIF.' }
+      : { el: '#urlForm', tab: C, emoji: '📁', title: '1. Escolha um arquivo', text: 'Um <b>vídeo, foto, GIF ou áudio</b> do seu aparelho: pelo botão, <b>arrastando</b> para a tela ou <b>colando</b> (Ctrl+V). Link do YouTube, Instagram ou TikTok não funciona no site: baixe o vídeo antes, ou use o <b>app para Windows</b>, que baixa sozinho.' },
   ];
   if (editorOn) {
     steps.push(
