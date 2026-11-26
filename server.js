@@ -370,7 +370,45 @@ app.post('/api/sources/upload', sourceUpload.single('file'), (req, res) => {
 app.get('/api/sources/:id/media', (req, res) => {
   const src = sources.getSource(req.params.id);
   if (!src) return res.sendStatus(404);
-  res.sendFile(src.file); // suporta "Range": o player consegue pular para qualquer ponto
+  // animação decodificada pelo navegador: mostra o original (.webp animado); o .mov fica para o ffmpeg
+  const show = src.display && fs.existsSync(src.display) ? src.display : src.file;
+  res.sendFile(show); // suporta "Range": o player consegue pular para qualquer ponto
+});
+
+// .webp animado (Giphy, figurinha do WhatsApp…) que o navegador já separou em quadros PNG
+const animUpload = multer({ dest: TMP_DIR, limits: { fileSize: 60 * 1024 * 1024, files: 400 } });
+app.post('/api/sources/animated', animUpload.fields([{ name: 'original', maxCount: 1 }, { name: 'frames', maxCount: 399 }]), (req, res) => {
+  const frames = (req.files?.frames || []).sort((a, b) => a.originalname.localeCompare(b.originalname));
+  const original = req.files?.original?.[0];
+  const cleanup = () => [...frames, ...(original ? [original] : [])].forEach((f) => fs.rmSync(f.path, { force: true }));
+  if (frames.length < 2) { cleanup(); return fail(res, 400, 'Animação sem quadros.'); }
+  const fps = Math.min(30, Math.max(2, Number(req.body?.fps) || 15));
+  const utf8 = original ? Buffer.from(original.originalname, 'latin1').toString('utf8') : 'animação.webp';
+  const name = utf8.includes('�') ? original.originalname : utf8;
+  const job = { id: randomUUID(), step: 'prepare', error: null, source: null };
+  jobs.set(job.id, job);
+  setTimeout(() => jobs.delete(job.id), 10 * 60 * 1000);
+  res.status(202).json({ jobId: job.id });
+  sources.addAnimatedFrames({ framePaths: frames.map((f) => f.path), fps, originalPath: original?.path, originalName: name, tmpDir: TMP_DIR })
+    .then((m) => { job.source = m; job.step = 'done'; })
+    .catch((err) => { cleanup(); console.error('[animação]', err.message); job.step = 'error'; job.error = err.message; });
+});
+
+// Link direto de imagem/GIF (Giphy, Tenor, .gif, .webp, .png…): o servidor baixa e a página trata como arquivo
+const tmpImages = new Map();
+app.post('/api/sources/image-url', async (req, res) => {
+  try {
+    const r = await sources.downloadImage(String(req.body?.url || ''), TMP_DIR);
+    if (!r) return res.json({ image: false });
+    tmpImages.set(r.id, r);
+    setTimeout(() => { fs.rmSync(r.file, { force: true }); tmpImages.delete(r.id); }, 10 * 60 * 1000);
+    res.json({ image: true, id: r.id, name: r.name, type: r.type });
+  } catch (err) { fail(res, 400, `Não consegui baixar a imagem: ${err.message}`); }
+});
+app.get('/api/sources/image-url/:id', (req, res) => {
+  const r = tmpImages.get(req.params.id);
+  if (!r || !fs.existsSync(r.file)) return res.sendStatus(404);
+  res.type(r.type).sendFile(r.file);
 });
 
 // Prévia da figurinha: quadro do vídeo no início do trecho, recortado quadrado (?v= YouTube | ?src= outra origem)
@@ -796,11 +834,31 @@ function pushTrayState(force = false) {
     : w.status === 'connecting' ? 'WhatsApp: conectando…' : 'WhatsApp: desconectado (clique para conectar)';
   const color = appPhase !== 'running' || w.status === 'connecting' || w.status === 'qr' ? '#ffb020'
     : w.status === 'open' ? '#25d366' : '#8a8a96';
-  const tip = `Audio Sticks · porta ${currentPort} · WhatsApp ${w.status === 'open' ? 'conectado' : w.status === 'disconnected' ? 'desconectado' : 'conectando'}`;
+  const tip = `Audio Sticks ${pkg.version} · porta ${currentPort} · WhatsApp ${w.status === 'open' ? 'conectado' : w.status === 'disconnected' ? 'desconectado' : 'conectando'}`;
   const line = [appText, waText, color, tip].join('|');
   if (!force && line === lastTrayState) return;
   lastTrayState = line;
   tray.state(appText, waText, color, tip);
+}
+
+/** Janela "Sobre" da bandeja: versão e dados da aplicação. */
+function showAbout() {
+  const w = wa.waStatus();
+  const st = db.stats();
+  const mb = (b) => `${(b / 1e6).toFixed(1)} MB`;
+  tray?.about('Sobre o Audio Sticks', [
+    `🔊 Audio Sticks ${pkg.version}`,
+    'Figurinhas de áudio para o WhatsApp',
+    '',
+    `Endereço: ${localUrl()}`,
+    ...lanUrls().slice(0, 2).map((u) => `No celular (Wi-Fi): ${u}`),
+    'WhatsApp: ' + (w.status === 'open' ? `conectado (+${w.me?.number || ''})` : w.status === 'disconnected' ? 'desconectado' : 'conectando'),
+    `Coleção: ${st.total} figurinhas · ${mb(sources.dirSize(AUDIO_DIR))} · cache ${mb(sources.dirSize(CACHE_DIR) + sources.dirSize(TMP_DIR))}`,
+    `Dados: ${DATA_DIR}${PORTABLE ? ' (modo portátil)' : ''}`,
+    '',
+    `Projeto: ${REPO_URL}`,
+    'Licença MIT · feito com amor, caos e ffmpeg',
+  ]);
 }
 
 function quitApp() {
@@ -830,7 +888,7 @@ async function main() {
     if (IS_EXE || process.argv.includes('--open')) openBrowser(localUrl());
     return setTimeout(() => process.exit(0), 500);
   }
-  console.log(`🔊 Audio Sticks iniciando · dados em ${DATA_DIR}${PORTABLE ? ' (modo portátil)' : ''}`);
+  console.log(`🔊 Audio Sticks ${pkg.version} iniciando · dados em ${DATA_DIR}${PORTABLE ? ' (modo portátil)' : ''}`);
 
   tray = IS_EXE && !process.env.NO_TRAY ? startTray({
     open: () => openBrowser(localUrl()),
@@ -848,6 +906,7 @@ async function main() {
       } catch (err) { tray.balloon('Não deu para trocar a porta', err.message); }
     },
     github: () => openBrowser(REPO_URL),
+    about: () => showAbout(),
     restart: () => restartApp(),
     quit: () => { console.log('Encerrado pelo menu da bandeja.'); process.exit(0); },
   }) : null;

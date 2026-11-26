@@ -74,6 +74,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 | Parte | O que faz |
 |---|---|
+| **Versão** (ao lado do logo, ex.: `v1.1.1`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela. Abre sozinha na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
@@ -127,7 +128,8 @@ A aba usada fica lembrada para a próxima vez.
 |---|---|
 | **YouTube** | Abre na hora, sem baixar antes. Links com tempo (`?t=90`) já começam no ponto certo. |
 | **Instagram, TikTok, X/Twitter, Facebook, Kwai, Reddit, Twitch, SoundCloud, Dailymotion…** | Cole o link. O app **baixa o vídeo primeiro** (de alguns segundos a meio minuto) e depois você recorta igual. Funciona com tudo o que o *yt-dlp* suporta. |
-| **Arquivo do seu PC** | Botão **📁 Arquivo** ou **arraste o arquivo** para o estúdio. Vídeo (mp4, mov, webm, mkv, avi…) ou áudio (mp3, m4a, wav, ogg, flac…). Formatos que o navegador não toca são convertidos automaticamente. |
+| **Arquivo do seu PC** | Botão **📁 Arquivo** ou **arraste o arquivo** para o estúdio. Vídeo (mp4, mov, webm, mkv, avi…), áudio (mp3, m4a, wav, ogg, flac…), foto (jpg, png, webp) ou **GIF / .webp animado**. Formatos que o navegador não toca são convertidos automaticamente. |
+| **Link direto de imagem ou GIF** | Links do **Giphy** (`media.giphy.com/…`), do **Tenor** ou terminados em `.gif`, `.webp`, `.png`, `.jpg`: o app baixa a imagem e trata como arquivo. |
 
 - Posts **privados**, de "melhores amigos" ou que **exigem login** não podem ser baixados. Salve o vídeo no PC e use **Arquivo**.
 - Limite: mídias de até **1 hora** (transmissões ao vivo não são aceitas).
@@ -170,6 +172,8 @@ Na aba Stick, embaixo da prévia, o botão **✂️ Tirar o fundo** abre um edit
 - **Limitações:** cabelo e bordas finas podem ficar serrilhados (use o pincel). No vídeo/GIF, só funciona o recorte automático de **pessoas**.
 
 > Soltar uma foto ou um GIF na aba Audio Stick troca sozinho para a aba Stick, já que eles não têm som.
+
+> **.webp animado** (o formato do Giphy e das figurinhas salvas do WhatsApp) é tratado como **animação**. Quem lê a animação é o navegador (Edge ou Chrome atualizados), e o app monta uma cópia sem perda que funciona em qualquer versão do ffmpeg.
 
 ### 🌀 Combinação Caótica
 
@@ -306,6 +310,7 @@ Passar o mouse mostra a porta e o estado do WhatsApp.
 | Item do menu | Resultado |
 |---|---|
 | **Abrir Audio Sticks** | Abre o app no navegador |
+| **Sobre o Audio Sticks** | Janela com a **versão**, o endereço, o status do WhatsApp, o tamanho da coleção e do cache, a pasta dos dados e o link do projeto |
 | ● **Rodando · http://localhost:3000** | Status do app e o endereço atual (clique para abrir) |
 | **WhatsApp: conectado (+55…)** | Status da conexão (clique para abrir e conectar, se precisar) |
 | **Abrir pasta das figurinhas** | Abre a pasta de dados no Explorador |
@@ -362,6 +367,8 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 
 | Problema | Solução |
 |---|---|
+| A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
+| Qual versão eu tenho? | Ao lado do logo (`v1.1.1`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
 | *"Foto e GIF não têm som"* | Use a aba **🖼️ Stick** (só a figurinha) ou a **🌀 Combinação Caótica** para juntar com um som |
 | A combinação não aceita o som | Com imagem **animada**, o som pode ter até **5s**; com imagem **parada**, até **10s**. Recorte um trecho menor ou use uma foto |
 | O "Tirar o fundo" não carrega | Na primeira vez, ele baixa a IA de recorte (~22 MB) da internet. Confira a conexão e tente de novo |

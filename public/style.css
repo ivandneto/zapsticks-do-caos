@@ -48,6 +48,9 @@ kbd { font: 600 .72em var(--font); padding: .1em .45em; border-radius: 6px; back
   padding: 12px max(16px, env(safe-area-inset-left)); backdrop-filter: blur(14px); background: color-mix(in srgb, var(--bg) 75%, transparent); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font: 800 1.35rem var(--display); letter-spacing: -.02em; }
 .brand b { color: var(--accent); font-weight: 800; }
+.brand .ver { align-self: center; margin-left: -2px; padding: 2px 7px; border-radius: 99px; font: 700 .68rem var(--font); letter-spacing: .02em; color: var(--dim); background: var(--panel2); border: 1px solid var(--line); }
+.brand .ver:empty { display: none; }
+@media (max-width: 420px) { .brand .ver { display: none; } }
 .logo { display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 6px; border-radius: 9px; background: var(--accent); }
 .logo i { width: 3px; border-radius: 3px; background: var(--accent-ink); animation: eq 1.1s ease-in-out infinite; }
 .logo i:nth-child(1) { height: 8px; } .logo i:nth-child(2) { height: 16px; animation-delay: -.3s; }

@@ -173,6 +173,7 @@ function loadAny(raw) {
   if (parseVideoId(s)) return loadVideo(s);
   const link = s.match(/https?:\/\/\S+/)?.[0];
   if (!link) return hintErr('Cole um link (YouTube, Instagram, TikTok, X…) ou use o botão “Arquivo”.');
+  if (looksLikeImageUrl(link)) return loadImageUrl(link);
   return loadRemote(link);
 }
 
@@ -252,17 +253,96 @@ async function loadFile(f) {
   hint.classList.remove('err');
   setLoading(true);
   try {
-    const fd = new FormData();
-    fd.append('file', f);
-    const { jobId } = await uploadWithProgress('/api/sources/upload', fd, (p) => {
-      hint.innerHTML = `<span class="spin-inline"></span> Enviando “${esc(f.name)}”… ${p}%`;
-    });
-    hint.innerHTML = '<span class="spin-inline"></span> Preparando o arquivo…';
-    const job = await pollJob(jobId);
-    openSource(job.source);
+    const source = await uploadSourceFile(f, (msg) => { hint.innerHTML = `<span class="spin-inline"></span> ${msg}`; });
+    openSource(source);
   } catch (err) { hintErr(err.message); }
   setLoading(false);
 }
+
+/**
+ * .webp/.png ANIMADO (Giphy, figurinha salva do WhatsApp): o navegador decodifica os quadros (WebCodecs ImageDecoder),
+ * reamostrados a 15 qps e cabendo em 512 px. Devolve null se não for animado ou se o navegador não souber ler.
+ */
+async function decodeAnimatedImage(file, onProgress) {
+  if (!('ImageDecoder' in window)) return null;
+  const type = file.type || (/\.webp$/i.test(file.name) ? 'image/webp' : /\.png$/i.test(file.name) ? 'image/png' : '');
+  if (!/image\/(webp|png|apng)/.test(type)) return null;
+  let dec;
+  try {
+    if (!(await ImageDecoder.isTypeSupported(type))) return null;
+    dec = new ImageDecoder({ data: await file.arrayBuffer(), type });
+    await dec.tracks.ready;
+  } catch { return null; }
+  const track = dec.tracks.selectedTrack;
+  if (!track || !track.animated || track.frameCount < 2) { dec.close(); return null; }
+  const decoded = [];
+  let total = 0;
+  try {
+    for (let i = 0; i < track.frameCount; i++) {
+      const { image } = await dec.decode({ frameIndex: i });
+      const d = Math.max(0.02, (image.duration || 100000) / 1e6); // µs → s
+      decoded.push({ image, start: total, d });
+      total += d;
+    }
+    const fps = 15;
+    const dur = Math.min(total, STICK_ANIM_MAX); // figurinha animada vai até 10s
+    const n = Math.max(2, Math.round(dur * fps));
+    const w0 = decoded[0].image.displayWidth, h0 = decoded[0].image.displayHeight;
+    const k = Math.min(1, 512 / Math.max(w0, h0));
+    const W = Math.max(2, Math.round(w0 * k)), H = Math.max(2, Math.round(h0 * k));
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    const blobs = [];
+    let fi = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / fps;
+      while (fi < decoded.length - 1 && decoded[fi].start + decoded[fi].d <= t) fi++;
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(decoded[fi].image, 0, 0, W, H);
+      blobs.push(await new Promise((r) => c.toBlob(r, 'image/png')));
+      if (i % 10 === 0) onProgress?.(`Lendo a animação… ${Math.round((i / n) * 100)}%`);
+    }
+    return { blobs, fps };
+  } finally {
+    decoded.forEach((x) => x.image.close());
+    dec.close();
+  }
+}
+
+/** Envia um arquivo (vídeo, áudio, foto, GIF ou .webp animado) e devolve a origem pronta. */
+async function uploadSourceFile(f, onMsg = () => {}) {
+  const anim = await decodeAnimatedImage(f, onMsg);
+  let jobId;
+  if (anim) {
+    const fd = new FormData();
+    fd.append('original', f);
+    anim.blobs.forEach((b, i) => fd.append('frames', b, `${String(i + 1).padStart(4, '0')}.png`));
+    fd.append('fps', String(anim.fps));
+    ({ jobId } = await uploadWithProgress('/api/sources/animated', fd, (p) => onMsg(`Enviando a animação… ${p}%`)));
+  } else {
+    const fd = new FormData();
+    fd.append('file', f);
+    ({ jobId } = await uploadWithProgress('/api/sources/upload', fd, (p) => onMsg(`Enviando “${esc(f.name)}”… ${p}%`)));
+  }
+  onMsg('Preparando o arquivo…');
+  return (await pollJob(jobId)).source;
+}
+
+/** Link direto de imagem/GIF (Giphy, Tenor, .gif, .webp…): o servidor baixa e segue como arquivo. */
+async function loadImageUrl(url) {
+  const hint = $('#urlHint');
+  hint.classList.remove('err');
+  hint.innerHTML = '<span class="spin-inline"></span> Baixando a imagem…';
+  setLoading(true);
+  try {
+    const r = await api('/api/sources/image-url', { method: 'POST', body: JSON.stringify({ url }) });
+    setLoading(false);
+    if (!r.image) return loadRemote(url); // não era imagem: tenta como vídeo
+    const blob = await (await fetch(`/api/sources/image-url/${r.id}`)).blob();
+    return loadFile(new File([blob], r.name, { type: r.type }));
+  } catch (err) { hintErr(err.message); setLoading(false); }
+}
+const looksLikeImageUrl = (u) => /\.(gif|webp|png|jpe?g|bmp)(\?|#|$)/i.test(u) || /(^|\.)((media\d*|i)\.giphy\.com|media\d*\.tenor\.com|c\.tenor\.com)\//i.test(u.replace(/^https?:\/\//, ''));
 
 function uploadWithProgress(url, body, onProgress) {
   return new Promise((resolve, reject) => {
@@ -1508,9 +1588,7 @@ $('#comboFile').onchange = async (e) => {
   const slotEl = $('#slotVisual');
   slotEl.innerHTML = '<div class="slot-head"><span class="n">1</span>🖼️ Imagem</div><p class="small"><span class="spin-inline"></span> Enviando e preparando a figurinha…</p>';
   try {
-    const fd = new FormData(); fd.append('file', f);
-    const { jobId } = await uploadWithProgress('/api/sources/upload', fd, () => {});
-    const { source } = await pollJob(jobId);
+    const source = await uploadSourceFile(f);
     if (!source.hasVideo) throw new Error('Esse arquivo não tem imagem. Para som, use o lado direito.');
     const body = { mode: 'sticker', sourceId: source.id, fit: 'crop', title: source.title, emoji: '🌀',
       start: 0, end: source.media === 'image' ? 0 : Math.min(STICK_ANIM_MAX, source.duration || STICK_ANIM_MAX) };
@@ -1910,6 +1988,8 @@ let savedMode = 'audio';
 try { savedMode = localStorage.getItem('sticks.mode') || 'audio'; } catch { /* ok */ }
 setMode(savedMode);
 renderTarget();
+// versão instalada ao lado do logo
+api('/api/settings').then((st) => { $('#appVer').textContent = `v${st.version}`; $('#appVer').title = `Audio Sticks ${st.version} · instalado e rodando em ${st.url}`; }).catch(() => {});
 refreshWa();
 waPoll = setInterval(refreshWa, 15000);
 loadCollection();

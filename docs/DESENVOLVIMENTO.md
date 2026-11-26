@@ -139,6 +139,19 @@ pack_items(pack_id, sticker_id, added_at, PK(pack_id, sticker_id))   -- N:N
 - **Vídeo/GIF:** `POST /api/frames {sourceId | url, start, end}` → o servidor extrai os quadros (12 fps, cabendo em 512, `extractFrames`) em `tmp/frames-<token>/in` → a página lê `GET /api/frames/:token/0001.png…`, recorta cada um (mesma caixa para todos, união das caixas, para a figurinha não "pular") → `POST /api/frames/:token/result` (multipart `frames[]` + título, emoji, tags, fps, origem) → `makeAnimatedWebpFromFrames` (≤ 490 KB; baixa a qualidade e depois pula quadros) + `makeSilentMp4FromFrames` (molde sobre fundo escuro) → Stick animado. A pasta de quadros é apagada no fim (e o `cleanupOnStart` pega sobras com mais de 1 dia).
 - **Figurinha existente:** `POST /api/stickers/:id/as-source` copia o molde (`.png` ou `.mp4`) para uma origem nova. A página abre no Stick e dispara o editor. O resultado é uma **cópia**.
 
+## .webp animado e links diretos de imagem
+
+- **Detecção** (`sources.webpInfo`): lê o RIFF (bandeira de animação no `VP8X` ou bloco `ANIM`, e soma das durações dos `ANMF`).
+- **Decodificação no navegador** (`decodeAnimatedImage` em `public/app.js`): o ffmpeg 6.1 baixado pelo executável **não** lê `.webp` animado (`image data not found`); versões recentes têm o decodificador `webp_anim`. Para funcionar com qualquer ffmpeg, a página usa o **WebCodecs `ImageDecoder`** (Edge/Chrome), reamostra a 15 qps (até 10 s, máx. 512 px) e envia PNGs para `POST /api/sources/animated` (campos `original` + `frames[]` + `fps`).
+- O servidor (`sources.addAnimatedFrames`) monta um **`.mov` com codec PNG** (sem perda, com transparência), que vira o `file` da origem (`media: 'gif'`). O `.webp` original fica em `display`, e `GET /api/sources/:id/media` serve o `display` para a tela mostrar a animação.
+- Sem `ImageDecoder`, o upload segue normal: o servidor aceita o `.webp` animado se o ffmpeg tiver `webp_anim` (`ffmpeg -decoders`); senão, recusa com uma mensagem que orienta usar o Edge/Chrome.
+- **Link direto** (`looksLikeImageUrl`: `.gif/.webp/.png/.jpg`, `media*.giphy.com`, `i.giphy.com`, `media*.tenor.com`): `POST /api/sources/image-url` baixa (até 60 MB, só `image/*`; se não for imagem devolve `{image:false}` e a página tenta como vídeo pelo yt-dlp) → `GET /api/sources/image-url/:id` → a página trata como arquivo (`uploadSourceFile`). Os temporários duram 10 min.
+
+## Versão e "Sobre"
+
+- A versão vem do `package.json` (`pkg.version`): `GET /api/settings` → selo ao lado do logo (`#appVer`), ⚙ Configurações, rodapé da ajuda, registro de abertura e dica do ícone da bandeja.
+- Bandeja → **Sobre o Audio Sticks**: o PowerShell manda `about`, o Node (`showAbout`) responde `about|título|texto` com as linhas separadas por `¶` (o protocolo não aceita quebras de linha), e o script mostra um `MessageBox`.
+
 ## Limpeza (para não acumular lixo)
 
 - `sources.pruneSources()`: no máximo 25 origens, nenhuma com mais de **7 dias**, e arquivos órfãos (downloads interrompidos) com mais de 1 h. Roda a cada origem nova e ao abrir o app (`cleanupOnStart`, que também apaga temporários com mais de 1 dia).
@@ -219,6 +232,9 @@ Todas as respostas de erro têm o formato `{ error: "mensagem em português" }`.
 | `GET /api/frames/:token/:nnnn.png` | Quadro original para o editor |
 | `POST /api/frames/:token/result` | Multipart `frames[]` (PNG recortados) + `title, emoji, tags, fps, sourceId\|url, start, end` → `202 {jobId}` (Stick animado) |
 | `POST /api/stickers/:id/as-source` | Molde da figurinha → nova origem (para tirar o fundo de uma cópia) |
+| `POST /api/sources/animated` | Multipart `original` + `frames[]` (PNG) + `fps` → `202 {jobId}` (origem `media: 'gif'`) |
+| `POST /api/sources/image-url` | `{url}` → `{image: true, id, name, type}` ou `{image: false}` |
+| `GET /api/sources/image-url/:id` | A imagem baixada (temporária, 10 min) |
 | `POST /api/cache/clear` | Limpa o cache → `{freed}` |
 | `GET /api/sources/:id/media` | A mídia da origem (com suporte a Range) |
 | `POST /api/app/restart` / `POST /api/app/quit` | Reinicia / encerra (só no executável) |

@@ -18,7 +18,7 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 
 <br>
 
-[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.1.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.1.1%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
 
 <sub>Sem instalar nada: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
 
@@ -60,7 +60,7 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 | | O quê | Detalhe |
 |---|---|---|
 | 🔗 | **Cola o link e pronto** | YouTube abre na hora. Instagram, TikTok, X, Facebook, Kwai e centenas de outros: o app baixa sozinho. |
-| 📁 | **Arquivo do PC** | Arrasta o vídeo, áudio, **foto ou GIF** para a tela. Até aquele `.mov` de 2014. |
+| 📁 | **Arquivo do PC** | Arrasta o vídeo, áudio, **foto ou GIF** (inclusive o `.webp` animado do Giphy) para a tela. Até aquele `.mov` de 2014. Ou cola o link direto do Giphy/Tenor. |
 | 🖼️ | **Stick** | Só a figurinha, sem som: de foto, GIF ou trecho de vídeo. Recortada em quadrado ou inteira com fundo transparente. |
 | 🌀 | **Combinação Caótica** | A cara de uma figurinha com a voz de outra. O gato com a risada do Faustão? Pode. Da coleção ou criado na hora, e as peças temporárias se apagam sozinhas. |
 | ✂️ | **Corte cirúrgico** | Régua com zoom, alças arrastáveis, ajuste de 0,1s. Precisão de neurocirurgião, propósito de meme. |
