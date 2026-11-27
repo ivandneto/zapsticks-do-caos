@@ -23,7 +23,7 @@ let comboReturn = null;    // 'visual' | 'audio' quando uma peça está sendo cr
 // Combinação Caótica: as duas peças escolhidas e quais foram criadas só para ela (podem ser apagadas depois)
 const combo = { visual: null, audio: null, temp: new Set() };
 const comboPackSel = new Set();
-const REPO_URL = 'https://github.com/ivandneto/zapsticks-do-caos';
+const REPO_URL = 'https://github.com/ivandneto/audio-sticks';
 const STICKER_MAX = 10; // a figurinha com som do WhatsApp aceita até 10s de áudio
 
 function fmt(t, decimals = 1) {
@@ -91,12 +91,12 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
     aviso.className = `web-banner${geraWebp ? '' : ' ruim'}`;
     aviso.innerHTML = geraWebp
       ? '🌐 <span><b>Versão web:</b> suas figurinhas ficam guardadas <b>neste navegador</b>. Para não perder (trocar de aparelho, limpar o navegador), use <b>Exportar</b> na Biblioteca de vez em quando.</span><button type="button" class="wb-x" aria-label="Fechar aviso">×</button>'
-      : '⚠️ <span><b>Este navegador não consegue gerar figurinhas</b> (falta o formato WebP). Use o <b>Chrome</b>, o <b>Edge</b> ou o <b>Firefox</b> atualizados, no computador ou no Android, ou o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>.</span>';
+      : '⚠️ <span><b>Este navegador não consegue gerar figurinhas</b> (falta o formato WebP). Use o <b>Chrome</b>, o <b>Edge</b> ou o <b>Firefox</b> atualizados, no computador ou no Android, ou o <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a>.</span>';
     aviso.querySelector('.wb-x')?.addEventListener('click', () => { aviso.remove(); try { localStorage.setItem('sticks.webAviso', '1'); } catch { /* ok */ } });
     document.querySelector('main')?.prepend(aviso);
   }
   // ⬇ Baixar o app para Windows: o link da última versão vem do GitHub (sem isso, leva à página de downloads)
-  const RELEASES = 'https://github.com/ivandneto/zapsticks-do-caos/releases/latest';
+  const RELEASES = 'https://github.com/ivandneto/audio-sticks/releases/latest';
   const baixar = document.createElement('a');
   baixar.className = 'top-btn download-btn';
   baixar.href = RELEASES;
@@ -130,12 +130,12 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
       <ol class="ap-steps"><li>Extraia o <b>.zip</b></li><li>Dois cliques em <b>Audio Sticks.exe</b></li><li>Leia o <b>QR code</b> com o WhatsApp</li></ol>
     </div>
     <button type="button" class="ap-cafe" data-cafe>☕ O app e o site são grátis. Curtiu? <b>Me paga um café</b> (Pix de qualquer valor)</button>
-    <p class="ap-note">O Windows pode avisar que o app não é conhecido: clique em <b>Mais informações → Executar assim mesmo</b>. É só porque ele não tem assinatura digital paga. O código é aberto, no <a href="https://github.com/ivandneto/zapsticks-do-caos" target="_blank" rel="noopener">GitHub</a>.</p>`;
+    <p class="ap-note">O Windows pode avisar que o app não é conhecido: clique em <b>Mais informações → Executar assim mesmo</b>. É só porque ele não tem assinatura digital paga. O código é aberto, no <a href="https://github.com/ivandneto/audio-sticks" target="_blank" rel="noopener">GitHub</a>.</p>`;
   $('#welcome')?.append(promo);
   $('[data-cafe]', promo).onclick = () => openCafe();
 
   const promoBtn = $('.ap-btn', promo);
-  fetch('https://api.github.com/repos/ivandneto/zapsticks-do-caos/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+  fetch('https://api.github.com/repos/ivandneto/audio-sticks/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
     .then((r) => (r.ok ? r.json() : null))
     .then((rel) => {
       const zip = rel?.assets?.find((a) => /win32.*\.zip$/i.test(a.name));
@@ -364,7 +364,7 @@ const siteIcon = (site) => SITE_ICON[site] || '🔗';
 function linkNoSite() {
   const h = $('#urlHint');
   h.classList.add('err');
-  h.innerHTML = `🔗 No site, só link do <b>YouTube</b> (ele é gravado enquanto toca). Instagram, TikTok e outros: <b>baixe o vídeo e envie o arquivo</b>, ou use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.`;
+  h.innerHTML = `🔗 No site, só link do <b>YouTube</b> (ele é gravado enquanto toca). Instagram, TikTok e outros: <b>baixe o vídeo e envie o arquivo</b>, ou use o <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.`;
   toast('Esse link não funciona no site: envie o arquivo do vídeo (do YouTube dá para colar o link).', 'err');
 }
 
@@ -1546,7 +1546,7 @@ async function shareStickerWeb(s, { criada = false } = {}) {
       <p><b>No celular:</b> use <b>Compartilhar</b> e escolha o WhatsApp e a conversa.</p>
       <p><b>No WhatsApp Web (PC):</b> baixe o <b>.webp</b> e arraste para a conversa: ele vira figurinha.</p>
       ${s.hasAudio && s.visual ? '<p><b>Figurinha com som:</b> baixe o <b>.mp4</b>, abra o WhatsApp no celular → 😊 → <b>Figurinhas → Criar</b>, escolha o vídeo e deixe o som ligado (se o seu WhatsApp já tiver o recurso).</p>' : ''}
-      <p>Quer mandar direto, sem baixar? O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> faz isso.</p>
+      <p>Quer mandar direto, sem baixar? O <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a> faz isso.</p>
     </details>`, (b) => {
     b.addEventListener('click', async (e) => {
       if (e.target.closest('[data-ouvir]')) { e.preventDefault(); return playSticker(s.id); }
@@ -1929,7 +1929,7 @@ const CREATE_TEXT = {
 // no site: só arquivo (o campo de link some; ver html.web no CSS)
 if (!CAPS.linkDownload) Object.assign(CREATE_TEXT, {
   step1: 'Escolha um arquivo ou cole um link do YouTube',
-  hint: '<b>Arquivo:</b> clique em 📁, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V). <b>YouTube:</b> cole o link; na hora de criar, o site toca o trecho e <b>grava</b> (no computador). Instagram, TikTok e outros: baixe o vídeo antes, ou use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
+  hint: '<b>Arquivo:</b> clique em 📁, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V). <b>YouTube:</b> cole o link; na hora de criar, o site toca o trecho e <b>grava</b> (no computador). Instagram, TikTok e outros: baixe o vídeo antes, ou use o <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
   welcome: ['<b>Escolha</b> um vídeo, foto ou GIF, ou cole um link do <b>YouTube</b>', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Baixe</b> ou <b>compartilhe</b> a figurinha, com ou sem som'],
 });
 const MODE_TEXT = { audio: CREATE_TEXT, sticker: CREATE_TEXT };
@@ -2727,8 +2727,8 @@ async function openHelp(tab = 'inicio') {
       <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <h3>Como o Audio Sticks funciona</h3>
       <p>${MOTOR.kind === 'navegador' ? 'Transforme um trecho de vídeo (um arquivo seu ou do YouTube) em figurinha, com ou sem som, direto no navegador.' : 'Transforme qualquer trecho de vídeo — YouTube, Instagram, TikTok ou um arquivo seu — em figurinha de áudio e mande para o WhatsApp em um clique.'}</p>
-      ${MOTOR.kind === 'navegador' ? `<p class="mode-hint help-web">🌐 Você está na <b>versão web</b>: cria, guarda (neste navegador) e baixa ou compartilha a figurinha. Só o envio direto pelo WhatsApp e os links do Instagram/TikTok são do <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).</p>` : ''}
-      <div class="hero-actions"><button class="btn primary" id="hTour">🧭 Fazer o tour guiado</button>${CAPS.settings ? '<button class="btn" id="hSet">⚙ Configurações</button>' : '<a class="btn" href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">⬇ Baixar o app</a>'}</div>
+      ${MOTOR.kind === 'navegador' ? `<p class="mode-hint help-web">🌐 Você está na <b>versão web</b>: cria, guarda (neste navegador) e baixa ou compartilha a figurinha. Só o envio direto pelo WhatsApp e os links do Instagram/TikTok são do <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).</p>` : ''}
+      <div class="hero-actions"><button class="btn primary" id="hTour">🧭 Fazer o tour guiado</button>${CAPS.settings ? '<button class="btn" id="hSet">⚙ Configurações</button>' : '<a class="btn" href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">⬇ Baixar o app</a>'}</div>
     </div>
     <nav class="help-tabs" id="hTabs">${Object.entries(HELP_TABS).map(([k, t]) => `<button data-k="${k}">${t.label}</button>`).join('')}</nav>
     <div class="help-body" id="hBody"></div>`, (b) => {

@@ -82,7 +82,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 | **Enviar para** (topo) | Para quem vão todos os envios: você, um contato, um grupo ou um número. Vale em **qualquer aba**; clique para abrir o painel do lado direito ([seção 5](#5-enviar-para-quem-e-como)). |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela (e abre a Biblioteca sozinho quando chega nela). Abre sozinho na primeira visita. |
 | **?** | Guia ilustrado: começando, recursos, atalhos e dúvidas. |
-| **GitHub** (ícone do gatinho) | Abre o [repositório do projeto](https://github.com/ivandneto/zapsticks-do-caos): código, novidades e versões para baixar. |
+| **GitHub** (ícone do gatinho) | Abre o [repositório do projeto](https://github.com/ivandneto/audio-sticks): código, novidades e versões para baixar. |
 | **⚙** | Configurações: porta, endereço para o celular, pasta dos dados, backup. |
 | **☕** | *Me paga um café*: o app é grátis; aqui tem um **Pix** de qualquer valor (QR code ou copia e cola). Também no rodapé da **Ajuda**. |
 | **Abas** | **🎬 Criar** (figurinha com ou sem som, ou áudio), **🌀 Combinação Caótica** (a imagem de uma + o som de outra) e **📚 Biblioteca** (todas as suas figurinhas, com o número delas). |

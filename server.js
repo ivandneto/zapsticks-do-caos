@@ -22,7 +22,7 @@ import apoio from './web/apoio.json' with { type: 'json' };
 
 const PASSWORD = process.env.APP_PASSWORD || '';
 const MAX_SECONDS = 60;
-const REPO_URL = 'https://github.com/ivandneto/zapsticks-do-caos';
+const REPO_URL = 'https://github.com/ivandneto/audio-sticks';
 
 const app = express();
 app.disable('x-powered-by');
