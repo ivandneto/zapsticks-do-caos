@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/banner.png" width="100%" alt="ZapSticks do Caos (Audio Sticks): logo no meio de figurinhas com som, balões de conversa com bom dia grupo e kkkkkk, e o slogan: qualquer trecho de vídeo vira figurinha com som">
+<img src="docs/banner.png" width="100%" alt="Audio Sticks, ZapStick do Caos: logo no meio de figurinhas com som, balões de conversa com bom dia grupo e kkkkkk, e o slogan: qualquer trecho de vídeo vira figurinha com som">
 
 ### *Audio Sticks: porque mandar "kkkkkk" já não basta.*
 
