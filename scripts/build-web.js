@@ -26,7 +26,7 @@ const html = fs.readFileSync(index, 'utf8');
 const marcas = `<meta charset="utf-8">\n  <meta name="motor" content="navegador">\n  <meta name="versao" content="${pkg.version}-web">`;
 if (!html.includes('<meta charset="utf-8">')) throw new Error('index.html mudou: não achei <meta charset="utf-8">');
 // 🔎 SEO. SITE_URL = endereço oficial (sem barra no fim). Na Cloudflare, só o branch main é indexado; prévias ficam fora do Google.
-const url = (process.env.SITE_URL || 'https://zapsticks.pages.dev').replace(/\/+$/, '');
+const url = (process.env.SITE_URL || 'https://audio-sticks.pages.dev').replace(/\/+$/, '');
 const indexar = !process.env.CF_PAGES_BRANCH || process.env.CF_PAGES_BRANCH === 'main';
 let pagina = html.replace('<meta charset="utf-8">', marcas).replace(/<title>[^<]*<\/title>/, seo.cabecalho({ url, indexar }));
 if (!pagina.includes('</main>')) throw new Error('index.html mudou: não achei </main>');

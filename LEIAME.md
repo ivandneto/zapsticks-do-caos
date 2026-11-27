@@ -486,7 +486,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 
 ## 14. Versão web
 
-O Audio Sticks também roda **no navegador**, sem instalar nada (computador ou celular): **[zapsticks.pages.dev](https://zapsticks.pages.dev/)**. É a mesma tela do app, e a figurinha é feita **no seu aparelho**: nada é enviado para servidor.
+O Audio Sticks também roda **no navegador**, sem instalar nada (computador ou celular): **[audio-sticks.pages.dev](https://audio-sticks.pages.dev/)**. É a mesma tela do app, e a figurinha é feita **no seu aparelho**: nada é enviado para servidor.
 
 **O que muda em relação ao app:**
 
