@@ -18,9 +18,9 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 
 <br>
 
-[![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.6.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+[![🌐 Usar no navegador](https://img.shields.io/badge/%F0%9F%8C%90%20Usar%20no%20navegador-zapsticks.pages.dev-ffd23f?style=for-the-badge)](https://zapsticks.pages.dev/) [![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.6.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
 
-<sub>Sem instalar nada: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
+<sub><b>No navegador</b> (computador ou celular), sem instalar: <a href="https://zapsticks.pages.dev/">zapsticks.pages.dev</a>. <b>No Windows</b>, com envio direto pelo WhatsApp: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
 
 </div>
 
@@ -95,7 +95,7 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 
 ## 🌐 Versão web (sem instalar nada)
 
-Também dá para usar **direto no navegador**, no computador ou no celular, sem instalar. A figurinha é criada **no seu próprio aparelho**: nada vai para servidor nenhum.
+Também dá para usar **direto no navegador**, no computador ou no celular, sem instalar: **[zapsticks.pages.dev](https://zapsticks.pages.dev/)**. A figurinha é criada **no seu próprio aparelho**: nada vai para servidor nenhum.
 
 | | App para Windows | Versão web |
 |---|---|---|
