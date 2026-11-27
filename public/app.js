@@ -1950,7 +1950,7 @@ const CREATE_TEXT = {
 // no site: só arquivo (o campo de link some; ver html.web no CSS)
 if (!CAPS.linkDownload) Object.assign(CREATE_TEXT, {
   step1: 'Escolha um arquivo ou cole um link do YouTube',
-  hint: '<b>Arquivo:</b> clique em 📁, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V). <b>YouTube:</b> cole o link; na hora de criar, o site toca o trecho e <b>grava</b> (no computador). Instagram, TikTok e outros: baixe o vídeo antes, ou use o <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
+  hint: '<b>Arquivo:</b> clique em 📁, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V). <b>YouTube:</b> cole o link; antes de enquadrar, tirar o fundo ou criar, o site toca o trecho e <b>grava</b> (no computador). Instagram, TikTok e outros: baixe o vídeo antes, ou use o <a href="https://github.com/ivandneto/audio-sticks/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
   welcome: ['<b>Escolha</b> um vídeo, foto ou GIF, ou cole um link do <b>YouTube</b>', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Baixe</b> ou <b>compartilhe</b> a figurinha, com ou sem som'],
 });
 const MODE_TEXT = { audio: CREATE_TEXT, sticker: CREATE_TEXT };
