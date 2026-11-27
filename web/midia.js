@@ -107,7 +107,8 @@ export function quadroEm(fonte, t) {
 
 // ---------- enquadramento (mesma conta do squareFilter do app) ----------
 const limpaFrame = (f) => {
-  const n = (v, a, b, d) => (Number.isFinite(Number(v)) ? Math.min(b, Math.max(a, Number(v))) : d);
+  // "sem valor" (null, vazio) é o padrão; antes virava 0 → zoom mínimo no canto (bug da prévia)
+  const n = (v, a, b, d) => (v == null || v === '' || !Number.isFinite(Number(v)) ? d : Math.min(b, Math.max(a, Number(v))));
   return f ? { z: n(f.z, 0.25, 4, 1), x: n(f.x, 0, 1, 0.5), y: n(f.y, 0, 1, 0.5) } : { z: 1, x: 0.5, y: 0.5 };
 };
 /** Desenha o quadro num quadrado de lado L: 'crop' (zoom e posição) ou 'pad' (inteiro, centralizado). */
