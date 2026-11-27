@@ -1,5 +1,7 @@
 # Audio Sticks
 
+*O ZapSticks do Caos* 🌀
+
 Transforme qualquer trecho de vídeo (**YouTube, Instagram, TikTok, X, Facebook…** ou um **arquivo seu**) em **figurinha de áudio** e mande para o WhatsApp: para você mesmo, para um contato, para um grupo ou para um número. Tudo roda no seu PC e é gratuito.
 
 > Dentro do app, o botão **?** abre um guia ilustrado e o botão **Tour** faz uma apresentação guiada da tela.

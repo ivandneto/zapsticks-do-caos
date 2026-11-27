@@ -4,7 +4,7 @@
 
 ### *Audio Sticks: porque mandar "kkkkkk" já não basta.*
 
-Transforma **qualquer trecho de vídeo** (YouTube, Instagram, TikTok, X, Facebook ou um arquivo seu) em **figurinha de áudio** e manda direto no **WhatsApp**.
+O **Audio Sticks**, carinhosamente o **ZapSticks do Caos** 🌀, transforma **qualquer trecho de vídeo** (YouTube, Instagram, TikTok, X, Facebook ou um arquivo seu) em **figurinha com som** e manda direto no **WhatsApp**.
 Para você, para um contato, para o grupo da família às 6h da manhã. A responsabilidade é sua. 🫡
 
 ![Node](https://img.shields.io/badge/Node-22.5%2B-3c873a?logo=nodedotjs&logoColor=white)
@@ -36,6 +36,8 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 
 Sabe aquele momento do vídeo que **resume perfeitamente** o que você quer dizer no grupo?
 Pois é. Agora ele vira figurinha. Com som. Em três cliques.
+
+Esse é o propósito do **ZapSticks do Caos**: transformar o grupo da família, o do futebol e o da firma num lugar um pouco mais caótico (e muito mais engraçado). O nome no instalador e na tela é **Audio Sticks**; o espírito é o ZapSticks do Caos.
 
 ```
  🎬 vídeo  ──►  ✂️ recorta  ──►  🎨 vira figurinha  ──►  💬 WhatsApp  ──►  😂 caos instaurado
@@ -214,6 +216,8 @@ O app sim (`npm start`). O executável e o ícone de bandeja são exclusivos do 
 <summary><b>Por que "ZapSticks do Caos"?</b></summary>
 
 Porque "Ferramenta de Extração e Segmentação de Mídia Audiovisual para Mensageria Instantânea" não cabia no logo.
+
+**Audio Sticks** é o nome do app (o que aparece no `.exe`, na tela e no GitHub, para você achar fácil). **ZapSticks do Caos** é o que ele faz com o seu grupo: *Zap* de WhatsApp, *Sticks* de figurinha e *Caos* de… você vai ver.
 </details>
 
 ## ⚠️ Avisos (agora sério, de verdade)
