@@ -338,7 +338,8 @@ O site é a **mesma tela** (`public/`) com outro motor. Em vez do `server.js`, q
 - **Avisos:** "fica neste navegador" (fechável) e "navegador sem WebP" (Safari antigo). `navigator.storage.persist()` para o navegador não apagar a Biblioteca.
 - **Bibliotecas (MIT), copiadas no build:** `mp4-muxer` e `fflate` → `dist-web/web/vendor/`.
 - **Testar no PC:** `npm run build:web` e depois `python -m http.server 4000 --directory dist-web` (arquivos estáticos, sem servidor, como na Cloudflare Pages).
-- **Publicação:** Cloudflare Pages. Comando de build: `npm run build:web` (com uma página "Em breve" de reserva enquanto o `main` não tem o site); pasta publicada: `dist-web`; `NODE_VERSION=22`.
+- **YouTube no site:** `loadAny` aceita só link do YouTube (`CAPS.linkDownload` falso); no Criar vai sempre para `recordAndRetry` (grava a aba com `getDisplayMedia`), nunca baixa. Enquadrar e Tirar o fundo aparecem depois da gravação. Outros links: `linkNoSite()`.
+- **Publicação:** Cloudflare Pages (fluxo "Pages", não Workers), conectado ao GitHub. Branch de produção `main`; comando de build `npm run build:web`; pasta publicada `dist-web`; `NODE_VERSION=22`. Cada push no `main` publica o site; outros branches viram prévias.
 
 ## Página (`public/app.js`)
 

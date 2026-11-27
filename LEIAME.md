@@ -490,7 +490,7 @@ O Audio Sticks também roda **no navegador**, sem instalar nada (computador ou c
 
 | No app | No site |
 |---|---|
-| Cola link (YouTube, Instagram, TikTok…) | Só **arquivo** do aparelho (escolher, arrastar ou colar com Ctrl+V). Link mostra um aviso |
+| Cola link (YouTube, Instagram, TikTok…) | **Arquivo** do aparelho (escolher, arrastar ou colar com Ctrl+V) ou link do **YouTube**: ao criar, o site toca o trecho e **grava** (no computador, escolha "Esta aba" com o áudio; no celular não dá). Instagram/TikTok mostram um aviso |
 | Botão verde **envia** pelo WhatsApp | Botão verde **baixa ou compartilha**: figurinha `.webp`, vídeo `.mp4` com som e áudio `.ogg` |
 | "Enviar para", conexão do WhatsApp e ⚙ Configurações | Não existem no site |
 | Coleção na pasta de dados do PC | Coleção **neste navegador**. Use **Exportar** de vez em quando para não perder |

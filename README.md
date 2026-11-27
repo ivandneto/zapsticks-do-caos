@@ -102,7 +102,8 @@ Também dá para usar **direto no navegador**, no computador ou no celular, sem 
 | Vídeo, foto, GIF ou áudio do aparelho | ✅ | ✅ |
 | Criar (som do vídeo, sem som, áudio seu, sua voz), Enquadrar, texto e emoji, todos os emojis, tirar o fundo | ✅ | ✅ |
 | Combinação Caótica, Biblioteca, pacotes, exportar/importar (.zip compatível entre os dois) | ✅ | ✅ |
-| Colar **link** do YouTube, Instagram, TikTok… | ✅ | ❌ (envie o arquivo) |
+| Link do **YouTube** | ✅ baixa | ✅ grava o trecho tocando (no computador; nunca é bloqueado) |
+| Link do **Instagram, TikTok…** | ✅ | ❌ (envie o arquivo) |
 | **Mandar direto** pelo WhatsApp | ✅ | ❌ (baixe ou compartilhe: `.webp`, `.mp4` com som, `.ogg`) |
 | Onde ficam as figurinhas | no seu PC | neste navegador (use **Exportar** para guardar) |
 
