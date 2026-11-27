@@ -43,7 +43,12 @@ Para quem vai manter ou evoluir o código. O guia de uso está no [LEIAME](../LE
 | `scripts/setup.js` | `npm run setup`: força o download ou atualização do yt-dlp (e do ffmpeg, se faltar) |
 | `scripts/build-exe.js` | `npm run build:exe`: gera o executável |
 | `scripts/build-web.js` | `npm run build:web`: monta a **versão web** (site estático) em `dist-web/` (ver "Versão web") |
-| `web/motor.js` | 🌐 Motor do navegador: responde às rotas da API dentro da página (versão web) |
+| `web/motor.js` | 🌐 Motor do navegador: as mesmas rotas do `server.js` dentro da página (versão web) |
+| `web/midia.js` | Abrir arquivo, quadros, enquadramento (mesma conta do `squareFilter`), figurinha parada/animada, som (corte, fades, volume, forma de onda), `.mp4` com som |
+| `web/webp-anim.js` | Junta quadros `.webp` (canvas) num `.webp` animado (RIFF · VP8X · ANIM · ANMF) |
+| `web/ogg.js` | `.ogg` Opus: WebCodecs `AudioEncoder` + páginas Ogg (CRC32) |
+| `web/banco.js` | Biblioteca no IndexedDB (`stickers`, `packs`, `media`), no formato do `lib/db.js` |
+| `web/sw.js` | Service worker (publicado como `/sw-web.js`): atende `/media/…` e `/api/…` pedindo ao motor da página |
 | `web/apoio.json` | ☕ Dados **públicos** do "Me paga um café": chave Pix (aleatória), nome e cidade (obrigatória no padrão, vai `BRASIL`) |
 | `lib/pix.js` | Pix copia e cola estático (BR Code do Banco Central, CRC16-CCITT), sem valor fixo |
 | `assets/icon.ico` | Ícone do `.exe` |
@@ -325,6 +330,13 @@ O site é a **mesma tela** (`public/`) com outro motor. Em vez do `server.js`, q
 - **`CAPS`:** o que cada motor oferece (`whatsapp`, `linkDownload`, `settings`, `publicLink`). No site some o WhatsApp, o "Enviar para" e as configurações (`html.web` no CSS), e entram o **⬇ Baixar para Windows** (última versão via API de releases do GitHub; sem resposta, a página de releases) e o quadro "baixe o app" na tela inicial.
 - **☕ Pix:** o build gera `web/pix.json` (`{copiaECola, nome}`) e `web/pix.svg` (QR, pacote `qrcode`) a partir de `web/apoio.json`. No app, o `server.js` responde às **mesmas rotas** (`GET /web/pix.json` e `/web/pix.svg`), lendo o `apoio.json` empacotado no `.exe`.
 - **Tour e ajuda:** passos com elemento oculto são pulados; no site há boas-vindas própria e passos do Baixar e do quadro do app.
+- **Motor (`web/motor.js`):** fontes ficam na memória da aba (`registrarFonte`; somem ao recarregar, como o cache do app); figurinhas, pacotes e mídias no IndexedDB (`web/banco.js`). Tarefas (`/api/jobs/:id`) com as mesmas etapas do servidor. Rotas: lista com filtros, `/api/frame` (prévia), `/api/overlays`, `POST /api/stickers` (sem som e com som), `/visual`, `/as-source`, `/play`, `PATCH`/`DELETE`, pacotes, `/api/combos`, `/api/frames` (+ `…/result`) para o "Tirar o fundo", `/api/export` e `/api/import` (`.zip` igual ao do app, com `fflate`). WhatsApp e links respondem com mensagem explicando.
+- **Service worker:** `<img>`, `<video>`, `<audio>` e downloads de `/media/…` e `/api/…` são respondidos pelo motor (com `Range` para o vídeo poder pular no tempo). A página só começa depois que ele assume (`controllerchange`).
+- **Figurinha animada no navegador:** quadros tirados **uma vez** a 15 qps (menos qps reaproveita os mesmos), tamanho estimado com amostra de 12 quadros, e a mesma escada de fps/qualidade do app (≤ 490 KB). Ex.: vídeo do Instagram de 10 s em ~10 s.
+- **`.mp4` com som:** WebCodecs `VideoEncoder` (H.264 baseline 512×512, 20 qps) + `AudioEncoder` (AAC; Opus se não houver AAC), empacotado com `mp4-muxer`. É o arquivo para criar a figurinha com som no WhatsApp.
+- **Som:** `OfflineAudioContext.decodeAudioData` → mono 48 kHz; volume equalizado pelo RMS (~ -16 dBFS, perto do -14 LUFS do app) com limitador suave.
+- **Avisos:** "fica neste navegador" (fechável) e "navegador sem WebP" (Safari antigo). `navigator.storage.persist()` para o navegador não apagar a Biblioteca.
+- **Bibliotecas (MIT), copiadas no build:** `mp4-muxer` e `fflate` → `dist-web/web/vendor/`.
 - **Testar no PC:** `npm run build:web` e depois `python -m http.server 4000 --directory dist-web` (arquivos estáticos, sem servidor, como na Cloudflare Pages).
 - **Publicação:** Cloudflare Pages. Comando de build: `npm run build:web` (com uma página "Em breve" de reserva enquanto o `main` não tem o site); pasta publicada: `dist-web`; `NODE_VERSION=22`.
 

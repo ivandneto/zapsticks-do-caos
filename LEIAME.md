@@ -21,7 +21,8 @@ Transforme qualquer trecho de vídeo (**YouTube, Instagram, TikTok, X, Facebook�
 11. [Usar no celular e fora de casa](#11-usar-no-celular-e-fora-de-casa)
 12. [Atalhos de teclado](#12-atalhos-de-teclado)
 13. [Problemas comuns](#13-problemas-comuns)
-14. [Para desenvolvedores](#14-para-desenvolvedores)
+14. [Versão web](#14-versão-web)
+15. [Para desenvolvedores](#15-para-desenvolvedores)
 
 ---
 
@@ -481,7 +482,34 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 
 ---
 
-## 14. Para desenvolvedores
+## 14. Versão web
+
+O Audio Sticks também roda **no navegador**, sem instalar nada (computador ou celular). É a mesma tela do app, e a figurinha é feita **no seu aparelho**: nada é enviado para servidor.
+
+**O que muda em relação ao app:**
+
+| No app | No site |
+|---|---|
+| Cola link (YouTube, Instagram, TikTok…) | Só **arquivo** do aparelho (escolher, arrastar ou colar com Ctrl+V). Link mostra um aviso |
+| Botão verde **envia** pelo WhatsApp | Botão verde **baixa ou compartilha**: figurinha `.webp`, vídeo `.mp4` com som e áudio `.ogg` |
+| "Enviar para", conexão do WhatsApp e ⚙ Configurações | Não existem no site |
+| Coleção na pasta de dados do PC | Coleção **neste navegador**. Use **Exportar** de vez em quando para não perder |
+
+**Como colocar no WhatsApp a figurinha feita no site:**
+
+- **Celular:** botão verde → **Compartilhar** → WhatsApp → conversa.
+- **WhatsApp Web (PC):** baixe o `.webp` e arraste para a conversa. Ele vira figurinha.
+- **Figurinha com som:** baixe o `.mp4` e, no WhatsApp do celular, vá em 😊 → **Figurinhas → Criar**, escolha o vídeo e deixe o som ligado (se o seu WhatsApp já tiver o recurso).
+
+**Levar a coleção entre o site e o app:** o **Exportar** dos dois gera o mesmo `.zip`. Exporte de um lado e use **Importar** do outro.
+
+**Navegadores:** Chrome, Edge e Firefox atualizados. O Safari do iPhone ainda não gera WebP; o site avisa.
+
+O site também tem o botão **⬇ Baixar para Windows** (sempre a última versão do app) e o **☕ Me paga um café**.
+
+---
+
+## 15. Para desenvolvedores
 
 A documentação técnica (arquitetura, rotas da API, banco, build do executável e decisões) está em **[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)**.
 

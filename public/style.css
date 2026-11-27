@@ -819,3 +819,10 @@ html:not(.web) .cafe-btn span { display: none; }
 .get-help summary { cursor: pointer; font-weight: 700; color: var(--text); }
 .get-help p { margin: 8px 0 0 !important; }
 .get-help a { color: var(--accent); }
+/* no site, o botão verde do card é "baixar ou compartilhar" (ícone de traço, não preenchido) */
+.send-btn[data-act="get"] svg { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+.web-banner { display: flex; align-items: center; gap: 10px; }
+.web-banner > span { flex: 1; }
+.web-banner.ruim { border-color: color-mix(in srgb, var(--danger) 60%, transparent); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); }
+.wb-x { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--panel2); color: var(--text); font-size: 18px; line-height: 1; }

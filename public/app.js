@@ -71,10 +71,26 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
   document.documentElement.classList.add('web');
   const fb = document.querySelector('#fileBtn span'); if (fb) fb.textContent = 'Escolher arquivo'; // sem link no site: o arquivo é o caminho
-  const aviso = document.createElement('div');
-  aviso.className = 'web-banner';
-  aviso.innerHTML = '🚧 <b>Versão web em construção.</b> Por enquanto, para criar e mandar figurinhas, use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).';
-  document.querySelector('main')?.prepend(aviso);
+  // o navegador consegue gerar figurinha (WebP)? O Safari antigo não: avisa logo, em vez de falhar na hora de criar
+  let geraWebp = false;
+  try {
+    const c = new OffscreenCanvas(2, 2), x = c.getContext('2d');
+    x.fillStyle = '#fc0'; x.fillRect(0, 0, 2, 2); // o Chrome recusa exportar um quadro que nunca foi desenhado
+    geraWebp = (await c.convertToBlob({ type: 'image/webp' })).type === 'image/webp';
+  } catch { /* sem suporte */ }
+  // pede para o navegador não apagar a Biblioteca sozinho quando faltar espaço
+  navigator.storage?.persist?.().catch(() => {});
+  let fechado = false;
+  try { fechado = localStorage.getItem('sticks.webAviso') === '1'; } catch { /* ok */ }
+  if (!geraWebp || !fechado) {
+    const aviso = document.createElement('div');
+    aviso.className = `web-banner${geraWebp ? '' : ' ruim'}`;
+    aviso.innerHTML = geraWebp
+      ? '🌐 <span><b>Versão web:</b> suas figurinhas ficam guardadas <b>neste navegador</b>. Para não perder (trocar de aparelho, limpar o navegador), use <b>Exportar</b> na Biblioteca de vez em quando.</span><button type="button" class="wb-x" aria-label="Fechar aviso">×</button>'
+      : '⚠️ <span><b>Este navegador não consegue gerar figurinhas</b> (falta o formato WebP). Use o <b>Chrome</b>, o <b>Edge</b> ou o <b>Firefox</b> atualizados, no computador ou no Android, ou o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>.</span>';
+    aviso.querySelector('.wb-x')?.addEventListener('click', () => { aviso.remove(); try { localStorage.setItem('sticks.webAviso', '1'); } catch { /* ok */ } });
+    document.querySelector('main')?.prepend(aviso);
+  }
   // ⬇ Baixar o app para Windows: o link da última versão vem do GitHub (sem isso, leva à página de downloads)
   const RELEASES = 'https://github.com/ivandneto/zapsticks-do-caos/releases/latest';
   const baixar = document.createElement('a');
@@ -1343,7 +1359,7 @@ async function loadCollection(highlightId) {
   renderPackBar();
   renderCreatePacks();
   const st = data.stats;
-  $('#stats').textContent = st.total ? `${st.total} figurinha${st.total > 1 ? 's' : ''} · ${Math.round(st.seconds)}s de áudio · ${st.sends} enviada${st.sends === 1 ? '' : 's'}` : '';
+  $('#stats').textContent = st.total ? `${st.total} figurinha${st.total > 1 ? 's' : ''} · ${Math.round(st.seconds)}s de áudio${CAPS.whatsapp ? ` · ${st.sends} enviada${st.sends === 1 ? '' : 's'}` : ''}` : '';
   $('#empty').hidden = stickers.length > 0;
   $('#empty p').innerHTML = st.total ? 'Nada encontrado com esse filtro.' : 'Nenhuma figurinha ainda.<br>Crie a primeira na aba <b>🎬 Criar</b>.';
   $('#grid').innerHTML = stickers.map((s, i) => card(s, i, s.id === highlightId)).join('');

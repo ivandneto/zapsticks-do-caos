@@ -93,6 +93,21 @@ Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 | 🖥️ | **Mora na bandeja** | No Windows vira um iconezinho perto do relógio, com bolinha de status: 🟢 conectado, 🟠 pensando, ⚪ dormindo. |
 | 💸 | **Grátis** | Sem assinatura, sem nuvem, sem "plano premium". Roda no seu PC. Curtiu? Tem o ☕ "Me paga um café" (Pix de qualquer valor) no topo do app. |
 
+## 🌐 Versão web (sem instalar nada)
+
+Também dá para usar **direto no navegador**, no computador ou no celular, sem instalar. A figurinha é criada **no seu próprio aparelho**: nada vai para servidor nenhum.
+
+| | App para Windows | Versão web |
+|---|---|---|
+| Vídeo, foto, GIF ou áudio do aparelho | ✅ | ✅ |
+| Criar (som do vídeo, sem som, áudio seu, sua voz), Enquadrar, texto e emoji, todos os emojis, tirar o fundo | ✅ | ✅ |
+| Combinação Caótica, Biblioteca, pacotes, exportar/importar (.zip compatível entre os dois) | ✅ | ✅ |
+| Colar **link** do YouTube, Instagram, TikTok… | ✅ | ❌ (envie o arquivo) |
+| **Mandar direto** pelo WhatsApp | ✅ | ❌ (baixe ou compartilhe: `.webp`, `.mp4` com som, `.ogg`) |
+| Onde ficam as figurinhas | no seu PC | neste navegador (use **Exportar** para guardar) |
+
+Funciona no **Chrome**, no **Edge** e no **Firefox** atualizados. O Safari do iPhone ainda não gera figurinha (falta o formato WebP), e o site avisa.
+
 ## 🚀 Como usar
 
 ### Jeito preguiçoso (Windows)
