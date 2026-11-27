@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/banner.png" width="100%" alt="Audio Sticks, o ZapSticks do Caos: logo no meio de figurinhas com som, balões de conversa com bom dia grupo e kkkkkk, e o slogan: qualquer trecho de vídeo vira figurinha com som">
+<img src="docs/banner.png" width="100%" alt="ZapSticks do Caos (Audio Sticks): logo no meio de figurinhas com som, balões de conversa com bom dia grupo e kkkkkk, e o slogan: qualquer trecho de vídeo vira figurinha com som">
 
-### *O ZapSticks do Caos: porque mandar "kkkkkk" já não basta.*
+### *Audio Sticks: porque mandar "kkkkkk" já não basta.*
 
 Transforma **qualquer trecho de vídeo** (YouTube, Instagram, TikTok, X, Facebook ou um arquivo seu) em **figurinha de áudio** e manda direto no **WhatsApp**.
 Para você, para um contato, para o grupo da família às 6h da manhã. A responsabilidade é sua. 🫡
