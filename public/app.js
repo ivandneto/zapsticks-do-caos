@@ -2093,10 +2093,25 @@ $('#frameBtn').onclick = () => openFrameEditor();
  * Moldura do enquadramento desenhada em cima do player (vídeo do PC/link baixado, foto e GIF): mostra, enquanto toca,
  * exatamente o quadrado que vai virar figurinha, com o resto escurecido. Não pega cliques (os controles continuam).
  */
+// YouTube: o player não informa o tamanho do vídeo; no app, um quadro inteiro tirado pelo servidor diz (deitado ou Short)
+const ytDims = new Map(), ytDimsPedidos = new Map(); // id → tentativas
+function dimsDoYouTube(id) {
+  if (ytDims.has(id)) return ytDims.get(id);
+  const tentativas = ytDimsPedidos.get(id) || 0;
+  if (tentativas >= 0 && tentativas < 3) {
+    ytDimsPedidos.set(id, -1); // pedindo
+    const img = new Image();
+    img.onload = () => { ytDims.set(id, { w: img.naturalWidth, h: img.naturalHeight }); drawFrameOverlay(); };
+    img.onerror = () => { ytDimsPedidos.set(id, tentativas + 1); setTimeout(drawFrameOverlay, 1500); }; // falha passageira do ffmpeg: tenta de novo
+    img.src = `/api/frame?v=${id}&t=0&fit=full`; // do começo: vídeos curtíssimos não têm o segundo 1
+  }
+  return null;
+}
 function drawFrameOverlay() {
   const ov = $('#frameOv');
-  const el = vid.kind === 'source' && !isPicture() ? html5 : isPicture() ? $('#imgView') : null;
-  const Vw = el ? el.videoWidth || el.naturalWidth : 0, Vh = el ? el.videoHeight || el.naturalHeight : 0;
+  const yt = isYT() && CAPS.linkDownload && !$('#ytBox').hidden ? dimsDoYouTube(vid.id) : null;
+  const el = yt ? $('#ytBox') : vid.kind === 'source' && !isPicture() ? html5 : isPicture() ? $('#imgView') : null;
+  const Vw = yt ? yt.w : el ? el.videoWidth || el.naturalWidth : 0, Vh = yt ? yt.h : el ? el.videoHeight || el.naturalHeight : 0;
   if (!el || el.hidden || $('#frameBtnPlayer').hidden || !Vw || !Vh) { ov.hidden = true; return; }
   const P = $('.player-wrap'), Pw = P.clientWidth, Ph = P.clientHeight;
   const s = Math.min(Pw / Vw, Ph / Vh), ox = (Pw - Vw * s) / 2, oy = (Ph - Vh * s) / 2;

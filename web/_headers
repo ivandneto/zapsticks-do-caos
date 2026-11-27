@@ -1,8 +1,8 @@
 # Cabeçalhos de segurança da versão web (Cloudflare Pages lê este arquivo; ver docs/DESENVOLVIMENTO.md).
 # CSP: só o que o site usa — YouTube (player), jsDelivr + Google Storage (IA do "Tirar o fundo"),
-# Google Fonts (fontes do texto), API do GitHub (botão "Baixar para Windows"). Nada de script de outro lugar.
+# Google Fonts (fontes do texto), API do GitHub (botão "Baixar para Windows"), Cloudflare Web Analytics. Nada de script de outro lugar.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.youtube.com https://s.ytimg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://i.ytimg.com; media-src 'self' data: blob:; connect-src 'self' data: blob: https://api.github.com https://cdn.jsdelivr.net https://storage.googleapis.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.youtube.com https://s.ytimg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://i.ytimg.com; media-src 'self' data: blob:; connect-src 'self' data: blob: https://api.github.com https://cdn.jsdelivr.net https://storage.googleapis.com https://cloudflareinsights.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
