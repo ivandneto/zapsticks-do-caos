@@ -1312,7 +1312,7 @@ function stickerModal(id) {
       </ol>
       <p class="small">O recurso começou a ser liberado no Brasil em 24/11/2026 e ainda não chegou para todo mundo — se não aparecer o ícone de áudio, atualize o WhatsApp e aguarde.</p>
     </details>
-    <div class="note">O envio “com som” monta a mensagem num formato que o WhatsApp acabou de lançar e que a biblioteca ainda não suporta oficialmente. Se chegar como “mensagem não suportada”, use o vídeo .mp4 pelo passo a passo acima.</div>`, (b) => {
+    <div class="note app-only">O envio “com som” monta a mensagem num formato que o WhatsApp acabou de lançar e que a biblioteca ainda não suporta oficialmente. Se chegar como “mensagem não suportada”, use o vídeo .mp4 pelo passo a passo acima.</div>`, (b) => {
     $('.st-prev', b).onclick = () => playSticker(s.id);
     $('#stSound', b).onclick = (e) => sendStickerMsg(s.id, 'sound', e.currentTarget);
     $('#stPlain', b).onclick = (e) => sendStickerMsg(s.id, 'plain', e.currentTarget);
@@ -1633,7 +1633,7 @@ function packOptions(p) {
       <button class="btn" id="poRename">${IC.edit} Renomear / trocar emoji</button>
       <button class="btn ghost" id="poDel" style="color:var(--danger)">${IC.trash} Excluir pacote</button>
     </div>
-    <details class="howto"><summary>O que é o .wastickers?</summary>
+    <details class="howto app-only"><summary>O que é o .wastickers?</summary>
       <p class="small dim" style="margin:6px 0 10px">É o formato de pacote que apps gratuitos de figurinhas (como o <b>Sticker Maker</b>) importam para adicionar ao WhatsApp como <b>pacote de verdade</b>, com botão “Adicionar ao WhatsApp”. Vai só a animação (sem som). O WhatsApp exige de 3 a 30 figurinhas.</p>
     </details>`, (b) => {
     $('#poPlain', b).onclick = (e) => sendPack(p, e.currentTarget, 'plain');
@@ -2630,10 +2630,12 @@ const HELP_TABS = {
     </div>
     <h4>Do vídeo à figurinha em 4 passos</h4>
     <div class="steps4">
-      <div class="step4"><span class="n">1</span><div class="big">🔗</div><h5>Cole o link</h5><p>YouTube, Instagram, TikTok, X, Facebook… ou use <b>📁 Arquivo</b> / arraste um vídeo do PC.</p></div>
+      ${CAPS.linkDownload ? '<div class="step4"><span class="n">1</span><div class="big">🔗</div><h5>Cole o link</h5><p>YouTube, Instagram, TikTok, X, Facebook… ou use <b>📁 Arquivo</b> / arraste um vídeo do PC.</p></div>'
+        : '<div class="step4"><span class="n">1</span><div class="big">📁</div><h5>Escolha o arquivo</h5><p>Vídeo, foto, GIF ou áudio do aparelho (ou arraste). Do <b>YouTube</b>, cole o link: o site grava o trecho tocando.</p></div>'}
       <div class="step4"><span class="n">2</span><div class="big">✂️</div><h5>Marque o trecho</h5><p>Arraste as alças amarelas ou use <b>I</b> e <b>O</b>. O <b>▶</b> toca só o pedaço.</p></div>
       <div class="step4"><span class="n">3</span><div class="big">🎨</div><h5>Dê a cara</h5><p>Nome, emoji, tags e pacote. Até <b>5s</b> vira figurinha animada com som; até <b>10s</b>, parada com som.</p></div>
-      <div class="step4"><span class="n">4</span><div class="big">📲</div><h5>Envie</h5><p>O botão verde manda para o WhatsApp de quem você escolheu em <b>Enviar para</b>.</p></div>
+      ${CAPS.whatsapp ? '<div class="step4"><span class="n">4</span><div class="big">📲</div><h5>Envie</h5><p>O botão verde manda para o WhatsApp de quem você escolheu em <b>Enviar para</b>.</p></div>'
+        : '<div class="step4"><span class="n">4</span><div class="big">📲</div><h5>Baixe ou compartilhe</h5><p>O botão verde baixa ou compartilha a figurinha (<b>.webp</b>), o vídeo com som (<b>.mp4</b>) e o áudio (<b>.ogg</b>).</p></div>'}
     </div>
     <h4>Como as peças se conectam</h4>
     <div class="flow">
@@ -2719,8 +2721,8 @@ async function openHelp(tab = 'inicio') {
     <div class="help-hero">
       <span class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <h3>Como o Audio Sticks funciona</h3>
-      <p>Transforme qualquer trecho de vídeo — YouTube, Instagram, TikTok ou um arquivo seu — em figurinha de áudio e mande para o WhatsApp em um clique.</p>
-      ${MOTOR.kind === 'navegador' ? `<p class="mode-hint help-web">🌐 Você está na <b>versão web</b>: cria e baixa (ou compartilha) a figurinha. Envio direto pelo WhatsApp, link do Instagram/TikTok, pacotes e configurações são do <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).</p>` : ''}
+      <p>${MOTOR.kind === 'navegador' ? 'Transforme um trecho de vídeo (um arquivo seu ou do YouTube) em figurinha, com ou sem som, direto no navegador.' : 'Transforme qualquer trecho de vídeo — YouTube, Instagram, TikTok ou um arquivo seu — em figurinha de áudio e mande para o WhatsApp em um clique.'}</p>
+      ${MOTOR.kind === 'navegador' ? `<p class="mode-hint help-web">🌐 Você está na <b>versão web</b>: cria, guarda (neste navegador) e baixa ou compartilha a figurinha. Só o envio direto pelo WhatsApp e os links do Instagram/TikTok são do <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> (grátis).</p>` : ''}
       <div class="hero-actions"><button class="btn primary" id="hTour">🧭 Fazer o tour guiado</button>${CAPS.settings ? '<button class="btn" id="hSet">⚙ Configurações</button>' : '<a class="btn" href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">⬇ Baixar o app</a>'}</div>
     </div>
     <nav class="help-tabs" id="hTabs">${Object.entries(HELP_TABS).map(([k, t]) => `<button data-k="${k}">${t.label}</button>`).join('')}</nav>

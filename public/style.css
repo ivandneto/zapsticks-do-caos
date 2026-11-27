@@ -826,3 +826,28 @@ html:not(.web) .cafe-btn span { display: none; }
 .web-banner > span { flex: 1; }
 .web-banner.ruim { border-color: color-mix(in srgb, var(--danger) 60%, transparent); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); }
 .wb-x { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--panel2); color: var(--text); font-size: 18px; line-height: 1; }
+
+/* barra piscando: o ícone girando da etapa em andamento mudava a área "rolável" da coluna; agora fica contido
+   e a coluna reserva o espaço da barra de rolagem */
+.progress li { contain: paint; }
+.ed-right { scrollbar-gutter: stable; }
+
+/* janela "Baixar ou compartilhar": botões do tamanho do texto, nome e explicação à esquerda */
+.modal-body .stack .get-row .btn { width: auto; flex: none; margin: 0; padding: 8px 12px; white-space: nowrap; justify-content: center; }
+.get-row > span { line-height: 1.25; }
+@media (max-width: 480px) { .get-row { flex-wrap: wrap; } .get-row > span { flex: 1 1 100%; } }
+
+/* só do app (somem no site) */
+.web .app-only { display: none !important; }
+/* ícone de figurinha nos títulos das janelas (era um quadrado preto: o desenho é de traço, não de preenchimento) */
+.modal-body h3 svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* celular: nada passa da borda (emojis e campos encolhem com a tela) */
+.ed-right, .ed-right .details, .ed-right .field, .ed-right .emoji-pick { min-width: 0; }
+.ed-right .field input { width: 100%; min-width: 0; box-sizing: border-box; }
+@media (max-width: 520px) {
+  .ed-right .details { grid-template-columns: minmax(0, 1fr); }
+  .ed-right .emoji-pick { grid-template-columns: auto minmax(0, 1fr); }
+  .ed-right .emoji-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .ed-right .emoji-grid button { font-size: 18px; padding: 3px 0; }
+}
