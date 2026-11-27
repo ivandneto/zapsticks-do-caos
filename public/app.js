@@ -683,6 +683,7 @@ function render() {
   // o detalhe (duração, tipo) fica no resumo logo acima; o botão diz só o que vai criar
   const onlyAudio = mode === 'audio' && (!vid.hasVideo || len > STICKER_MAX + 0.05);
   btn.innerHTML = off || !vid.kind ? label : onlyAudio ? '🎵 Criar áudio' : swapAudio && mode === 'sticker' ? '✨ Criar figurinha com som' : '✨ Criar figurinha';
+  if (isYT() && !CAPS.linkDownload && !off) btn.innerHTML = '🎙️ Gravar o trecho do YouTube';
   btn.disabled = off || creating;
   const showFrame = cropApplies() && !(isYT() && !CAPS.linkDownload) && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
   $('#frameBtn').hidden = !showFrame;
@@ -710,6 +711,7 @@ function drawSummary(label, off) {
   const len = sel.end - sel.start, k = soundKind(), n = (x) => `${x.toFixed(1).replace('.', ',')}s`;
   let txt;
   if (off) txt = `⚠️ ${label.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()}`;
+  else if (isYT() && !CAPS.linkDownload) txt = `🎙️ <b>Primeiro, grave o trecho</b> (${n(len)}) <i>· depois aparecem Enquadrar, Tirar o fundo e Texto, e você cria</i>`;
   else if (k === 'video') {
     txt = !vid.hasVideo ? `🎵 Vira <b>áudio</b> (mensagem de voz) · ${n(len)}`
       : len <= ANIM_SOUND_MAX + 0.05 ? `🎞️ Vira <b>figurinha animada com som</b> · ${n(len)} <i>+ o áudio</i>`
@@ -1179,7 +1181,7 @@ async function recordYtSegment(onMsg = () => {}) {
 async function recordAndRetry() {
   if (creating || !isYT()) return;
   if (!IN_APP_WINDOW && !(await confirmBox('🎙️ Gravar enquanto toca?',
-    !CAPS.linkDownload ? 'No site, o vídeo do YouTube é gravado enquanto toca. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe ligado “Compartilhar o áudio da aba”. Depois é só esperar o trecho tocar.' :
+    !CAPS.linkDownload ? 'No site, o trecho do YouTube é gravado enquanto toca. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe ligado “Compartilhar o áudio da aba”. Depois da gravação, você enquadra, tira o fundo ou escreve, e cria.' :
     'O YouTube bloqueou os downloads por um tempo. O app pode tocar o trecho e gravar a imagem e o som direto do player. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe o áudio ligado.',
     'Gravar o trecho'))) return;
   const keep = { title: $('#title').value, auto: $('#title').dataset.auto, len: sel.end - sel.start, name: vid.title || 'YouTube' };
@@ -1210,7 +1212,9 @@ async function recordAndRetry() {
     prog.hidden = true;
     creating = false; render();
   }
-  if (ok) { toast('Gravado! Criando a figurinha 🎙️', 'ok'); $('#createBtn').click(); }
+  if (!ok) return;
+  if (!CAPS.linkDownload) toast('Gravado! 🎙️ Agora dá para enquadrar, tirar o fundo e escrever. Depois é só clicar em Criar.', 'ok');
+  else { toast('Gravado! Criando a figurinha 🎙️', 'ok'); $('#createBtn').click(); }
 }
 
 function showCreated(s) {
