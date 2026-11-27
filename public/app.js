@@ -683,9 +683,8 @@ function render() {
   // o detalhe (duração, tipo) fica no resumo logo acima; o botão diz só o que vai criar
   const onlyAudio = mode === 'audio' && (!vid.hasVideo || len > STICKER_MAX + 0.05);
   btn.innerHTML = off || !vid.kind ? label : onlyAudio ? '🎵 Criar áudio' : swapAudio && mode === 'sticker' ? '✨ Criar figurinha com som' : '✨ Criar figurinha';
-  if (isYT() && !CAPS.linkDownload && !off) btn.innerHTML = '🎙️ Gravar o trecho do YouTube';
   btn.disabled = off || creating;
-  const showFrame = cropApplies() && !(isYT() && !CAPS.linkDownload) && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
+  const showFrame = cropApplies() && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
   $('#frameBtn').hidden = !showFrame;
   $('#frameBtn').classList.toggle('on', !frameIsDefault());
   $('#frameBtn').textContent = frameIsDefault() ? '🔍 Enquadrar' : `🔍 Enquadrado (${frame.z.toFixed(2).replace(/0$/, '')}x)`;
@@ -697,7 +696,7 @@ function render() {
   drawFrameOverlay();
   drawSummary(label, off);
   // tirar o fundo com o som do vídeo: a animação sem fundo leva o som junto (até 5s, limite da figurinha animada com som)
-  $('#bgBtn').hidden = !(vid.kind && vid.hasVideo && !(isYT() && !CAPS.linkDownload) && (mode === 'sticker' || (!isPicture() && len <= ANIM_SOUND_MAX + 0.05)));
+  $('#bgBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= ANIM_SOUND_MAX + 0.05)));
   $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
 }
@@ -711,7 +710,6 @@ function drawSummary(label, off) {
   const len = sel.end - sel.start, k = soundKind(), n = (x) => `${x.toFixed(1).replace('.', ',')}s`;
   let txt;
   if (off) txt = `⚠️ ${label.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()}`;
-  else if (isYT() && !CAPS.linkDownload) txt = `🎙️ <b>Primeiro, grave o trecho</b> (${n(len)}) <i>· depois aparecem Enquadrar, Tirar o fundo e Texto, e você cria</i>`;
   else if (k === 'video') {
     txt = !vid.hasVideo ? `🎵 Vira <b>áudio</b> (mensagem de voz) · ${n(len)}`
       : len <= ANIM_SOUND_MAX + 0.05 ? `🎞️ Vira <b>figurinha animada com som</b> · ${n(len)} <i>+ o áudio</i>`
@@ -723,6 +721,7 @@ function drawSummary(label, off) {
     txt = k === 'none' ? `${still ? '🖼️' : '🎞️'} Vira <b>${what}, sem som</b>${still ? '' : ` · ${n(vid.media === 'gif' ? Math.min(STICK_ANIM_MAX, vid.duration) : len)}`}`
       : `${k === 'mic' ? '🎙️' : '🎵'} Vira <b>${what} com ${k === 'mic' ? 'a sua voz' : 'o seu áudio'}</b> <i>(som até ${stickSoundLimit()}s)</i>`;
   }
+  if (!off && isYT() && !CAPS.linkDownload) txt += ' <i>· 🎙️ no site, o trecho do YouTube é gravado enquanto toca</i>';
   el.innerHTML = txt;
   el.classList.toggle('warn', !!off);
 }
@@ -992,10 +991,7 @@ $('#gainSeg').addEventListener('click', (e) => { const b = e.target.closest('but
 // ============ criar ============
 $('#createBtn').onclick = async () => {
   if (creating || !vid.kind) return;
-  if (isYT() && !CAPS.linkDownload) { // site: não baixa do YouTube; grava o trecho tocando
-    if (canRecord()) return recordAndRetry();
-    return toast(navigator.mediaDevices?.getDisplayMedia ? 'Espere o vídeo do YouTube carregar e tente de novo.' : 'Este navegador não grava a aba (no celular não dá). Baixe o vídeo e envie o arquivo, ou use o computador.', 'err');
-  }
+  if (gravarAntes('criar')) return;
   if (isYT() && Date.now() < ytBlockedUntil && canRecord()) return recordAndRetry();
   stopPreview();
   creating = true; render();
@@ -1177,11 +1173,20 @@ async function recordYtSegment(onMsg = () => {}) {
   }
 }
 
-/** Grava o trecho, transforma a gravação na mídia carregada e clica em Criar de novo (mesmo nome, emoji e texto). */
-async function recordAndRetry() {
+/** Site + YouTube: não dá para baixar, então grava o trecho tocando e depois segue para o que foi pedido
+ *  (criar, enquadrar ou tirar o fundo) — o mesmo caminho do app, com uma gravação no meio. true = tratou. */
+function gravarAntes(depois) {
+  if (!isYT() || CAPS.linkDownload) return false;
+  if (canRecord()) recordAndRetry(depois);
+  else toast(navigator.mediaDevices?.getDisplayMedia ? 'Espere o vídeo do YouTube carregar e tente de novo.' : 'Este navegador não grava a aba (no celular não dá). Baixe o vídeo e envie o arquivo, ou use o computador.', 'err');
+  return true;
+}
+
+/** Grava o trecho, transforma a gravação na mídia carregada e segue: cria (mesmo nome, emoji e texto), enquadra ou tira o fundo. */
+async function recordAndRetry(depois = 'criar') {
   if (creating || !isYT()) return;
   if (!IN_APP_WINDOW && !(await confirmBox('🎙️ Gravar enquanto toca?',
-    !CAPS.linkDownload ? 'No site, o trecho do YouTube é gravado enquanto toca. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe ligado “Compartilhar o áudio da aba”. Depois da gravação, você enquadra, tira o fundo ou escreve, e cria.' :
+    !CAPS.linkDownload ? 'No site, o trecho do YouTube é gravado enquanto toca. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe ligado “Compartilhar o áudio da aba”. Depois da gravação, segue direto, igual ao app.' :
     'O YouTube bloqueou os downloads por um tempo. O app pode tocar o trecho e gravar a imagem e o som direto do player. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe o áudio ligado.',
     'Gravar o trecho'))) return;
   const keep = { title: $('#title').value, auto: $('#title').dataset.auto, len: sel.end - sel.start, name: vid.title || 'YouTube' };
@@ -1213,7 +1218,8 @@ async function recordAndRetry() {
     creating = false; render();
   }
   if (!ok) return;
-  if (!CAPS.linkDownload) toast('Gravado! 🎙️ Agora dá para enquadrar, tirar o fundo e escrever. Depois é só clicar em Criar.', 'ok');
+  if (depois === 'enquadrar') { toast('Gravado! 🎙️ Agora enquadre.', 'ok'); openFrameEditor(); }
+  else if (depois === 'fundo') { toast('Gravado! 🎙️ Agora tire o fundo.', 'ok'); $('#bgBtn').click(); }
   else { toast('Gravado! Criando a figurinha 🎙️', 'ok'); $('#createBtn').click(); }
 }
 
@@ -2001,6 +2007,7 @@ $('#fitSeg').addEventListener('click', (e) => {
 $('#bgBtn').onclick = async () => {
   const btn = $('#bgBtn');
   if (!vid.kind || !vid.hasVideo) return;
+  if (gravarAntes('fundo')) return;
   const { openBgEditor } = await import('./bgeditor.js');
   const name = ($('#title').value.trim() || vid.title || 'figurinha').slice(0, 50);
 
@@ -2102,7 +2109,7 @@ $('#txtBtn').onclick = async () => {
 // ============ 🔍 enquadrar: zoom e posição do recorte quadrado ============
 // A tela mostra o quadro inteiro atrás de uma "janela" quadrada; o que aparece na janela é o que vai para a figurinha.
 // A conta é a mesma do ffmpeg (lib/audio.js → squareFilter): lado = menor lado / zoom; posição = sobra × x (ou y).
-$('#frameBtn').onclick = () => openFrameEditor();
+$('#frameBtn').onclick = () => { if (!gravarAntes('enquadrar')) openFrameEditor(); };
 
 /**
  * Moldura do enquadramento desenhada em cima do player (vídeo do PC/link baixado, foto e GIF): mostra, enquanto toca,
@@ -2139,7 +2146,7 @@ function drawFrameOverlay() {
 html5.addEventListener('loadedmetadata', drawFrameOverlay);
 $('#imgView').addEventListener('load', drawFrameOverlay);
 addEventListener('resize', drawFrameOverlay);
-$('#frameBtnPlayer').onclick = () => openFrameEditor();
+$('#frameBtnPlayer').onclick = () => { if (!gravarAntes('enquadrar')) openFrameEditor(); };
 function openFrameEditor() {
   if (!cropApplies()) return;
   stopPreview();
