@@ -6,6 +6,8 @@ const IN_APP_WINDOW = (() => {
   catch { return new URLSearchParams(location.search).has('janela'); }
 })();
 const $ = (s, el = document) => el.querySelector(s);
+// fontes do Google: carregadas sem travar o desenho da página (ver index.html)
+for (const l of document.querySelectorAll('link[data-fontes]')) { if (l.sheet) l.media = 'all'; else l.addEventListener('load', () => { l.media = 'all'; }, { once: true }); }
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -65,7 +67,8 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
     navigator.serviceWorker.startMessages();
     try {
       await navigator.serviceWorker.register('/sw-web.js', { scope: '/' });
-      if (!navigator.serviceWorker.controller) await new Promise((ok) => { navigator.serviceWorker.addEventListener('controllerchange', ok, { once: true }); setTimeout(ok, 5000); });
+      // as imagens da Biblioteca dependem dele; sem figurinhas guardadas (1ª visita), não precisa esperar
+      if (!navigator.serviceWorker.controller && await motor.temFigurinhas()) await new Promise((ok) => { navigator.serviceWorker.addEventListener('controllerchange', ok, { once: true }); setTimeout(ok, 5000); });
     } catch (err) { console.error('[service worker]', err); }
   }
   Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
@@ -139,7 +142,7 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
       if (!zip) return;
       const info = `${rel.tag_name} · ${Math.round(zip.size / 1e6)} MB`;
       for (const a of [baixar, promoBtn]) { a.href = zip.browser_download_url; a.removeAttribute('target'); }
-      baixar.querySelector('span').innerHTML = `Baixar para Windows <small>${info}</small>`;
+      baixar.querySelector('span').innerHTML = `Baixar para Windows <small>${esc(info)}</small>`;
       $('small', promoBtn).textContent = info;
     })
     .catch(() => { /* fica o link da página de downloads */ });
@@ -271,12 +274,14 @@ const IC = {
 
 // ============ players: YouTube (iframe) ou mídia baixada/enviada (<video>) ============
 let player = null, playerReady = false, embedBlocked = false;
-const ytApi = new Promise((resolve) => {
+// o player do YouTube (script grande, de fora) só é baixado quando alguém abre um link do YouTube
+let ytApiP = null;
+const ytApi = () => (ytApiP ||= new Promise((resolve) => {
   window.onYouTubeIframeAPIReady = resolve;
   const s = document.createElement('script');
   s.src = 'https://www.youtube.com/iframe_api';
   document.head.append(s);
-});
+}));
 const html5 = $('#html5');
 
 // kind: 'youtube' (toca direto do YouTube) | 'source' (link de outro site ou arquivo, servido pelo app)
@@ -390,7 +395,7 @@ async function loadVideo(raw) {
   try { const t = new URL(raw).searchParams.get('t'); if (t) t0 = parseTime(t.replace(/s$/, '').replace(/m/, ':')) || 0; } catch { /* ok */ }
   sel.start = t0; sel.end = t0 + 5; selTouched = false;
 
-  await ytApi;
+  await ytApi();
   if (!player) {
     player = new YT.Player('player', {
       videoId: id,
@@ -1561,7 +1566,7 @@ function editSticker(s) {
       <label class="field"><span>Nome</span><input id="eTitle" value="${esc(s.title)}" maxlength="80"></label>
       <label class="field"><span>Tags</span><input id="eTags" value="${esc(s.tags.join(', '))}" maxlength="120"></label>
       <div class="field"><span>Pacotes</span><div class="pack-pick" id="ePacks"></div></div>
-      ${s.sourceUrl ? `<a class="dim small" target="_blank" rel="noopener" href="${esc(s.videoId ? `https://www.youtube.com/watch?v=${s.videoId}&t=${Math.floor(s.start || 0)}s` : s.sourceUrl)}">${siteIcon(s.sourceSite)} ${esc(s.sourceSite || 'Origem')} · ${esc(s.videoTitle || 'vídeo original')} (${fmt(s.start)}–${fmt(s.end)})</a>`
+      ${s.sourceUrl && /^https?:\/\//i.test(s.sourceUrl) ? `<a class="dim small" target="_blank" rel="noopener noreferrer" href="${esc(s.videoId && /^[\w-]{11}$/.test(s.videoId) ? `https://www.youtube.com/watch?v=${s.videoId}&t=${Math.floor(Number(s.start) || 0)}s` : s.sourceUrl)}">${siteIcon(s.sourceSite)} ${esc(s.sourceSite || 'Origem')} · ${esc(s.videoTitle || 'vídeo original')} (${fmt(s.start)}–${fmt(s.end)})</a>`
         : s.sourceKind === 'upload' ? `<span class="dim small">📁 Arquivo · ${esc(s.videoTitle || '')} (${fmt(s.start)}–${fmt(s.end)})</span>` : ''}
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="eSave">Salvar</button></div>
     </div>`, (b) => {

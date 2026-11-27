@@ -36,6 +36,8 @@ fs.writeFileSync(index, pagina);
 fs.writeFileSync(path.join(out, 'robots.txt'), seo.robots({ url, indexar }));
 if (indexar) fs.writeFileSync(path.join(out, 'sitemap.xml'), seo.sitemap({ url }));
 fs.rmSync(path.join(out, 'web', 'seo.js'));
+// cabeçalhos de segurança (CSP etc.): a Cloudflare Pages lê o _headers da raiz
+fs.renameSync(path.join(out, 'web', '_headers'), path.join(out, '_headers'));
 
 // ☕ "Me paga um café": Pix copia e cola + QR (SVG) gerados aqui, a partir de web/apoio.json (dados públicos)
 const apoio = JSON.parse(fs.readFileSync(path.join(root, 'web', 'apoio.json'), 'utf8'));

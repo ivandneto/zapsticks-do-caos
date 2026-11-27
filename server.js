@@ -659,7 +659,10 @@ app.post('/api/import', upload.single('pack'), (req, res) => {
         if (e) fs.writeFileSync(mediaPath(s.id, ext), e.getData());
       }
       const visual = fs.existsSync(mediaPath(s.id, 'webp'));
-      db.insertSticker({ ...s, visual, waveform: s.waveform.slice(0, 64).map(Number), duration: Number(s.duration) || (silent ? 0 : 1) });
+      // .zip vem de fora: o link de origem só vale se for http(s) (o app pode baixá-lo de novo com o yt-dlp)
+      const sourceUrl = /^https?:\/\//i.test(String(s.sourceUrl || '')) ? String(s.sourceUrl).slice(0, 2000) : null;
+      const videoId = /^[\w-]{11}$/.test(String(s.videoId || '')) ? s.videoId : null;
+      db.insertSticker({ ...s, sourceUrl, videoId, visual, waveform: s.waveform.slice(0, 64).map(Number), duration: Number(s.duration) || (silent ? 0 : 1) });
       added++;
     }
     // pacotes: cria os que não existem (mesmo id) e coloca as figurinhas dentro

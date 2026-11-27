@@ -441,5 +441,7 @@ export function criarMotor() {
       try { return await rotear(path, opts); } catch (e) { console.error('[motor]', e); return falha(500, e?.message || String(e)); }
     },
     upload: enviar,
+    /** Já há algo guardado neste navegador? (para decidir se vale esperar o service worker) */
+    temFigurinhas: async () => (await banco.todasFigurinhas()).length > 0,
   };
 }

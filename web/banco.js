@@ -46,11 +46,11 @@ const limpaTags = (tags) => (Array.isArray(tags) ? tags : String(tags || '').spl
 export function normaliza(s) {
   return {
     id: s.id, title: String(s.title || 'Figurinha').slice(0, 80), emoji: String(s.emoji || '🔊').slice(0, 8), tags: limpaTags(s.tags),
-    videoId: s.videoId ?? null, videoTitle: s.videoTitle ?? null, start: s.start ?? null, end: s.end ?? null,
+    videoId: /^[\w-]{11}$/.test(String(s.videoId || '')) ? s.videoId : null, videoTitle: s.videoTitle ?? null, start: s.start ?? null, end: s.end ?? null,
     duration: Number(s.duration) || 0, waveform: Array.isArray(s.waveform) ? s.waveform.slice(0, 64).map(Number) : [],
     favorite: !!s.favorite, plays: s.plays || 0, sends: s.sends || 0, createdAt: s.createdAt || new Date().toISOString(),
     visual: !!s.visual, kind: ['audio', 'sticker', 'combo'].includes(s.kind) ? s.kind : 'audio', animated: s.animated !== false,
-    sourceKind: s.sourceKind ?? null, sourceUrl: s.sourceUrl ?? null, sourceId: s.sourceId ?? null, sourceSite: s.sourceSite ?? null,
+    sourceKind: s.sourceKind ?? null, sourceUrl: /^https?:\/\//i.test(String(s.sourceUrl || '')) ? String(s.sourceUrl).slice(0, 2000) : null, sourceId: s.sourceId ?? null, sourceSite: s.sourceSite ?? null,
   };
 }
 const comAudio = (s) => ({ ...s, hasAudio: s.kind !== 'sticker' });
