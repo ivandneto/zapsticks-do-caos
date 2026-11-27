@@ -59,7 +59,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ▮▮ Audio Sticks  v1.5.0    [● +55 11 9…] [Eu Enviar para: Você ▾] [🧭] [?] [⚙]│ ← topo
+│ ▮▮ Audio Sticks  v1.6.0    [● +55 11 9…] [Eu Enviar para: Você ▾] [🧭] [?] [⚙]│ ← topo
 ├──────────────────────────────────────────────────────────────────────────┤
 │ [ 🎬 Criar ]     [ 🌀 Combinação Caótica ]     [ 📚 Biblioteca  15 ]       │ ← abas
 ├──────────────────────────────────────────────────────────────────────────┤
@@ -77,7 +77,7 @@ Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (d
 
 | Parte | O que faz |
 |---|---|
-| **Versão** (ao lado do logo, ex.: `v1.5.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
+| **Versão** (ao lado do logo, ex.: `v1.6.0`) | Qual versão está instalada e rodando. Também aparece na dica do ícone da bandeja, no **Sobre** e no registro. |
 | **Status do WhatsApp** (topo) | Verde com o seu número = conectado. Clique para conectar ou desconectar. |
 | **Enviar para** (topo) | Para quem vão todos os envios: você, um contato, um grupo ou um número. Vale em **qualquer aba**; clique para abrir o painel do lado direito ([seção 5](#5-enviar-para-quem-e-como)). |
 | **🧭 Tour** | Apresentação guiada que destaca cada parte da tela (e abre a Biblioteca sozinho quando chega nela). Abre sozinho na primeira visita. |
@@ -458,7 +458,7 @@ Os links de figurinhas (`/s/...`) continuam abertos para quem os recebe. Se voc�
 | Colei um GIF e ele ficou parado | Ao **copiar a imagem**, o navegador guarda só o primeiro quadro. **Arraste** o GIF para o app ou cole o **link** dele |
 | A janela "Editar figurinha" fechava ao copiar o nome | Corrigido na 1.2.0: selecionar um texto e soltar o mouse fora da caixa não fecha mais a janela |
 | A figurinha feita de um GIF do Giphy ficou **parada** | Corrigido na 1.1.1: o `.webp` animado agora vira animação. Recrie a figurinha a partir do arquivo ou do link. Use o Edge ou o Chrome atualizados |
-| Qual versão eu tenho? | Ao lado do logo (`v1.5.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
+| Qual versão eu tenho? | Ao lado do logo (`v1.6.0`), em ⚙ Configurações ou na bandeja → **Sobre o Audio Sticks** |
 | *"Foto e GIF não têm som"* | Em **Som**, escolha **Sem som**, **Enviar áudio** ou **Gravar voz**, ou use a **🌀 Combinação Caótica** para juntar com um som |
 | A figurinha animada ficou **travada** no WhatsApp | Corrigido na 1.5.0: o app segura os quadros por segundo para caber nos 500 KB. Crie de novo; vídeo muito detalhado fica mais fluido em trechos de até 5–6 s |
 | A bandeira 🇧🇷 aparece como "BR" | O Windows não desenha bandeiras de país. Por isso elas nem aparecem no seletor de emojis no Windows |
