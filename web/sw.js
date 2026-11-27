@@ -5,6 +5,8 @@
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+// a página pede quando foi aberta sem ele no controle (ex.: Ctrl+F5)
+self.addEventListener('message', (e) => { if (e.data === 'assumir') e.waitUntil(self.clients.claim()); });
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);

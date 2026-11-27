@@ -65,11 +65,20 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
       ev.ports[0].postMessage({ status: r.status, headers: [...r.headers], body: semCorpo ? null : await r.blob() });
     });
     navigator.serviceWorker.startMessages();
-    try {
-      await navigator.serviceWorker.register('/sw-web.js', { scope: '/' });
-      // as imagens da Biblioteca dependem dele; sem figurinhas guardadas (1ª visita), não precisa esperar
-      if (!navigator.serviceWorker.controller && await motor.temFigurinhas()) await new Promise((ok) => { navigator.serviceWorker.addEventListener('controllerchange', ok, { once: true }); setTimeout(ok, 5000); });
-    } catch (err) { console.error('[service worker]', err); }
+    // Vídeo, imagens e downloads (/media, /api) só funcionam com o ajudante (sw-web.js) no controle da página.
+    // Na 1ª visita ele assume sozinho; depois de um Ctrl+F5 o navegador o desliga NESSA página, então pedimos que
+    // assuma de novo. MOTOR.pronto: quem vai mostrar mídia espera por ele (sem travar o resto da página).
+    MOTOR.pronto = (async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('/sw-web.js', { scope: '/' });
+        if (navigator.serviceWorker.controller) return true;
+        const assumiu = new Promise((ok) => navigator.serviceWorker.addEventListener('controllerchange', () => ok(true), { once: true }));
+        (await navigator.serviceWorker.ready).active?.postMessage('assumir');
+        reg.active?.postMessage('assumir');
+        return await Promise.race([assumiu, new Promise((ok) => setTimeout(() => ok(!!navigator.serviceWorker.controller), 6000))]);
+      } catch (err) { console.error('[service worker]', err); return false; }
+    })();
+    if (await motor.temFigurinhas()) await MOTOR.pronto; // a Biblioteca já guardada precisa dele para mostrar as imagens
   }
   Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
   document.documentElement.classList.add('web');
@@ -514,6 +523,7 @@ async function decodeAnimatedImage(file, onProgress) {
 
 /** Envia um arquivo (vídeo, áudio, foto, GIF ou .webp animado) e devolve a origem pronta. */
 async function uploadSourceFile(f, onMsg = () => {}) {
+  if (MOTOR.pronto && !(await MOTOR.pronto)) throw new Error('O site não conseguiu preparar o vídeo nesta aba. Recarregue a página com F5 (sem o Ctrl) e tente de novo.');
   const anim = await decodeAnimatedImage(f, onMsg);
   let jobId;
   if (anim) {
@@ -1356,6 +1366,7 @@ const filters = { q: '', fav: false, sort: 'recent', pack: '', type: '' };
 const stickerType = (s) => (s.kind === 'combo' ? 'combo' : s.hasAudio ? 'sound' : 'silent');
 
 async function loadCollection(highlightId) {
+  if (MOTOR.pronto) await MOTOR.pronto;
   const p = new URLSearchParams({ q: filters.q, sort: filters.sort, favorites: filters.fav ? '1' : '', pack: filters.pack });
   const data = await api(`/api/stickers?${p}`);
   // contagem de cada tipo (dentro da busca, favoritas e pacote atuais) e o filtro por tipo
