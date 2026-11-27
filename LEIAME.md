@@ -51,7 +51,7 @@ npm install
 npm start          # ou: npm run dev (reinicia sozinho ao salvar)
 ```
 
-Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (detalhes na [seção 14](#14-para-desenvolvedores)).
+Abra **http://localhost:3000**. Para gerar o executável: `npm run build:exe` (detalhes na [seção 14](#15-para-desenvolvedores)).
 
 ---
 

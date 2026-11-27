@@ -107,6 +107,13 @@ Também dá para usar **direto no navegador**, no computador ou no celular, sem 
 | **Mandar direto** pelo WhatsApp | ✅ | ❌ (baixe ou compartilhe: `.webp`, `.mp4` com som, `.ogg`) |
 | Onde ficam as figurinhas | no seu PC | neste navegador (use **Exportar** para guardar) |
 
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screenshots/site-inicio.png" alt="Versão web: escolher arquivo ou colar link do YouTube, com o botão Baixar para Windows e o Me paga um café"><br><sub><b>🌐 Site</b>: arquivo ou link do YouTube, sem instalar</sub></td>
+    <td width="50%" align="center"><img src="docs/screenshots/site-baixar.png" alt="Figurinha criada no site, com opções de compartilhar ou baixar .webp, .mp4 e .ogg"><br><sub><b>Pronto</b>: compartilha ou baixa a figurinha, o vídeo com som e o áudio</sub></td>
+  </tr>
+</table>
+
 Funciona no **Chrome**, no **Edge** e no **Firefox** atualizados. O Safari do iPhone ainda não gera figurinha (falta o formato WebP), e o site avisa.
 
 ## 🚀 Como usar
