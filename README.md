@@ -16,11 +16,19 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 ![Feito com](https://img.shields.io/badge/feito%20com-ffmpeg%20%2B%20caos-8a2be2)
 ![Funciona na minha máquina](https://img.shields.io/badge/funciona-na%20minha%20m%C3%A1quina%E2%84%A2-orange)
 
+[![Estrelas](https://img.shields.io/github/stars/ivandneto/zapsticks-do-caos?style=flat&logo=github&label=%E2%AD%90%20estrelas&color=ffd23f)](https://github.com/ivandneto/zapsticks-do-caos/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/ivandneto/zapsticks-do-caos/total?label=%E2%AC%87%20downloads&color=25d366)](https://github.com/ivandneto/zapsticks-do-caos/releases)
+[![Versão](https://img.shields.io/github/v/release/ivandneto/zapsticks-do-caos?label=vers%C3%A3o&color=8a2be2)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
+[![Site](https://img.shields.io/website?url=https%3A%2F%2Fzapsticks.pages.dev&label=%F0%9F%8C%90%20site&up_message=no%20ar&down_message=fora%20do%20ar)](https://zapsticks.pages.dev/)
+[![Atualizado](https://img.shields.io/github/last-commit/ivandneto/zapsticks-do-caos?label=atualizado)](https://github.com/ivandneto/zapsticks-do-caos/commits/main)
+
 <br>
 
 [![🌐 Usar no navegador](https://img.shields.io/badge/%F0%9F%8C%90%20Usar%20no%20navegador-zapsticks.pages.dev-ffd23f?style=for-the-badge)](https://zapsticks.pages.dev/) [![⬇ Baixar para Windows](https://img.shields.io/badge/%E2%AC%87%20Baixar%20para%20Windows-v1.6.0%20%C2%B7%2042%20MB-25d366?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ivandneto/zapsticks-do-caos/releases/latest)
 
 <sub><b>No navegador</b> (computador ou celular), sem instalar: <a href="https://zapsticks.pages.dev/">zapsticks.pages.dev</a>. <b>No Windows</b>, com envio direto pelo WhatsApp: baixa, extrai, dá dois cliques. O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest">passo a passo para leigos</a> está na página de download.</sub>
+
+<sub>Curtiu? Deixa uma ⭐ <b>estrela</b> aqui no GitHub (canto de cima, à direita): ajuda mais gente a achar o projeto.</sub>
 
 </div>
 
