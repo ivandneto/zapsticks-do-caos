@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import QRCode from 'qrcode';
 import { pixCopiaECola } from '../lib/pix.js';
+import * as seo from '../web/seo.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist-web');
@@ -24,7 +25,17 @@ const index = path.join(out, 'index.html');
 const html = fs.readFileSync(index, 'utf8');
 const marcas = `<meta charset="utf-8">\n  <meta name="motor" content="navegador">\n  <meta name="versao" content="${pkg.version}-web">`;
 if (!html.includes('<meta charset="utf-8">')) throw new Error('index.html mudou: não achei <meta charset="utf-8">');
-fs.writeFileSync(index, html.replace('<meta charset="utf-8">', marcas));
+// 🔎 SEO. SITE_URL = endereço oficial (sem barra no fim). Na Cloudflare, só o branch main é indexado; prévias ficam fora do Google.
+const url = (process.env.SITE_URL || 'https://zapsticks.pages.dev').replace(/\/+$/, '');
+const indexar = !process.env.CF_PAGES_BRANCH || process.env.CF_PAGES_BRANCH === 'main';
+let pagina = html.replace('<meta charset="utf-8">', marcas).replace(/<title>[^<]*<\/title>/, seo.cabecalho({ url, indexar }));
+if (!pagina.includes('</main>')) throw new Error('index.html mudou: não achei </main>');
+pagina = pagina.replace('</main>', `</main>
+  ${seo.rodape()}`);
+fs.writeFileSync(index, pagina);
+fs.writeFileSync(path.join(out, 'robots.txt'), seo.robots({ url, indexar }));
+if (indexar) fs.writeFileSync(path.join(out, 'sitemap.xml'), seo.sitemap({ url }));
+fs.rmSync(path.join(out, 'web', 'seo.js'));
 
 // ☕ "Me paga um café": Pix copia e cola + QR (SVG) gerados aqui, a partir de web/apoio.json (dados públicos)
 const apoio = JSON.parse(fs.readFileSync(path.join(root, 'web', 'apoio.json'), 'utf8'));

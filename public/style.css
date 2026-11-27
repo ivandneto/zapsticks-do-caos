@@ -851,3 +851,13 @@ html:not(.web) .cafe-btn span { display: none; }
   .ed-right .emoji-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .ed-right .emoji-grid button { font-size: 18px; padding: 3px 0; }
 }
+
+/* 🔎 "Sobre" no fim do site (texto para quem chega pela busca) */
+.seo-sobre { max-width: 860px; margin: 0 auto 60px; padding: 0 16px; color: var(--dim); font-size: .9rem; }
+.seo-sobre h1 { font: 800 1.25rem var(--display); color: var(--text); margin: 0 0 8px; }
+.seo-sobre h2 { font: 800 1.05rem var(--display); color: var(--text); margin: 22px 0 8px; }
+.seo-sobre b { color: var(--text); }
+.seo-sobre details { border-bottom: 1px solid var(--line); padding: 8px 0; }
+.seo-sobre summary { cursor: pointer; color: var(--text); font-weight: 600; }
+.seo-sobre details p { margin: 6px 0 2px; }
+.seo-nota { margin-top: 18px; font-size: .78rem; opacity: .8; }
