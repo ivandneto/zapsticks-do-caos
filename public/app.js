@@ -70,7 +70,8 @@ if (document.querySelector('meta[name="motor"][content="navegador"]')) {
   }
   Object.assign(CAPS, { whatsapp: false, linkDownload: false, settings: false, publicLink: false });
   document.documentElement.classList.add('web');
-  const fb = document.querySelector('#fileBtn span'); if (fb) fb.textContent = 'Escolher arquivo'; // sem link no site: o arquivo é o caminho
+  const fb = document.querySelector('#fileBtn span'); if (fb) fb.textContent = 'Escolher arquivo';
+  const campoLink = document.querySelector('#url'); if (campoLink) campoLink.placeholder = 'Link do YouTube (o site grava o trecho)';
   // o navegador consegue gerar figurinha (WebP)? O Safari antigo não: avisa logo, em vez de falhar na hora de criar
   let geraWebp = false;
   try {
@@ -358,14 +359,14 @@ const siteIcon = (site) => SITE_ICON[site] || '🔗';
 function linkNoSite() {
   const h = $('#urlHint');
   h.classList.add('err');
-  h.innerHTML = `🔗 No site não dá para baixar de links (YouTube, Instagram, TikTok…). <b>Baixe o vídeo e envie o arquivo</b>, ou use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.`;
-  toast('Link não funciona no site: envie o arquivo do vídeo, ou use o app para Windows.', 'err');
+  h.innerHTML = `🔗 No site, só link do <b>YouTube</b> (ele é gravado enquanto toca). Instagram, TikTok e outros: <b>baixe o vídeo e envie o arquivo</b>, ou use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.`;
+  toast('Esse link não funciona no site: envie o arquivo do vídeo (do YouTube dá para colar o link).', 'err');
 }
 
 function loadAny(raw) {
   const s = String(raw || '').trim();
   if (!s) return;
-  if (!CAPS.linkDownload) return linkNoSite();
+  if (!CAPS.linkDownload && !parseVideoId(s)) return linkNoSite(); // no site, só o YouTube (gravado enquanto toca)
   if (parseVideoId(s)) return loadVideo(s);
   const link = s.match(/https?:\/\/\S+/)?.[0];
   if (!link) return hintErr('Cole um link (YouTube, Instagram, TikTok, X…) ou use o botão “Arquivo”.');
@@ -668,7 +669,7 @@ function render() {
   const onlyAudio = mode === 'audio' && (!vid.hasVideo || len > STICKER_MAX + 0.05);
   btn.innerHTML = off || !vid.kind ? label : onlyAudio ? '🎵 Criar áudio' : swapAudio && mode === 'sticker' ? '✨ Criar figurinha com som' : '✨ Criar figurinha';
   btn.disabled = off || creating;
-  const showFrame = cropApplies() && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
+  const showFrame = cropApplies() && !(isYT() && !CAPS.linkDownload) && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX));
   $('#frameBtn').hidden = !showFrame;
   $('#frameBtn').classList.toggle('on', !frameIsDefault());
   $('#frameBtn').textContent = frameIsDefault() ? '🔍 Enquadrar' : `🔍 Enquadrado (${frame.z.toFixed(2).replace(/0$/, '')}x)`;
@@ -680,7 +681,7 @@ function render() {
   drawFrameOverlay();
   drawSummary(label, off);
   // tirar o fundo com o som do vídeo: a animação sem fundo leva o som junto (até 5s, limite da figurinha animada com som)
-  $('#bgBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= ANIM_SOUND_MAX + 0.05)));
+  $('#bgBtn').hidden = !(vid.kind && vid.hasVideo && !(isYT() && !CAPS.linkDownload) && (mode === 'sticker' || (!isPicture() && len <= ANIM_SOUND_MAX + 0.05)));
   $('#txtBtn').hidden = !(vid.kind && vid.hasVideo && (mode === 'sticker' || (!isPicture() && len <= STICKER_MAX)));
   schedulePreview();
 }
@@ -974,6 +975,10 @@ $('#gainSeg').addEventListener('click', (e) => { const b = e.target.closest('but
 // ============ criar ============
 $('#createBtn').onclick = async () => {
   if (creating || !vid.kind) return;
+  if (isYT() && !CAPS.linkDownload) { // site: não baixa do YouTube; grava o trecho tocando
+    if (canRecord()) return recordAndRetry();
+    return toast(navigator.mediaDevices?.getDisplayMedia ? 'Espere o vídeo do YouTube carregar e tente de novo.' : 'Este navegador não grava a aba (no celular não dá). Baixe o vídeo e envie o arquivo, ou use o computador.', 'err');
+  }
   if (isYT() && Date.now() < ytBlockedUntil && canRecord()) return recordAndRetry();
   stopPreview();
   creating = true; render();
@@ -1159,6 +1164,7 @@ async function recordYtSegment(onMsg = () => {}) {
 async function recordAndRetry() {
   if (creating || !isYT()) return;
   if (!IN_APP_WINDOW && !(await confirmBox('🎙️ Gravar enquanto toca?',
+    !CAPS.linkDownload ? 'No site, o vídeo do YouTube é gravado enquanto toca. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe ligado “Compartilhar o áudio da aba”. Depois é só esperar o trecho tocar.' :
     'O YouTube bloqueou os downloads por um tempo. O app pode tocar o trecho e gravar a imagem e o som direto do player. O navegador vai pedir para compartilhar: escolha “Esta aba” e deixe o áudio ligado.',
     'Gravar o trecho'))) return;
   const keep = { title: $('#title').value, auto: $('#title').dataset.auto, len: sel.end - sel.start, name: vid.title || 'YouTube' };
@@ -1167,7 +1173,7 @@ async function recordAndRetry() {
   prog.hidden = false;
   for (const x of $$('li', prog)) { x.hidden = x !== li; x.className = x === li ? 'active' : ''; }
   const msg = (t) => { li.textContent = t; };
-  msg('🎙️ O YouTube bloqueou o download: gravando o trecho enquanto toca…');
+  msg(CAPS.linkDownload ? '🎙️ O YouTube bloqueou o download: gravando o trecho enquanto toca…' : '🎙️ Gravando o trecho enquanto toca…');
   creating = true; render();
   let ok = false;
   try {
@@ -1193,6 +1199,7 @@ async function recordAndRetry() {
 }
 
 function showCreated(s) {
+  if (!CAPS.whatsapp) return shareStickerWeb(s, { criada: true });
   if (!s.hasAudio) {
     // Stick: figurinha sem som
     openModal(`<div style="text-align:center"><img class="st-prev" src="/media/${s.id}.webp?v=${Date.now()}" alt="">
@@ -1515,7 +1522,7 @@ async function shareSticker(id) {
 }
 
 /** Versão web: baixar ou compartilhar (figurinha .webp, vídeo .mp4 com som, áudio .ogg), sem WhatsApp direto. */
-async function shareStickerWeb(s) {
+async function shareStickerWeb(s, { criada = false } = {}) {
   if (!s) return;
   const nome = (s.title || 'figurinha').replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'figurinha';
   const arquivo = async (ext, tipo) => new File([await (await apiRaw(`/media/${s.id}.${ext}`)).blob()], `${nome}.${ext}`, { type: tipo });
@@ -1524,9 +1531,9 @@ async function shareStickerWeb(s) {
   if (s.visual) linhas.push(['webp', 'image/webp', '🖼️ Figurinha', s.hasAudio ? 'sem som (o WhatsApp não guarda som no .webp)' : s.animated ? 'animada' : 'parada']);
   if (s.visual && s.hasAudio) linhas.push(['mp4', 'video/mp4', '🎞️ Vídeo com som', 'para criar a figurinha com som no WhatsApp']);
   if (s.hasAudio) linhas.push(['ogg', 'audio/ogg', '🎙️ Áudio', 'mensagem de voz']);
-  openModal(`<h3>${esc(s.emoji)} Baixar ou compartilhar</h3>
+  openModal(`<h3>${criada ? (s.kind === 'combo' ? 'Combinação criada! 🌀' : 'Figurinha criada! 🎉') : `${esc(s.emoji)} Baixar ou compartilhar`}</h3>
     ${s.visual ? `<div class="st-wrap"><img class="st-prev" src="/media/${s.id}.webp?v=${encodeURIComponent(s.createdAt)}" alt=""></div>` : ''}
-    <p style="text-align:center" class="small">${esc(s.title)}</p>
+    <p style="text-align:center" class="small">${esc(s.title)}${s.hasAudio ? ` · ${s.duration.toFixed(1)}s · <a href="#" data-ouvir>▶ ouvir</a>` : ''}</p>
     <div class="stack">${linhas.map(([ext, , titulo, sub]) => `<div class="get-row"><span><b>${titulo}</b><small>${sub}</small></span>
       ${podeCompartilhar ? `<button class="btn small wa" data-share="${ext}">${IC.share} Compartilhar</button>` : ''}
       <a class="btn small" href="/media/${s.id}.${ext}?download=1">${IC.dl} .${ext}</a></div>`).join('')}</div>
@@ -1537,6 +1544,7 @@ async function shareStickerWeb(s) {
       <p>Quer mandar direto, sem baixar? O <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a> faz isso.</p>
     </details>`, (b) => {
     b.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-ouvir]')) { e.preventDefault(); return playSticker(s.id); }
       const x = e.target.closest('[data-share]'); if (!x) return;
       const [ext, tipo] = linhas.find((l) => l[0] === x.dataset.share);
       try { await navigator.share({ files: [await arquivo(ext, tipo)], title: s.title }); }
@@ -1915,9 +1923,9 @@ const CREATE_TEXT = {
 };
 // no site: só arquivo (o campo de link some; ver html.web no CSS)
 if (!CAPS.linkDownload) Object.assign(CREATE_TEXT, {
-  step1: 'Escolha um vídeo, foto, GIF ou áudio',
-  hint: 'Clique em <b>📁 Escolher arquivo</b>, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V) uma imagem ou arquivo. Link (YouTube, Instagram, TikTok…) não funciona no site: para isso, use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
-  welcome: ['<b>Escolha</b> um vídeo, foto ou GIF do seu aparelho', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Baixe</b> ou <b>compartilhe</b> a figurinha, com ou sem som'],
+  step1: 'Escolha um arquivo ou cole um link do YouTube',
+  hint: '<b>Arquivo:</b> clique em 📁, <b>arraste</b> para cá ou <b>cole</b> (Ctrl+V). <b>YouTube:</b> cole o link; na hora de criar, o site toca o trecho e <b>grava</b> (no computador). Instagram, TikTok e outros: baixe o vídeo antes, ou use o <a href="https://github.com/ivandneto/zapsticks-do-caos/releases/latest" target="_blank" rel="noopener">app para Windows</a>, que baixa sozinho.',
+  welcome: ['<b>Escolha</b> um vídeo, foto ou GIF, ou cole um link do <b>YouTube</b>', '<b>Marque</b> o trecho e escolha o <b>som</b>: do vídeo, nenhum, um áudio seu ou a sua voz', '<b>Baixe</b> ou <b>compartilhe</b> a figurinha, com ou sem som'],
 });
 const MODE_TEXT = { audio: CREATE_TEXT, sticker: CREATE_TEXT };
 
@@ -2842,7 +2850,7 @@ function tourSteps() {
     { el: '#waPill', emoji: '💬', title: 'Conexão com o WhatsApp', text: 'Aqui você vê se o WhatsApp está conectado. Clique para ler o <b>QR code</b> uma única vez — igual ao WhatsApp Web.' },
     { el: '#targetBtn', emoji: '🎯', title: 'Para quem enviar', text: 'Em qualquer aba: escolha <b>você</b>, um <b>contato</b>, um <b>grupo</b> ou um <b>número</b>. Abre um painel do lado direito, e vale para todos os botões verdes de envio até você trocar.' },
     CAPS.linkDownload ? { el: '#urlForm', tab: C, emoji: '🔗', title: '1. Cole o link ou envie um arquivo', text: '<b>YouTube</b> abre na hora; <b>Instagram, TikTok, X, Facebook</b> e outros são baixados antes. Ou clique em <b>📁 Arquivo</b> — dá até para arrastar ou colar (Ctrl+V) um vídeo, foto ou GIF.' }
-      : { el: '#urlForm', tab: C, emoji: '📁', title: '1. Escolha um arquivo', text: 'Um <b>vídeo, foto, GIF ou áudio</b> do seu aparelho: pelo botão, <b>arrastando</b> para a tela ou <b>colando</b> (Ctrl+V). Link do YouTube, Instagram ou TikTok não funciona no site: baixe o vídeo antes, ou use o <b>app para Windows</b>, que baixa sozinho.' },
+      : { el: '#urlForm', tab: C, emoji: '📁', title: '1. Arquivo ou YouTube', text: 'Um <b>vídeo, foto, GIF ou áudio</b> do seu aparelho (botão, <b>arrastar</b> ou <b>colar</b> com Ctrl+V), ou um link do <b>YouTube</b>: na hora de criar, o site toca o trecho e <b>grava</b> (no computador, escolha “Esta aba” com o áudio). Instagram e TikTok: baixe o vídeo antes, ou use o <b>app para Windows</b>.' },
   ];
   if (editorOn) {
     steps.push(
