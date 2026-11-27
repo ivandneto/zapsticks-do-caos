@@ -4,7 +4,7 @@
 
 ### *Audio Sticks: porque mandar "kkkkkk" já não basta.*
 
-O **Audio Sticks**, carinhosamente o **ZapSticks do Caos** 🌀, transforma **qualquer trecho de vídeo** (YouTube, Instagram, TikTok, X, Facebook ou um arquivo seu) em **figurinha com som** e manda direto no **WhatsApp**.
+Transforma **qualquer trecho de vídeo** (YouTube, Instagram, TikTok, X, Facebook ou um arquivo seu) em um **ZapStick do Caos** 🌀: uma figurinha com som, pronta para mandar direto no **WhatsApp**.
 Para você, para um contato, para o grupo da família às 6h da manhã. A responsabilidade é sua. 🫡
 
 ![Node](https://img.shields.io/badge/Node-22.5%2B-3c873a?logo=nodedotjs&logoColor=white)
@@ -37,7 +37,7 @@ Para você, para um contato, para o grupo da família às 6h da manhã. A respon
 Sabe aquele momento do vídeo que **resume perfeitamente** o que você quer dizer no grupo?
 Pois é. Agora ele vira figurinha. Com som. Em três cliques.
 
-Esse é o propósito do **ZapSticks do Caos**: transformar o grupo da família, o do futebol e o da firma num lugar um pouco mais caótico (e muito mais engraçado). O nome no instalador e na tela é **Audio Sticks**; o espírito é o ZapSticks do Caos.
+Esse é o propósito do **ZapStick do Caos**: transformar o grupo da família, o do futebol e o da firma num lugar um pouco mais caótico (e muito mais engraçado). O nome no instalador e na tela é **Audio Sticks**; o espírito é o ZapSticks do Caos.
 
 ```
  🎬 vídeo  ──►  ✂️ recorta  ──►  🎨 vira figurinha  ──►  💬 WhatsApp  ──►  😂 caos instaurado
